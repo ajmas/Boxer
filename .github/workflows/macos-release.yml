@@ -3,7 +3,7 @@ on:
     types: [created]
     # Sequence of patterns matched against refs/tags
     tags:
-    - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
+    - '[0-9]+.*' # Push events to matching 1.0, 2.0, 1.0.1-alpha
 
 name: Upload Release Asset
 
@@ -17,7 +17,7 @@ jobs:
       - name: Get dependencies
         run: git submodule update --init --recursive
       - name: Update the version before building
-        run: agvtool new-marketing-version ${GITHUB_REF#refs/tags/}
+        run: agvtool new-marketing-version ${GITHUB_REF#refs/tags/v}
       - name: Build the project
         run: xcodebuild -derivedDataPath ./build -workspace Boxer.xcworkspace -scheme "Boxer CI" -configuration "Release"
       - name: Package the release artefacts
@@ -29,5 +29,5 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ github.ref }}
           file: ./Boxer.dmg
-          asset_name: Boxer-${GITHUB_REF#refs/tags/}.dmg
+          asset_name: Boxer-${{GITHUB_REF#refs/tags/v}}.dmg
           overwrite: true
