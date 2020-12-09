@@ -66,19 +66,19 @@ void MSCDEX_SetCDInterface(int intNr, int forceCD);
 + (NSArray *) floppyDriveLetters
 {
 	static NSArray *letters = nil;
-	if (!letters) letters = [[[self driveLetters] subarrayWithRange: NSMakeRange(0, 24)] retain];
+	if (!letters) letters = [[self driveLetters] subarrayWithRange: NSMakeRange(0, 24)];
 	return letters;
 }
 + (NSArray *) hardDriveLetters
 {
 	static NSArray *letters = nil;
-	if (!letters) letters = [[[self driveLetters] subarrayWithRange: NSMakeRange(2, 22)] retain];
+	if (!letters) letters = [[self driveLetters] subarrayWithRange: NSMakeRange(2, 22)];
 	return letters;
 }
 + (NSArray *) CDROMDriveLetters
 {
 	static NSArray *letters = nil;
-	if (!letters) letters = [[[self driveLetters] subarrayWithRange: NSMakeRange(3, 22)] retain];
+	if (!letters) letters = [[self driveLetters] subarrayWithRange: NSMakeRange(3, 22)];
 	return letters;	
 }
 
@@ -242,7 +242,7 @@ void MSCDEX_SetCDInterface(int intNr, int forceCD);
                 break;
                 
             default:
-                NSAssert1(NO, @"Drive type cannot be mounted: %i", drive.type);
+                NSAssert1(NO, @"Drive type cannot be mounted: %li", (long)drive.type);
         }
     }
     else
@@ -269,7 +269,7 @@ void MSCDEX_SetCDInterface(int intNr, int forceCD);
                 break;
                 
             default:
-                NSAssert1(NO, @"Drive type cannot be mounted: %i", drive.type);
+                NSAssert1(NO, @"Drive type cannot be mounted: %li", (long)drive.type);
         }
     }
     
@@ -283,8 +283,9 @@ void MSCDEX_SetCDInterface(int intNr, int forceCD);
 			if (!isImage && driveLabel)
 			{
 				const char *cLabel = [driveLabel cStringUsingEncoding: BXDirectStringEncoding];
-				if (cLabel)
+                if (cLabel) {
 					DOSBoxDrive->SetLabel(cLabel, drive.isCDROM, false);
+                }
 			}
 			
 			//Populate the drive with the settings we ended up using, and add the drive to our own drives cache
@@ -527,7 +528,7 @@ void MSCDEX_SetCDInterface(int intNr, int forceCD);
     //Otherwise, ask the drive itself
     const char *cPath = [dosPath cStringUsingEncoding: BXDirectStringEncoding];
     
-    return dosDrive->FileExists(cPath) || dosDrive->TestDir(cPath);
+    return dosDrive->FileExists(cPath) || dosDrive->TestDir((char*)cPath);
 }
 
 - (BXDrive *) currentDrive
@@ -760,9 +761,7 @@ void MSCDEX_SetCDInterface(int intNr, int forceCD);
     //into its DOS 8.3 equivalent.
     NSUInteger subpathsAdded = 0;
 	for (NSString *fileName in subPath.pathComponents)
-	{
-		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
-		
+	@autoreleasepool {
         //We use DOSBox's own cache API to convert a real file path into its
         //corresponding DOS 8.3 name: starting at the base path of the drive,
         //and converting each component of the desired path into its DOS 8.3
@@ -785,7 +784,7 @@ void MSCDEX_SetCDInterface(int intNr, int forceCD);
             //FIXME: getShortName will always fail for ISO9660 images, which do not (cannot) track long
             //filenames but instead use the ISO filesystem's names. To correctly resolve the paths that
             //OS X sees, we would need to be able to compare ISO vs Joliet names in the image's filesystem.
-			hasShortName = DOSBoxDrive->getShortName(cDirPath, cFileName, buffer);
+            hasShortName = DOSBoxDrive->getShortName(cDirPath, cFileName, buffer);
 		}
         
 		if (hasShortName)
@@ -815,7 +814,6 @@ void MSCDEX_SetCDInterface(int intNr, int forceCD);
         //base path.
 		[frankenDirPath appendFormat: @"/%@", dosName];
 		
-		[pool release];
         subpathsAdded++;
 	}
 	return dosPath;
@@ -1048,7 +1046,7 @@ void MSCDEX_SetCDInterface(int intNr, int forceCD);
                                   forIndex: (NSUInteger)index
                                      error: (NSError **)outError
 {
-	MSCDEX_SetCDInterface(CDROM_USE_SDL, -1);
+	//MSCDEX_SetCDInterface(CDROM_USE_SDL, -1);
 	
 	char driveLetter		= index + 'A';
 	const char *drivePath	= [path cStringUsingEncoding: BXDirectStringEncoding];
@@ -1127,8 +1125,10 @@ void MSCDEX_SetCDInterface(int intNr, int forceCD);
                               error: (NSError **)outError
 {
 	BXDriveGeometry geometry = BXCDROMGeometry;
-	 
-	int SDLCDNum = -1;
+    
+#if !defined(C_SDL2)
+    int SDLCDNum = -1;
+	
 	
 	//Check that any audio CDs are actually present before enabling CD audio:
 	//this fixes Warcraft II's copy protection, which will fail if audio tracks
@@ -1138,9 +1138,10 @@ void MSCDEX_SetCDInterface(int intNr, int forceCD);
         //NOTE: SDL's CD audio API for OS X only ever exposes one CD, which will be #0.
         SDLCDNum = 0;
 	}
-	
+#endif
+    
 	//NOTE: ioctl is currently unimplemented for OS X in DOSBox 0.74, so this will always fall back to SDL.
-	MSCDEX_SetCDInterface(CDROM_USE_IOCTL_DIO, SDLCDNum);
+	//MSCDEX_SetCDInterface(CDROM_USE_IOCTL_DIO, SDLCDNum);
 	
 	char driveLetter		= index + 'A';
 	const char *drivePath	= [path cStringUsingEncoding: BXDirectStringEncoding];

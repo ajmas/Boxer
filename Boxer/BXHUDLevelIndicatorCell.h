@@ -7,18 +7,14 @@
 
 #import <AppKit/AppKit.h>
 
-//BXHUDLevelIndicatorCell is a shadowed white level indicator
-//designed for bezel notifications.
+/// BXHUDLevelIndicatorCell is a shadowed white level indicator
+/// designed for bezel notifications.
 @interface BXHUDLevelIndicatorCell : NSLevelIndicatorCell
-{
-	NSColor *indicatorColor;
-	NSShadow *indicatorShadow;
-}
 
 @property (copy, nonatomic) NSColor *indicatorColor;
 @property (copy, nonatomic) NSShadow *indicatorShadow;
 
-//Returns the height used for the level indicator at the specified control size
+/// Returns the height used for the level indicator at the specified control size
 + (CGFloat) heightForControlSize: (NSControlSize)size;
 
 @end

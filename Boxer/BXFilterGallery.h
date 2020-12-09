@@ -6,31 +6,29 @@
  */
 
 
-//BXFilterGallery draws Boxer's rendering filter gallery in the preferences pane. It consists of
-//the BXFilterGallery view that renders a graphical background, containing BXFilterPortrait
-//buttons for each option.
-
 #import <Cocoa/Cocoa.h>
 
+/// \c BXFilterGallery draws Boxer's rendering filter gallery in the preferences pane. It consists of
+/// the \c BXFilterGallery view that renders a graphical background, containing BXFilterPortrait
+/// buttons for each option.
 @interface BXFilterGallery : NSView
 @end
 
 @interface BXFilterPortrait : NSButton
-{
-	CGFloat _illumination;
-}
-//The current illumination, which controls the brightness of the portrait and the opacity of the
-//spotlight. This is animatable via -animator and will change automatically when the button's state
-//is toggled on or off.
-@property (assign, nonatomic) CGFloat illumination;
+
+/// The current illumination, which controls the brightness of the portrait and the opacity of the
+/// spotlight. This is animatable via -animator and will change automatically when the button's state
+/// is toggled on or off.
+@property (nonatomic) CGFloat illumination;
+
 @end
 
 @interface BXFilterPortraitCell : NSButtonCell
 
-//Methods defining how the button title text should be rendered
-- (NSColor *) titleColor;
-- (NSShadow *) titleShadow;
-- (NSDictionary *) titleAttributes;
+/// Methods defining how the button title text should be rendered
+@property (readonly, nonatomic) NSColor *titleColor;
+@property (readonly, nonatomic) NSShadow *titleShadow;
+@property (readonly, nonatomic) NSDictionary *titleAttributes;
 
 - (void) drawSpotlightWithFrame: (NSRect)frame inView: (NSView *)controlView withAlpha: (CGFloat)alpha;
 

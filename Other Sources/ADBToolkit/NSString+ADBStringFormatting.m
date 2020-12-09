@@ -63,7 +63,7 @@
 
 - (NSEnumerator *) lineEnumerator
 {
-	return [[[ADBLineEnumerator alloc] initWithString: self] autorelease];
+	return [[ADBLineEnumerator alloc] initWithString: self];
 }
 
 - (NSArray *) componentsSplitAtLineLength: (NSUInteger)maxLength atWordBoundaries: (BOOL)wordWrap
@@ -71,7 +71,7 @@
 	NSUInteger length = self.length;
 	
 	//We will stuff all our actual lines into this
-	NSMutableArray *wrappedLines = [NSMutableArray arrayWithCapacity: (NSUInteger)ceilf(length / (float)maxLength)];
+	NSMutableArray *wrappedLines = [NSMutableArray arrayWithCapacity: (NSUInteger)ceil(length / (double)maxLength)];
 	
 	//Walk over every line of the string
 	for (NSString *line in self.lineEnumerator)
@@ -110,7 +110,7 @@
 - (NSArray *) _linesWrappedByWordAtLength: (NSUInteger)maxLength
 {
 	NSUInteger length = self.length;
-	NSMutableArray *lines = [NSMutableArray arrayWithCapacity: (NSUInteger)ceilf(length / (float)maxLength)];
+	NSMutableArray *lines = [NSMutableArray arrayWithCapacity: (NSUInteger)ceil(length / (double)maxLength)];
 	
 	//IMPLEMENTATION NOTE: we've already split on linebreaks upstream in componentsSplitAtLineLength:atWordBoundaries,
 	//so we don't check for them again here. It would probably be quicker to do it all in one go here though.
@@ -147,7 +147,6 @@
 	//Push the final line
 	if (currentLine.length) [lines addObject: [NSString stringWithString: currentLine]];
 	
-	[currentLine release];
 	return lines;
 }
 
@@ -156,7 +155,7 @@
 	NSUInteger length = self.length;
 	NSUInteger offset = 0;
 	
-	NSMutableArray *lines = [NSMutableArray arrayWithCapacity: (NSUInteger)ceilf(length / (float)maxLength)];
+	NSMutableArray *lines = [NSMutableArray arrayWithCapacity: (NSUInteger)ceil(length / (double)maxLength)];
 	
 	while (offset < length)
 	{

@@ -12,11 +12,6 @@
 #import <QuartzCore/QuartzCore.h>
 
 @implementation BXPrintStatusPanelController
-@synthesize numPages = _numPages;
-@synthesize inProgress = _inProgress;
-@synthesize activePrinterPort = _activePrinterPort;
-@synthesize localizedPaperName = _localizedPaperName;
-@synthesize preview = _preview;
 
 - (void) windowDidLoad
 {
@@ -25,22 +20,8 @@
     self.window.frameAutosaveName = @"PrintStatusPanel";
     self.window.level = NSNormalWindowLevel;
     
-    if ([self.window respondsToSelector: @selector(setAnimationBehavior:)])
-    {
-        self.window.animationBehavior = NSWindowAnimationBehaviorUtilityWindow;
-    }
-    
-    if ([self.window respondsToSelector: @selector(setCollectionBehavior:)])
-    {
-        self.window.collectionBehavior |= NSWindowCollectionBehaviorCanJoinAllSpaces | NSWindowCollectionBehaviorFullScreenAuxiliary;
-    }
-}
-
-- (void) dealloc
-{
-    self.localizedPaperName = nil;
-    self.preview = nil;
-    [super dealloc];
+    self.window.animationBehavior = NSWindowAnimationBehaviorUtilityWindow;
+    self.window.collectionBehavior |= NSWindowCollectionBehaviorCanJoinAllSpaces | NSWindowCollectionBehaviorFullScreenAuxiliary;
 }
 
 
@@ -139,10 +120,10 @@
 
 @interface BXPrintPreview ()
 
-@property (retain, nonatomic) CALayer *currentPage;
-@property (retain, nonatomic) CALayer *previousPage;
-@property (retain, nonatomic) CALayer *paperFeed;
-@property (retain, nonatomic) CALayer *head;
+@property (strong, nonatomic) CALayer *currentPage;
+@property (strong, nonatomic) CALayer *previousPage;
+@property (strong, nonatomic) CALayer *paperFeed;
+@property (strong, nonatomic) CALayer *head;
 
 @property (assign, nonatomic) CGSize pageSize;
 @property (assign, nonatomic) CGSize dpi;
@@ -150,16 +131,9 @@
 @end
 
 @implementation BXPrintPreview
-
-@synthesize currentPage = _currentPage;
-@synthesize previousPage = _previousPage;
-@synthesize paperFeed = _paperFeed;
-@synthesize head = _head;
-
-@synthesize headOffset = _headOffset;
-@synthesize feedOffset = _feedOffset;
-@synthesize pageSize = _pageSize;
-@synthesize dpi = _dpi;
+{
+	CGImageRef _paperTexture;
+}
 
 - (void) awakeFromNib
 {
@@ -275,8 +249,7 @@
     self.wantsLayer = YES;
     
     //For 10.9: fixes crash when using compositing filters.
-    if ([self respondsToSelector: @selector(setLayerUsesCoreImageFilters:)])
-        self.layerUsesCoreImageFilters = YES;
+    self.layerUsesCoreImageFilters = YES;
     
     [self _syncPagePosition];
     [self _syncHeadPosition];
@@ -284,15 +257,8 @@
 
 - (void) dealloc
 {
-    self.currentPage = nil;
-    self.previousPage = nil;
-    self.paperFeed = nil;
-    self.head = nil;
-    
     CGImageRelease(_paperTexture);
     _paperTexture = NULL;
-    
-    [super dealloc];
 }
 
 - (void) drawLayer: (CALayer *)layer inContext: (CGContextRef)ctx

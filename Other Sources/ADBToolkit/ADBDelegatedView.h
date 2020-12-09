@@ -25,13 +25,12 @@
  */
 
 
-//ADBDelegatedView is a base class for views that have a delegate.
-//Currently drag-drop are passed on to the delegate, if it implements
-//the appropriate methods.
-
 #import <Cocoa/Cocoa.h>
 
-@interface ADBDelegatedView : NSView
+/// @c ADBDelegatedView is a base class for views that have a delegate.
+/// Currently drag-drop are passed on to the delegate, if it implements
+/// the appropriate methods.
+@interface ADBDelegatedView : NSView <NSDraggingDestination>
 {
     __unsafe_unretained id _delegate;
 	NSDragOperation _draggingEnteredResponse;

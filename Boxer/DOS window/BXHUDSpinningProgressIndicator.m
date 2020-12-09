@@ -9,7 +9,6 @@
 #import "NSShadow+ADBShadowExtensions.h"
 
 @implementation BXHUDSpinningProgressIndicator
-@synthesize dropShadow = _dropShadow;
 
 - (void) awakeFromNib
 {
@@ -19,12 +18,6 @@
     self.dropShadow = [NSShadow shadowWithBlurRadius: 2.0f
                                               offset: NSMakeSize(0, -1.0f)
                                                color: [NSColor colorWithCalibratedWhite: 0.0 alpha: 0.5]];
-}
-
-- (void) dealloc
-{
-    self.dropShadow = nil;
-    [super dealloc];
 }
 
 - (void) drawRect: (NSRect)dirtyRect

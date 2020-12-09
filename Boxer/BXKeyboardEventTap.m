@@ -16,10 +16,10 @@
 @interface BXKeyboardEventTap ()
 
 /// The dedicated thread on which our tap runs. Only used if @c usesDedicatedThread is YES.
-@property (retain) ADBContinuousThread *tapThread;
+@property (strong) ADBContinuousThread *tapThread;
 
 //Overridden to be read-write.
-@property (readwrite, getter=isTapping) BXKeyboardEventTapStatus status;
+@property (readwrite) BXKeyboardEventTapStatus status;
 @property (readwrite) BOOL restartNeeded;
 
 ///Our CGEventTap callback. Receives the BXKeyboardEventTap instance as the userInfo parameter, and passes handling directly on to it.
@@ -48,12 +48,10 @@ static CGEventRef _handleEventFromTap(CGEventTapProxy proxy, CGEventType type, C
 
 
 @implementation BXKeyboardEventTap
-@synthesize enabled = _enabled;
-@synthesize usesDedicatedThread = _usesDedicatedThread;
-@synthesize tapThread = _tapThread;
-@synthesize delegate = _delegate;
-@synthesize status = _status;
-@synthesize restartNeeded = _restartNeeded;
+{
+	CFMachPortRef _tap;
+	CFRunLoopSourceRef _source;
+}
 
 - (id) init
 {
@@ -70,9 +68,6 @@ static CGEventRef _handleEventFromTap(CGEventTapProxy proxy, CGEventType type, C
     [[NSNotificationCenter defaultCenter] removeObserver: self];
     
     [self _stopTapping];
-    self.tapThread = nil;
-    
-    [super dealloc];
 }
 
 - (void) setEnabled: (BOOL)flag
@@ -109,12 +104,12 @@ static CGEventRef _handleEventFromTap(CGEventTapProxy proxy, CGEventType type, C
 
 + (BOOL) canCaptureKeyEvents
 {
-    return AXAPIEnabled() || AXIsProcessTrusted();
+    return AXIsProcessTrustedWithOptions(NULL);
 }
 
 - (BXKeyboardEventTapStatus) _reportedStatusOfEventTap
 {
-    NSUInteger i, numTaps = 0;
+    uint32_t i, numTaps = 0;
     CGGetEventTapList(0, NULL, &numTaps);
     
     BXKeyboardEventTapStatus status = BXKeyboardEventTapNotTapping;
@@ -250,9 +245,9 @@ static CGEventRef _handleEventFromTap(CGEventTapProxy proxy, CGEventType type, C
         if (self.usesDedicatedThread)
         {
             NSLog(@"Installing event tap on dedicated thread.");
-            self.tapThread = [[[ADBContinuousThread alloc] initWithTarget: self
+            self.tapThread = [[ADBContinuousThread alloc] initWithTarget: self
                                                                  selector: @selector(_runTapInDedicatedThread)
-                                                                   object: nil] autorelease];
+                                                                   object: nil];
             
             [self.tapThread start];
         }
@@ -267,7 +262,7 @@ static CGEventRef _handleEventFromTap(CGEventTapProxy proxy, CGEventType type, C
 
 - (void) _runTapInDedicatedThread
 {
-    NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+    @autoreleasepool {
     
     BOOL installed = [self _installEventTapOnCurrentThread];
     [self.delegate eventTapDidFinishAttaching: self];
@@ -282,7 +277,7 @@ static CGEventRef _handleEventFromTap(CGEventTapProxy proxy, CGEventType type, C
         [self _removeEventTapFromCurrentThread];
     }
     
-    [pool drain];
+    }
 }
 
 - (void) _stopTapping
@@ -400,13 +395,13 @@ static CGEventRef _handleEventFromTap(CGEventTapProxy proxy, CGEventType type, C
 {
     CGEventRef returnedEvent = event;
     
-    NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+    @autoreleasepool {
     BXKeyboardEventTap *tap = (__bridge BXKeyboardEventTap *)userInfo;
     if (tap)
     {
         returnedEvent = [tap _handleEvent: event ofType: type fromProxy: proxy];
     }
-    [pool drain];
+    }
     
     return returnedEvent;
 }

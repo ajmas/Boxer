@@ -6,49 +6,53 @@
  */
 
 
+#import <Foundation/Foundation.h>
+#import "BXMIDIDevice.h"
+
 //BXEmulatorDelegate is a protocol declaring the interface necessary for delegates of BXEmulator.
 //(In practice the only implementor of this protocol is BXSession, but defining a protocol with
 //the delegate methods BXEmulator needs keeps everyone's responsibilities clear.)
 
 
+NS_ASSUME_NONNULL_BEGIN
 
 #pragma mark - Notification constants
 
 /// Sent when the emulator is about to start emulating.
-extern NSString * const BXEmulatorWillStartNotification;
+extern NSNotificationName const BXEmulatorWillStartNotification;
 
 /// Sent when the emulator has initialized all its modules.
-extern NSString * const BXEmulatorDidInitializeNotification;
+extern NSNotificationName const BXEmulatorDidInitializeNotification;
 
 /// Sent when the emulator is about to execute its AUTOEXEC.BAT startup commands.
-extern NSString * const BXEmulatorWillRunStartupCommandsNotification;
+extern NSNotificationName const BXEmulatorWillRunStartupCommandsNotification;
 
 /// Sent when the emulator has finished exiting.
-extern NSString * const BXEmulatorDidFinishNotification;
+extern NSNotificationName const BXEmulatorDidFinishNotification;
 
 /// Sent when the emulator is about to launch a new program.
-extern NSString * const BXEmulatorWillStartProgramNotification;
+extern NSNotificationName const BXEmulatorWillStartProgramNotification;
 
 /// Sent when the current program has just exited, restoring control to the previous program (if any).
-extern NSString * const BXEmulatorDidFinishProgramNotification;
+extern NSNotificationName const BXEmulatorDidFinishProgramNotification;
 
 /// Sent when the emulator has just started a new COMMAND.COM shell or returned control to a previous one.
-extern NSString * const BXEmulatorDidReturnToShellNotification;
+extern NSNotificationName const BXEmulatorDidReturnToShellNotification;
 
 /// Sent when the emulator changes state in some way that is not covered by an existing notification.
-extern NSString * const BXEmulatorDidChangeEmulationStateNotification;
+extern NSNotificationName const BXEmulatorDidChangeEmulationStateNotification;
 
 /// Sent when the emulator has just switched into a graphical (non-text) video mode.
-extern NSString * const BXEmulatorDidBeginGraphicalContextNotification;
+extern NSNotificationName const BXEmulatorDidBeginGraphicalContextNotification;
 
 /// Sent when the emulator has just switched into a text video mode.
-extern NSString * const BXEmulatorDidFinishGraphicalContextNotification;
+extern NSNotificationName const BXEmulatorDidFinishGraphicalContextNotification;
 
 /// Sent when the emulator has just created a new file in the local filesystem.
-extern NSString * const BXEmulatorDidCreateFileNotification;
+extern NSNotificationName const BXEmulatorDidCreateFileNotification;
 
 /// Sent when the emulator has just removed a file from the local filesystem.
-extern NSString * const BXEmulatorDidRemoveFileNotification;
+extern NSNotificationName const BXEmulatorDidRemoveFileNotification;
 
 
 #pragma mark Process info dictionary keys
@@ -66,7 +70,7 @@ extern NSString * const BXEmulatorIsBatchFileKey;
 /// An NSNumber boolean recording whether the process is an instance of DOSBox's COMMAND.COM.
 extern NSString * const BXEmulatorIsShellKey;
 
-/// The BXDrive on which the program is located. This will be Z for built-in programs.
+/// The @c BXDrive on which the program is located. This will be Z for built-in programs.
 extern NSString * const BXEmulatorDriveKey;
 
 /// The OSX filesystem URL corresponding to the file.
@@ -77,10 +81,10 @@ extern NSString * const BXEmulatorFileURLKey;
 /// This key will not be present if the file is located on a virtual drive.
 extern NSString * const BXEmulatorLogicalURLKey;
 
-/// The NSDate on which the program was launched.
+/// The @c NSDate on which the program was launched.
 extern NSString * const BXEmulatorLaunchDateKey;
 
-/// The NSDate on which the program finished (only present in the userinfo dictionary for @c BXEmulatorDidFinishProgramNotifications.)
+/// The @c NSDate on which the program finished (only present in the userinfo dictionary for @c BXEmulatorDidFinishProgramNotifications .)
 extern NSString * const BXEmulatorExitDateKey;
 
 
@@ -89,7 +93,6 @@ extern NSString * const BXEmulatorExitDateKey;
 @class BXVideoFrame;
 @class BXEmulator;
 @class BXDrive;
-@protocol BXMIDIDevice;
 
 /// A protocol for controllers of a @c BXEmulator instance. Delegates are required to implement many methods
 /// providing information about the context in which the emulator is operating and responding to its many changes of state.
@@ -107,7 +110,7 @@ extern NSString * const BXEmulatorExitDateKey;
 /// in the order in which they should be loaded. (Standard DOSBox configuration precedence applies, so settings in later configurations
 /// will override earlier ones while [autoexec] sections will be chained together.)
 /// May return nil or an empty array, which will cause no configuration files to be loaded.
-- (NSArray *) configurationURLsForEmulator: (BXEmulator *)emulator;
+- (nullable NSArray<NSURL*> *) configurationURLsForEmulator: (BXEmulator *)emulator;
 
 /// Called after every frame is finished to provide the delegate with the newly-rendered frame.
 /// @param emulator The emulator which has rendered the frame.
@@ -190,19 +193,19 @@ extern NSString * const BXEmulatorExitDateKey;
 
 /// Sent when the emulator mounts a new DOS drive.
 /// The @c userInfo of the notification contains the drive that was mounted under the @c drive key.
-extern NSString * const BXEmulatorDriveDidMountNotification;
+extern NSNotificationName const BXEmulatorDriveDidMountNotification;
 
 /// Sent when the emulator unmounts a DOS drive.
 /// The @c userInfo of the notification contains the drive that was unmounted under the @c drive key.
-extern NSString * const BXEmulatorDriveDidUnmountNotification;
+extern NSNotificationName const BXEmulatorDriveDidUnmountNotification;
 
 /// Sent when the emulator creates a new file in the OS X filesystem.
 /// The @c userInfo of the notification contains details of the file that was created.
-extern NSString * const BXEmulatorDidCreateFileNotification;
+extern NSNotificationName const BXEmulatorDidCreateFileNotification;
 
 /// Sent when the emulator deletes a file from the OS X filesystem.
 /// The @c userInfo of the notification contains details of the file that was removed.
-extern NSString * const BXEmulatorDidRemoveFileNotification;
+extern NSNotificationName const BXEmulatorDidRemoveFileNotification;
 
 
 /// An ancillary protocol for delegate methods concerning the DOS filesystem.
@@ -221,23 +224,23 @@ extern NSString * const BXEmulatorDidRemoveFileNotification;
 
 /// Called when the emulator wants to capture output to a file.
 /// Return an open file handle which will later be closed by the emulator once capturing is complete.
-/// Return nil if the emulator is not permitted to capture files.
-- (FILE *) emulator: (BXEmulator *)emulator openCaptureFileOfType: (NSString *)captureType extension: (NSString *)extension;
+/// Return @c nil if the emulator is not permitted to capture files.
+- (nullable FILE *) emulator: (BXEmulator *)emulator openCaptureFileOfType: (NSString *)captureType extension: (NSString *)extension;
 
 @optional
 
-/// Called when a DOS drive has been mounted. Corresponds to @c BXEmulatorDriveDidMountNotification.
+/// Called when a DOS drive has been mounted. Corresponds to @c BXEmulatorDriveDidMountNotification .
 - (void) emulatorDidMountDrive: (NSNotification *)notification;
 
-/// Called when a DOS drive has been unmounted. Corresponds to @c BXEmulatorDriveDidUnmountNotification.
+/// Called when a DOS drive has been unmounted. Corresponds to @c BXEmulatorDriveDidUnmountNotification .
 - (void) emulatorDidUnmountDrive: (NSNotification *)notification;
 
 /// Called when the emulator creates a new file in the OS X filesystem.
-/// Corresponds to @c BXEmulatorDidCreateFileNotification.
+/// Corresponds to @c BXEmulatorDidCreateFileNotification .
 - (void) emulatorDidCreateFile: (NSNotification *)notification;
 
 /// Called when the emulator deletes a file from the OS X filesystem.
-/// Corresponds to @c BXEmulatorDidRemoveFileNotification.
+/// Corresponds to @c BXEmulatorDidRemoveFileNotification .
 - (void) emulatorDidRemoveFile: (NSNotification *)notification;
 
 @end
@@ -247,7 +250,7 @@ extern NSString * const BXEmulatorDidRemoveFileNotification;
 
 /// Sent when the emulator has just sent a new message to the MT-32's LCD display.
 /// The notification's userInfo dictionary contains the text of the message that was displayed under the @"message" key.
-extern NSString * const BXEmulatorDidDisplayMT32MessageNotification;
+extern NSNotificationName const BXEmulatorDidDisplayMT32MessageNotification;
 
 /// An ancillary protocol for delegate methods concerning audio output.
 @protocol BXEmulatorAudioDelegate <NSObject>
@@ -257,7 +260,7 @@ extern NSString * const BXEmulatorDidDisplayMT32MessageNotification;
 /// @param description  A description of the desired capabilities of the MIDI device.
 /// @see BXEmulator+BXAudio for a list of MIDI device description keys and their possible values.
 - (id <BXMIDIDevice>) MIDIDeviceForEmulator: (BXEmulator *)emulator
-                         meetingDescription: (NSDictionary *)description;
+                         meetingDescription: (NSDictionary<NSString*,id> *)description;
 
 @optional
 
@@ -276,3 +279,5 @@ extern NSString * const BXEmulatorDidDisplayMT32MessageNotification;
 - (void) emulatorDidDisplayMT32Message: (NSNotification *)notification;
 
 @end
+
+NS_ASSUME_NONNULL_END

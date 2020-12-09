@@ -105,14 +105,14 @@
 	
     [maskedImage lockFocus];
         [color set];
-        NSRectFillUsingOperation(imageRect, NSCompositeSourceOver);
+        NSRectFillUsingOperation(imageRect, NSCompositingOperationSourceOver);
         [sourceImage drawInRect: imageRect
 					   fromRect: NSZeroRect
-					  operation: NSCompositeDestinationIn 
+					  operation: NSCompositingOperationDestinationIn 
 					   fraction: 1.0f];
     [maskedImage unlockFocus];
 	
-    return [maskedImage autorelease];
+    return maskedImage;
 }
 
 - (NSImage *) imageMaskedByImage: (NSImage *)image atSize: (NSSize)targetSize
@@ -127,11 +127,11 @@
     [maskedImage lockFocus];
         [image drawInRect: imageRect
                  fromRect: NSZeroRect
-                operation: NSCompositeDestinationIn 
+                operation: NSCompositingOperationDestinationIn 
                  fraction: 1.0f];
     [maskedImage unlockFocus];
     
-    return [maskedImage autorelease];
+    return maskedImage;
 }
 
 - (void) drawInRect: (NSRect)drawRect
@@ -144,13 +144,12 @@
     
     //Check if we're rendering into a backing intended for retina displays.
     NSSize pointSize = NSMakeSize(1, 1);
-    if ([[NSView focusView] respondsToSelector: @selector(convertSizeToBacking:)])
-         pointSize = [[NSView focusView] convertSizeToBacking: pointSize];
+    pointSize = [[NSView focusView] convertSizeToBacking: pointSize];
     
     NSSize contextSize = [NSView focusView].bounds.size;
     
     NSGraphicsContext *context = [NSGraphicsContext currentContext];
-    CGContextRef cgContext = (CGContextRef)context.graphicsPort;
+    CGContextRef cgContext = context.CGContext;
     
     BOOL drawFlipped = respectContextIsFlipped && context.isFlipped;
     
@@ -224,8 +223,8 @@
         CGContextSaveGState(cgContext);
             if (drawFlipped)
             {
-                CGContextTranslateCTM(cgContext, 0.0f, contextSize.height);
-                CGContextScaleCTM(cgContext, 1.0f, -1.0f);
+                CGContextTranslateCTM(cgContext, 0.0, contextSize.height);
+                CGContextScaleCTM(cgContext, 1.0, -1.0);
             }
         
             //IMPLEMENTATION NOTE: we want to draw the drop shadow but not the image that's 'causing' the shadow.
@@ -256,8 +255,8 @@
         CGContextSaveGState(cgContext);
             if (drawFlipped)
             {
-                CGContextTranslateCTM(cgContext, 0.0f, contextSize.height);
-                CGContextScaleCTM(cgContext, 1.0f, -1.0f);
+                CGContextTranslateCTM(cgContext, 0.0, contextSize.height);
+                CGContextScaleCTM(cgContext, 1.0, -1.0);
             }
             CGContextClipToMask(cgContext, maskRect, imageMask);
         

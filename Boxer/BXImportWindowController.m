@@ -13,7 +13,6 @@
 #import "ADBAppKitVersionHelpers.h"
 
 @implementation BXImportWindowController
-@synthesize dropzonePanel, loadingPanel, installerPanel, finalizingPanel, finishedPanel;
 
 - (BXImportSession *) document { return (BXImportSession *)[super document]; }
 
@@ -42,13 +41,11 @@
     //Remove self-observation set up upstairs in windowDidLoad:
     [self removeObserver: self forKeyPath: @"document.importStage"];
     
-	[self setDropzonePanel: nil],	[dropzonePanel release];
-	[self setLoadingPanel: nil],	[loadingPanel release];
-	[self setInstallerPanel: nil],	[installerPanel release];
-	[self setFinalizingPanel: nil],	[finalizingPanel release];
-	[self setFinishedPanel: nil],	[finishedPanel release];
-	
-	[super dealloc];
+	[self setDropzonePanel: nil];
+	[self setLoadingPanel: nil];
+	[self setInstallerPanel: nil];
+	[self setFinalizingPanel: nil];
+	[self setFinishedPanel: nil];
 }
 
 - (BOOL) windowShouldClose: (id)sender

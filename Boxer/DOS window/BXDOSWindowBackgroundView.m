@@ -11,7 +11,6 @@
 #import "NSView+ADBDrawingHelpers.h"
 
 @implementation BXDOSWindowBackgroundView
-@synthesize snapshot = _snapshot;
 
 - (void) _drawBackgroundInRect: (NSRect)dirtyRect
 {
@@ -111,8 +110,6 @@
 	[lighting drawFromCenter: startPoint radius: startRadius
 					toCenter: endPoint radius: endRadius
 					 options: NSGradientDrawsBeforeStartingLocation | NSGradientDrawsAfterEndingLocation];
-	
-	[lighting release];
     
     //Augment the main lighting with shadows at the top and bottom edge of the window.
     NSRect topShadowRect = backgroundRect, bottomShadowRect = backgroundRect;
@@ -132,7 +129,6 @@
                                  nil];
         
         [topShadow drawInRect: topShadowRect angle: 270];
-        [topShadow release];
     }
     
     /*
@@ -144,7 +140,7 @@
         
         [NSGraphicsContext saveGraphicsState];
             [bottomBevel setFill];
-            NSRectFillUsingOperation(bevelRect, NSCompositeSourceOver);
+            NSRectFillUsingOperation(bevelRect, NSCompositingOperationSourceOver);
         [NSGraphicsContext restoreGraphicsState];
      
         NSGradient *bottomShadow = [[NSGradient alloc] initWithColorsAndLocations:
@@ -178,7 +174,7 @@
             [brandShadow set];
             [brand drawInRect: brandRegion
                      fromRect: NSZeroRect
-                    operation: NSCompositeSourceOver
+                    operation: NSCompositingOperationSourceOver
                      fraction: 0.5f];
         [NSGraphicsContext restoreGraphicsState];
 	}
@@ -232,7 +228,7 @@
         
         [self.snapshot drawInRect: dirtyRect
                          fromRect: dirtyRect
-                        operation: NSCompositeCopy
+                        operation: NSCompositingOperationCopy
                          fraction: 1.0f
                    respectFlipped: YES
                             hints: nil];
@@ -242,12 +238,6 @@
 - (BOOL) isOpaque
 {
     return YES;
-}
-
-- (void) dealloc
-{
-    self.snapshot = nil;
-    [super dealloc];
 }
 
 @end

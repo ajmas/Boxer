@@ -17,9 +17,11 @@
 #ifdef __cplusplus
     #import "MT32Emu/mt32emu.h"
 
-//MT32Emu has a C++ callback class for handling emulated synth notifications.
-//We implement a thin C++ wrapper that sends messages back to BXEmulatedMT32 for handling.
-    @class BXEmulatedMT32;
+NS_ASSUME_NONNULL_BEGIN
+
+@class BXEmulatedMT32;
+/// MT32Emu has a C++ callback class for handling emulated synth notifications.
+/// We implement a thin C++ wrapper that sends messages back to BXEmulatedMT32 for handling.
     class BXEmulatedMT32ReportHandler : public MT32Emu::ReportHandler
     {
     public:
@@ -33,24 +35,30 @@
     private:
         BXEmulatedMT32 *_delegate;
     };
+
+NS_ASSUME_NONNULL_END
+
+extern "C" {
 #endif
 
+
+NS_ASSUME_NONNULL_BEGIN
 
 #pragma mark -
 #pragma mark Constants
 
-extern NSString * const BXEmulatedMT32ErrorDomain;
-//Keys included in the error dictionary for BXEmulatedMT32MismatchedROMs errors.
-//These point to NSNumbers whose integer values represent the types of the respective ROMs.
-extern NSString * const BXMT32ControlROMTypeKey;
-extern NSString * const BXMT32PCMROMTypeKey;
+extern NSErrorDomain const BXEmulatedMT32ErrorDomain;
+/// Keys included in the error dictionary for \c BXEmulatedMT32MismatchedROMs errors.
+/// These point to NSNumbers whose integer values represent the types of the respective ROMs.
+extern NSErrorUserInfoKey const BXMT32ControlROMTypeKey;
+extern NSErrorUserInfoKey const BXMT32PCMROMTypeKey;
 
 
-enum {
-    BXEmulatedMT32MissingROM,       //No ROMs were specified when initializing.
-    BXEmulatedMT32CouldNotReadROM,  //A specified ROM could not be opened.
-    BXEmulatedMT32InvalidROM,       //A specified ROM was not a valid MT-32 ROM.
-    BXEmulatedMT32MismatchedROMs,   //Control and PCM ROMs aren't from matching versions.
+typedef NS_ERROR_ENUM(BXEmulatedMT32ErrorDomain, BXEmulatedMT32Errors) {
+    BXEmulatedMT32MissingROM,       //!< No ROMs were specified when initializing.
+    BXEmulatedMT32CouldNotReadROM,  //!< A specified ROM could not be opened.
+    BXEmulatedMT32InvalidROM,       //!< A specified ROM was not a valid MT-32 ROM.
+    BXEmulatedMT32MismatchedROMs,   //!< Control and PCM ROMs aren't from matching versions.
 };
 
 
@@ -81,47 +89,41 @@ typedef NS_OPTIONS(NSUInteger, BXMT32ROMType) {
 
 @protocol BXEmulatedMT32Delegate;
 
+/// \c BXEmulatedMT32 provides a \c BXMIDIDevice wrapper for the MUNT MT-32 emulator.
+/// It takes an optional delegate to which it sends notifications of LCD display messages.
+/// Unlike the other \c BXMIDIDevice classes, this currently feeds audio output back into
+/// DOSBox's own mixer.
 @interface BXEmulatedMT32 : NSObject <BXMIDIDevice, BXAudioSource>
-{
-    __unsafe_unretained id <BXEmulatedMT32Delegate> _delegate;
-    NSURL *_PCMROMURL;
-    NSURL *_controlROMURL;
-    NSError *_synthError;
-    unsigned int _sampleRate;
-    
-#ifdef __cplusplus
-    MT32Emu::Synth *_synth;
-    BXEmulatedMT32ReportHandler *_reportHandler;
-    MT32Emu::FileStream *_PCMROMHandle;
-    MT32Emu::FileStream *_controlROMHandle;
-    const MT32Emu::ROMImage *_PCMROMImage;
-    const MT32Emu::ROMImage *_controlROMImage;
-#endif
-}
 
-@property (copy, nonatomic) NSURL *PCMROMURL;
+@property (copy, nonatomic) NSURL *PCMROMURL NS_SWIFT_NAME(pcmROMURL);
 @property (copy, nonatomic) NSURL *controlROMURL;
-@property (assign, nonatomic) id <BXEmulatedMT32Delegate> delegate;
+@property (weak, nonatomic) id <BXEmulatedMT32Delegate> delegate;
 @property (assign, nonatomic) unsigned int sampleRate;
 
-- (id <BXMIDIDevice>) initWithPCMROM: (NSURL *)PCMROMURL
-                          controlROM: (NSURL *)controlROMURL
-                            delegate: (id <BXEmulatedMT32Delegate>)delegate
-                               error: (NSError **)outError;
+- (nullable instancetype) initWithPCMROM: (NSURL *)PCMROMURL
+                              controlROM: (NSURL *)controlROMURL
+                                delegate: (nullable id <BXEmulatedMT32Delegate>)delegate
+                                   error: (NSError **)outError;
 
 
 #pragma mark -
 #pragma mark Helper class methods
 
-//Returns the exact type of ROM at the specified URL: PCM/Control, MT32/CM32L.
-//Returns BXMT32ROMTypeUnknown and populates outError if the type of ROM could
-//not be determined.
-+ (BXMT32ROMType) typeOfROMAtURL: (NSURL *)URL error: (out NSError **)outError;
+/// Returns the exact type of ROM at the specified URL: PCM/Control, MT32/CM32L.
+/// Returns \c BXMT32ROMTypeUnknown and populates \c outError if the type of ROM could
+/// not be determined.
++ (BXMT32ROMType) typeOfROMAtURL: (NSURL *)URL error: (out NSError **)outError NS_REFINED_FOR_SWIFT;
 
-//Returns whether the specified pair of ROMs is MT32 or CM32L.
-//Returns BXMT32ROMTypeUnknown and populates outError if there was an error
-//determining the types of the ROMs or if they are mismatched.
+/// Returns whether the specified pair of ROMs is MT32 or CM32L.
+/// Returns \c BXMT32ROMTypeUnknown and populates \c outError if there was an error
+/// determining the types of the ROMs or if they are mismatched.
 + (BXMT32ROMType) typeOfROMPairWithControlROMURL: (NSURL *)controlROMURL
                                        PCMROMURL: (NSURL *)PCMROMURL
-                                           error: (out NSError **)outError;
+                                           error: (out NSError **)outError NS_REFINED_FOR_SWIFT;
 @end
+
+NS_ASSUME_NONNULL_END
+
+#ifdef __cplusplus
+}
+#endif

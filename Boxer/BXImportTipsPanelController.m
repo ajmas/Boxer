@@ -12,15 +12,13 @@
 
 
 @implementation BXImportTipsPanelController
-@synthesize finishImportingPanel, installerTipsPanel;
 
 - (NSString *) nibName	{ return @"ImportTipsPanel"; }
 
 - (void) dealloc
 {
-	[self setFinishImportingPanel: nil],[finishImportingPanel release];
-	[self setInstallerTipsPanel: nil],	[installerTipsPanel release];
-	[super dealloc];
+	[self setFinishImportingPanel: nil];
+	[self setInstallerTipsPanel: nil];
 }
 
 - (void) syncActivePanel
@@ -31,12 +29,12 @@
 	if ([[session emulator] isAtPrompt])
 	{
 		//Show the UI for finishing the import process once we return to the DOS prompt
-		panel = finishImportingPanel;
+		panel = self.finishImportingPanel;
 	}
 	else
 	{
 		//Show installer tips while any program is running
-		panel = installerTipsPanel;
+		panel = self.installerTipsPanel;
 	}
 	
 	[self setActivePanel: panel];

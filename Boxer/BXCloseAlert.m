@@ -228,16 +228,10 @@
 
 //Overridden to adopt the icon of the window we're displaying ourselves in
 //TODO: this should really be handled in the alert creation context
-- (void) beginSheetModalForWindow: (NSWindow *)window
-					modalDelegate: (id)delegate
-				   didEndSelector: (SEL)didEndSelector
-					  contextInfo: (void *)contextInfo
+- (void)beginSheetModalForWindow:(NSWindow *)sheetWindow completionHandler:(void (^)(NSModalResponse))handler
 {
-	[self adoptIconFromWindow: window];
-	return [super beginSheetModalForWindow: window
-							 modalDelegate: delegate
-							didEndSelector: didEndSelector
-							   contextInfo: contextInfo];
+    [self adoptIconFromWindow: sheetWindow];
+    [super beginSheetModalForWindow: sheetWindow completionHandler: handler];
 }
 
 @end

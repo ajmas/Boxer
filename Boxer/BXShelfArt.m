@@ -8,7 +8,6 @@
 #import "BXShelfArt.h"
 
 @implementation BXShelfArt
-@synthesize sourceImage;
 
 - (id) initWithSourceImage: (NSImage *)image
 {
@@ -18,12 +17,6 @@
         self.sourceImage = image;
 	}
 	return self;
-}
-
-- (void) dealloc
-{
-    self.sourceImage = nil;
-	[super dealloc];
 }
 
 - (void) drawInRect: (NSRect)frame
@@ -63,7 +56,7 @@
 		[self drawInRect: frame];
 	[image unlockFocus];
 	
-	return [image autorelease];
+	return image;
 }
 
 - (NSImage *) tiledImageWithPixelSize: (NSSize)pixelSize

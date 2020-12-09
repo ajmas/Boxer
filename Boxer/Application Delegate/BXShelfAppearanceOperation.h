@@ -6,23 +6,17 @@
  */
 
 
-//BXShelfAppearanceOperations are responsible for applying (and removing) our game-shelf
-//appearance from Finder folders. This means interacting with Finder via the Scripting
-//Bridge API, which is slow, so we do this work as a background operation.
-
 #import <Cocoa/Cocoa.h>
 
 @class FinderApplication;
 @class FinderFile;
 @class FinderIconViewOptions;
 
+/// \c BXShelfAppearanceOperations are responsible for applying (and removing) our game-shelf
+/// appearance from Finder folders. This means interacting with Finder via the Scripting
+/// Bridge API, which is slow, so we do this work as a background operation.
 @interface BXShelfAppearanceOperation : NSOperation
-{
-	NSURL *_targetURL;
-	BOOL _appliesToSubFolders;
-	
-	FinderApplication *_finder;
-}
+
 @property (copy) NSURL *targetURL;
 @property (assign) BOOL appliesToSubFolders;
 
@@ -30,34 +24,22 @@
 
 
 @interface BXShelfAppearanceApplicator : BXShelfAppearanceOperation
-{
-	NSImage *_icon;
-	NSURL *_backgroundImageURL;
-	BOOL _switchToIconView;
-	
-	FinderFile *_backgroundPicture;
-}
 
 @property (copy) NSURL *backgroundImageURL;
 @property (copy) NSImage *icon;
 @property (assign) BOOL switchToIconView;
 
-- (id) initWithTargetURL: (NSURL *)_targetURL
-	  backgroundImageURL: (NSURL *)_backgroundImageURL
-                    icon: (NSImage *)_icon;
+- (instancetype) initWithTargetURL: (NSURL *)_targetURL
+                backgroundImageURL: (NSURL *)_backgroundImageURL
+                              icon: (NSImage *)_icon;
 @end
 
 
 @interface BXShelfAppearanceRemover: BXShelfAppearanceOperation
-{
-	NSURL *_sourceURL;
-	
-	FinderIconViewOptions *_sourceOptions;
-}
 
 @property (copy) NSURL *sourceURL;
 
-- (id) initWithTargetURL: (NSURL *)_targetURL
-	   appearanceFromURL: (NSURL *)_sourceURL;
+- (instancetype) initWithTargetURL: (NSURL *)_targetURL
+                 appearanceFromURL: (NSURL *)_sourceURL;
 
 @end

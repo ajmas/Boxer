@@ -5,38 +5,29 @@
  online at [http://www.gnu.org/licenses/gpl-2.0.txt].
  */
 
-//BXCDImageImport rips physical CDs to (CDR-format) ISO disc images using OS X's hdiutil.
 
 #import "BXDriveImport.h"
 #import "ADBTaskOperation.h"
 
-//Domain and constants for errors encountered during disc-image ripping
-extern NSString * const BXCDImageImportErrorDomain;
+/// Domain and constants for errors encountered during disc-image ripping
+extern NSErrorDomain const BXCDImageImportErrorDomain;
 
-enum {
-	BXCDImageImportErrorRipFailed,          //Could not rip the image for an unknown reason
-	BXCDImageImportErrorCouldNotReadDisc,	//Failed to read the contents of the disc
-	BXCDImageImportErrorDiscInUse           //Could not begin ripping because the disc is in use
+typedef NS_ERROR_ENUM(BXCDImageImportErrorDomain, BXCDImageImportErrors) {
+	BXCDImageImportErrorRipFailed,          //!< Could not rip the image for an unknown reason
+	BXCDImageImportErrorCouldNotReadDisc,	//!< Failed to read the contents of the disc
+	BXCDImageImportErrorDiscInUse           //!< Could not begin ripping because the disc is in use
 };
 
 
+/// BXCDImageImport rips physical CDs to (CDR-format) ISO disc images using OS X's hdiutil.
 @interface BXCDImageImport : ADBTaskOperation <BXDriveImport>
-{
-	BXDrive *_drive;
-	unsigned long long _numBytes;
-	unsigned long long _bytesTransferred;
-	ADBOperationProgress _currentProgress;
-	BOOL _indeterminate;
-	NSURL *_destinationFolderURL;
-	NSURL *_destinationURL;
-    BOOL _hasWrittenFiles;
-}
 
-@property (assign, readwrite) unsigned long long numBytes;
-@property (assign, readwrite) unsigned long long bytesTransferred;
-@property (assign, readwrite) ADBOperationProgress currentProgress;
-@property (assign, readwrite, getter=isIndeterminate) BOOL indeterminate;
+@property (atomic) unsigned long long numBytes;
+@property (atomic) unsigned long long bytesTransferred;
+@property (atomic) ADBOperationProgress currentProgress;
+@property (atomic, getter=isIndeterminate) BOOL indeterminate;
 
+@property (atomic) BOOL hasWrittenFiles;
 
 @end
 

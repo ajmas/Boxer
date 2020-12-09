@@ -15,7 +15,7 @@
 - (NSWindow *)window
 {
 	NSWindow *window = [[BXPreferencesController controller] window];
-	return [BXScriptableWindow scriptableWindow: window];
+	return (NSWindow *)[BXScriptableWindow scriptableWindow: window];
 }
 
 - (NSURL *)gamesFolderURL
@@ -43,6 +43,6 @@
 																					 containerSpecifier: nil
 																									key: @"Boxer preferences"];
 	
-	return [specifier autorelease];
+	return specifier;
 }
 @end

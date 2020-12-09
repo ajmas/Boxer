@@ -30,15 +30,15 @@
 #import "RegexKitLite.h"
 
 
-//Matches the following lines with optional leading and trailing whitespace:
-//FILE MAX.gog BINARY
-//FILE "MAX.gog" BINARY
-//FILE "Armin van Buuren - A State of Trance 179 (16-12-2004) Part2.wav" WAV
-//FILE 01_armin_van_buuren_-_in_the_mix_(asot179)-cable-12-16-2004-hsalive.mp3 MP3
+/// Matches the following lines with optional leading and trailing whitespace:
+/// FILE MAX.gog BINARY
+/// FILE "MAX.gog" BINARY
+/// FILE "Armin van Buuren - A State of Trance 179 (16-12-2004) Part2.wav" WAV
+/// FILE 01_armin_van_buuren_-_in_the_mix_(asot179)-cable-12-16-2004-hsalive.mp3 MP3
 NSString * const ADBCueFileDescriptorSyntax = @"FILE\\s+(?:\"(.+)\"|(\\S+))\\s+[A-Z]+";
 
-//The maximum size in bytes that a cue file is expected to be, before we consider it not a cue file.
-//This is used as a sanity check by +isCueAtPath: to avoid scanning large files unnecessarily.
+/// The maximum size in bytes that a cue file is expected to be, before we consider it not a cue file.
+/// This is used as a sanity check by +isCueAtPath: to avoid scanning large files unnecessarily.
 #define ADBCueMaxFileSize 10240
 
 
@@ -51,11 +51,10 @@ NSString * const ADBCueFileDescriptorSyntax = @"FILE\\s+(?:\"(.+)\"|(\\S+))\\s+[
 	NSMutableArray *paths = [NSMutableArray arrayWithCapacity: 1];
 	
 	NSRange usefulComponents = NSMakeRange(1, 2);
-	NSArray *matches = [cueContents arrayOfCaptureComponentsMatchedByRegex: ADBCueFileDescriptorSyntax];
+	NSArray<NSArray<NSString*>*> *matches = [cueContents arrayOfCaptureComponentsMatchedByRegex: ADBCueFileDescriptorSyntax];
 	
-	for (NSArray *components in matches)
-	{
-		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+	for (NSArray<NSString*> *components in matches)
+	@autoreleasepool {
 		for (NSString *fileName in [components subarrayWithRange: usefulComponents])
 		{
 			if (fileName.length)
@@ -66,7 +65,6 @@ NSString * const ADBCueFileDescriptorSyntax = @"FILE\\s+(?:\"(.+)\"|(\\S+))\\s+[
 				break;
 			}
 		}
-		[pool release];
 	}
 	
 	return paths;
@@ -82,16 +80,13 @@ NSString * const ADBCueFileDescriptorSyntax = @"FILE\\s+(?:\"(.+)\"|(\\S+))\\s+[
         return nil;
     
     NSArray *rawPaths = [self rawPathsInCueContents: cueContents];
-    [cueContents release];
     
     //The URL relative to which we will resolve the paths in the CUE
     NSURL *baseURL = cueURL.URLByDeletingLastPathComponent;
     
     NSMutableArray *resolvedURLs = [NSMutableArray arrayWithCapacity: rawPaths.count];
     for (NSString *rawPath in rawPaths)
-    {
-        NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
-        
+    @autoreleasepool {
         //Rewrite Windows-style paths
         NSString *normalizedPath = [rawPath stringByReplacingOccurrencesOfString: @"\\" withString: @"/"];
         
@@ -99,8 +94,6 @@ NSString * const ADBCueFileDescriptorSyntax = @"FILE\\s+(?:\"(.+)\"|(\\S+))\\s+[
         NSURL *resourceURL = [baseURL URLByAppendingPathComponent: normalizedPath].URLByStandardizingPath;
         
         [resolvedURLs addObject: resourceURL];
-        
-        [pool drain];
     }
     return resolvedURLs;
 }
@@ -147,7 +140,6 @@ NSString * const ADBCueFileDescriptorSyntax = @"FILE\\s+(?:\"(.+)\"|(\\S+))\\s+[
         return NO;
     
     BOOL isCue = [cueContents isMatchedByRegex: ADBCueFileDescriptorSyntax];
-    [cueContents release];
     
     return isCue;
 }

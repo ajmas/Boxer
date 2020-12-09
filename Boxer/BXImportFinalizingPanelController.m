@@ -17,9 +17,9 @@
 
 @interface BXImportFinalizingPanelController ()
 
-//Callback for confirmation alert shown by skipSourceFileImport:
+/// Callback for confirmation alert shown by @c skipSourceFileImport:
 - (void) _skipAlertDidEnd: (NSAlert *)alert
-			   returnCode: (int)returnCode
+			   returnCode: (NSModalResponse)returnCode
 			  contextInfo: (void *)contextInfo;
 
 @end
@@ -28,7 +28,6 @@
 #pragma mark Implementation
 
 @implementation BXImportFinalizingPanelController
-@synthesize controller = _controller;
 
 #pragma mark -
 #pragma mark Cancel button behaviour
@@ -253,7 +252,7 @@
 	[alert addButtonWithTitle: skipLabel];
 	[[alert addButtonWithTitle: cancelLabel] setKeyEquivalent: @"\e"];	//Ensure the cancel button always uses Escape
 	
-	return [alert autorelease];
+	return alert;
 }
 
 - (IBAction) cancelSourceFileImport: (id)sender
@@ -276,9 +275,9 @@
 		{
 			[skipAlert adoptIconFromWindow: self.controller.window];
 			[skipAlert beginSheetModalForWindow: self.controller.window
-								  modalDelegate: self
-								 didEndSelector: @selector(_skipAlertDidEnd:returnCode:contextInfo:)
-									contextInfo: NULL];
+							  completionHandler: ^(NSModalResponse returnCode) {
+								  [self _skipAlertDidEnd: skipAlert returnCode: returnCode contextInfo: NULL];
+							  }];
 		}
 		//If skipAlertForSourceURLtype: thought that it wasn't worth showing any confirmation
 		//at all, then go right ahead and cancel.
@@ -291,7 +290,7 @@
 }
 
 - (void) _skipAlertDidEnd: (NSAlert *)alert
-			   returnCode: (int)returnCode
+			   returnCode: (NSModalResponse)returnCode
 			  contextInfo: (void *)contextInfo
 {
 	if (returnCode == NSAlertFirstButtonReturn)

@@ -14,15 +14,14 @@
 
 @interface BXThemedImageCell ()
 
-@property (readonly, nonatomic) NSGradient *_fillForCurrentState;
-@property (readonly, nonatomic) NSShadow *_dropShadowForCurrentState;
-@property (readonly, nonatomic) NSShadow *_innerShadowForCurrentState;
+@property (weak, readonly, nonatomic) NSGradient *_fillForCurrentState;
+@property (weak, readonly, nonatomic) NSShadow *_dropShadowForCurrentState;
+@property (weak, readonly, nonatomic) NSShadow *_innerShadowForCurrentState;
 
 @end
 
 @implementation BXThemedImageCell
 @synthesize themeKey = _themeKey;
-@synthesize highlighted = _highlighted;
 
 
 #pragma mark - Default theme handling
@@ -38,17 +37,10 @@
     return self;
 }
 
-- (void) dealloc
-{
-    self.themeKey = nil;
-	[super dealloc];
-}
-
 - (void) setThemeKey: (NSString *)key
 {
     if (![key isEqual: self.themeKey])
     {
-        [_themeKey release];
         _themeKey = [key copy];
         
         [self.controlView setNeedsDisplay: YES];

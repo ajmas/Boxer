@@ -24,40 +24,43 @@
 
 @interface BXLaunchPanelController ()
 
-@property (retain, nonatomic) NSMutableArray *allProgramRows;
-@property (retain, nonatomic) NSMutableArray *favoriteProgramRows;
-@property (retain, nonatomic) NSMutableArray *recentProgramRows;
-@property (retain, nonatomic) NSMutableArray *displayedRows;
+@property (strong, nonatomic) NSMutableArray *allProgramRows;
+@property (strong, nonatomic) NSMutableArray *favoriteProgramRows;
+@property (strong, nonatomic) NSMutableArray *recentProgramRows;
+@property (strong, nonatomic) NSMutableArray *displayedRows;
 
-@property (retain, nonatomic) NSDictionary *favoritesHeading;
-@property (retain, nonatomic) NSDictionary *recentProgramsHeading;
-@property (retain, nonatomic) NSDictionary *allProgramsHeading;
+@property (strong, nonatomic) NSDictionary *favoritesHeading;
+@property (strong, nonatomic) NSDictionary *recentProgramsHeading;
+@property (strong, nonatomic) NSDictionary *allProgramsHeading;
 
-@property (retain, nonatomic) NSMutableArray *filterKeywords;
+@property (strong, nonatomic) NSMutableArray *filterKeywords;
 
 @end
 
 @implementation BXLaunchPanelController
-@synthesize launcherList = _launcherList;
-@synthesize launcherScrollView = _launcherScrollView;
-@synthesize allProgramRows = _allProgramRows;
-@synthesize favoriteProgramRows = _favoriteProgramRows;
-@synthesize recentProgramRows = _recentProgramRows;
-@synthesize favoritesHeading = _favoritesHeading;
-@synthesize recentProgramsHeading = _recentProgramsHeading;
-@synthesize allProgramsHeading = _allProgramsHeading;
-@synthesize displayedRows = _displayedRows;
-@synthesize filter = _filter;
-@synthesize filterKeywords = _filterKeywords;
-
-- (void) awakeFromNib
 {
-    self.allProgramRows = [NSMutableArray array];
-    self.favoriteProgramRows = [NSMutableArray array];
-    self.recentProgramRows = [NSMutableArray array];
-    self.displayedRows = [NSMutableArray array];
-    self.filterKeywords = [NSMutableArray array];
+	BOOL _allProgramRowsDirty;
+	BOOL _favoriteProgramRowsDirty;
+	BOOL _recentProgramRowsDirty;
+	
+	BOOL _shouldUpdateImmediately;
+}
 
+- (instancetype) initWithCoder: (NSCoder *)coder {
+    self = [super initWithCoder: coder];
+    if (self) {
+        _allProgramRows = [NSMutableArray array];
+        _favoriteProgramRows = [NSMutableArray array];
+        _recentProgramRows = [NSMutableArray array];
+        _displayedRows = [NSMutableArray array];
+        _filterKeywords = [NSMutableArray array];
+    }
+    return self;
+}
+
+- (void) viewDidLoad {
+    [super viewDidLoad];
+    
     //These attributes are unsupported in 10.6 and so cannot be defined in the XIB.
     if ([self.launcherScrollView respondsToSelector: @selector(setScrollerKnobStyle:)])
         self.launcherScrollView.scrollerKnobStyle = NSScrollerKnobStyleLight;
@@ -115,22 +118,6 @@
             
         }
     }
-}
-
-- (void) dealloc
-{
-    self.allProgramRows = nil;
-    self.favoriteProgramRows = nil;
-    self.recentProgramRows = nil;
-    self.displayedRows = nil;
-    
-    self.favoritesHeading = nil;
-    self.recentProgramsHeading = nil;
-    self.allProgramsHeading = nil;
-    
-    self.filterKeywords = nil;
-    
-    [super dealloc];
 }
 
 
@@ -291,7 +278,6 @@
         [annotatedItem setObject: programDetails forKey: @"recentProgram"];
         
         [self.recentProgramRows addObject: annotatedItem];
-        [annotatedItem release];
     }
     
     _recentProgramRowsDirty = NO;
@@ -394,7 +380,7 @@
                                   @"isHeading": @(YES),
                                   };
     }
-    return [[_favoritesHeading retain] autorelease];
+    return _favoritesHeading;
 }
 
 - (NSDictionary *) recentProgramsHeading
@@ -408,7 +394,7 @@
                                        @"isHeading": @(YES),
                                        };
     }
-    return [[_recentProgramsHeading retain] autorelease];
+    return _recentProgramsHeading;
 }
 
 - (NSDictionary *) allProgramsHeading
@@ -422,7 +408,7 @@
                                     @"isHeading": @(YES),
                                     };
     }
-    return [[_allProgramsHeading retain] autorelease];
+    return _allProgramsHeading;
 }
 
 - (NSDictionary *) _listItemForProgramAtURL: (NSURL *)URL
@@ -443,7 +429,6 @@
     {
         NSValueTransformer *programNameFormatter = [[BXDOSFilenameTransformer alloc] init];
         title = [programNameFormatter transformedValue: URL.path];
-        [programNameFormatter release];
         
         //Also append the arguments to the title, if available
         if (arguments.length > 0)
@@ -526,7 +511,6 @@
     {
         NSValueTransformer *programNameFormatter = [[BXDOSFilenameTransformer alloc] init];
         title = [programNameFormatter transformedValue: URL.path];
-        [programNameFormatter release];
     }
     
     NSMutableDictionary *item = [NSMutableDictionary dictionaryWithDictionary: @{
@@ -800,8 +784,6 @@
 
 
 @implementation BXLauncherList
-@synthesize headingPrototype = _headingPrototype;
-@synthesize favoritePrototype = _favoritePrototype;
 
 - (NSCollectionViewItem *) newItemForRepresentedObject: (NSDictionary *)object
 {
@@ -831,8 +813,6 @@
 
 
 @implementation BXLauncherItem
-@synthesize delegate = _delegate;
-@synthesize launchable = _launchable;
 @synthesize menu = _menu;
 
 - (id) copyWithZone: (NSZone *)zone
@@ -846,8 +826,6 @@
 - (void) dealloc
 {
     self.delegate = nil;
-    self.menu = nil;
-    [super dealloc];
 }
 
 - (IBAction) openItemInDOS: (id)sender
@@ -909,9 +887,6 @@
 @end
 
 @implementation BXLauncherItemView
-@synthesize mouseInside = _mouseInside;
-@synthesize active = _active;
-@synthesize enabled = _enabled;
 
 - (void) awakeFromNib
 {
@@ -922,7 +897,6 @@
     
     //Set up a tracking rect so that we receive mouseEntered/exited events
     [self addTrackingArea: trackingArea];
-    [trackingArea release];
 }
 
 - (void) setDelegate: (BXLauncherItem *)delegate
@@ -1001,10 +975,10 @@
         
         //Enter an event loop listening for the mouse-up event.
         //If we don't do this, the collection view will swallow the mouse-up and we'll never see it.
-        NSEvent *eventInDrag = [self.window nextEventMatchingMask: NSLeftMouseUpMask];
+        NSEvent *eventInDrag = [self.window nextEventMatchingMask: NSEventMaskLeftMouseUp];
         switch (eventInDrag.type)
         {
-            case NSLeftMouseUp:
+            case NSEventTypeLeftMouseUp:
                 [self mouseUp: eventInDrag];
                 return;
         }
@@ -1046,7 +1020,7 @@
             
             [NSGraphicsContext saveGraphicsState];
                 [fillColor set];
-                [[NSGraphicsContext currentContext] setCompositingOperation: NSCompositePlusDarker];
+                [[NSGraphicsContext currentContext] setCompositingOperation: NSCompositingOperationPlusDarker];
                 [fillPath fill];
                 [fillPath fillWithInnerShadow: innerShadow];
             [NSGraphicsContext restoreGraphicsState];
@@ -1068,8 +1042,6 @@
                             toCenter: centerPoint
                               radius: self.bounds.size.width * 0.5
                              options: NSGradientDrawsBeforeStartingLocation | NSGradientDrawsAfterEndingLocation];
-            
-            [gradient release];
         }
     }
 }
@@ -1093,20 +1065,20 @@
     NSRect bevelShadowRect = NSOffsetRect(bevelHighlightRect, 0, 1);
     
     [backgroundColor set];
-    NSRectFillUsingOperation(dirtyRect, NSCompositeSourceOver);
+    NSRectFillUsingOperation(dirtyRect, NSCompositingOperationSourceOver);
     
     if ([self needsToDrawRect: bevelHighlightRect])
     {
         NSColor *bevelHighlight = [NSColor colorWithCalibratedWhite: 1.0 alpha: 0.1];
         [bevelHighlight set];
-        NSRectFillUsingOperation(bevelHighlightRect, NSCompositeSourceOver);
+        NSRectFillUsingOperation(bevelHighlightRect, NSCompositingOperationSourceOver);
     }
     
     if ([self needsToDrawRect: bevelShadowRect])
     {
         NSColor *bevelShadow = [NSColor colorWithCalibratedWhite: 0.0 alpha: 0.1];
         [bevelShadow set];
-        NSRectFillUsingOperation(bevelShadowRect, NSCompositeSourceOver);
+        NSRectFillUsingOperation(bevelShadowRect, NSCompositingOperationSourceOver);
     }
 }
 @end

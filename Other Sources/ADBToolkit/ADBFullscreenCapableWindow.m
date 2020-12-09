@@ -54,7 +54,7 @@
 - (void) _postDidExitFullScreenNotification;
 
 //Posts a notification for toggling to/from fullscreen to the delegate and the standard notification center
-- (void) _postFullScreenNotificationWithName: (NSString *)notificationName
+- (void) _postFullScreenNotificationWithName: (NSNotificationName)notificationName
                               delegateMethod: (SEL)delegateMethod;
 
 //Listen for Lion's yes-we're-finally-finished-toggling-fullscreen notifications,
@@ -142,14 +142,14 @@
 
 //The code below applies only to Lion and above, which handles
 //its own fullscreen toggling via setStyleMask:.
-- (void) setStyleMask: (NSUInteger)styleMask
+- (void) setStyleMask: (NSWindowStyleMask)styleMask
 {
     //This is a no-op on Leopard, which does not support runtime modification of the style mask.
     if (![NSWindow instancesRespondToSelector: @selector(setStyleMask:)]) return;
     
     //Test whether we're transitioning to/from fullscreen based on Lion's fullscreen mask.
-    BOOL wasInFullScreen    = (self.styleMask & NSFullScreenWindowMask) == NSFullScreenWindowMask;
-    BOOL willBeInFullScreen = (styleMask & NSFullScreenWindowMask) == NSFullScreenWindowMask;
+    BOOL wasInFullScreen    = (self.styleMask & NSWindowStyleMaskFullScreen) == NSWindowStyleMaskFullScreen;
+    BOOL willBeInFullScreen = (styleMask & NSWindowStyleMaskFullScreen) == NSWindowStyleMaskFullScreen;
     
     BOOL togglingFullScreen = (wasInFullScreen != willBeInFullScreen);
     
@@ -241,7 +241,7 @@
             _windowedStyleMask = self.styleMask;
             
             //Disable window resizing while in fullscreen mode
-            self.styleMask = _windowedStyleMask & ~NSResizableWindowMask;
+            self.styleMask = _windowedStyleMask & ~NSWindowStyleMaskResizable;
              
             NSRect contentFrame = self.screen.frame;
             
@@ -298,11 +298,10 @@
 {
 	//Create the chromeless window we'll use for the fade effect
 	NSPanel *blankingWindow = [[NSPanel alloc] initWithContentRect: NSZeroRect
-														 styleMask: NSBorderlessWindowMask
+                                                         styleMask: NSWindowStyleMaskBorderless
 														   backing: NSBackingStoreBuffered
 															 defer: YES];
 	
-    blankingWindow.oneShot = YES;
     blankingWindow.releasedWhenClosed = YES;
     blankingWindow.backgroundColor = [NSColor blackColor];
     blankingWindow.alphaValue = (flag) ? 0.0f : 1.0f;
@@ -324,10 +323,6 @@
 	
 	NSArray *effects = [[NSArray alloc] initWithObjects: fadeEffect, resizeEffect, nil];
 	NSViewAnimation *animation = [[NSViewAnimation alloc] initWithViewAnimations: effects];
-	
-	[fadeEffect release];
-	[resizeEffect release];
-	[effects release];
     
     //Use our standard window-resize animation speed for the transition
     animation.animationBlockingMode = NSAnimationBlocking;
@@ -338,7 +333,6 @@
     
     //Aaaaand action!
     [animation startAnimation];
-    [animation release];
     
     //Discard the blanking window once we're done
     [blankingWindow close];
@@ -400,7 +394,7 @@
 #pragma mark -
 #pragma mark Notifications
 
-- (void) _postFullScreenNotificationWithName: (NSString *)notificationName
+- (void) _postFullScreenNotificationWithName: (NSNotificationName)notificationName
                               delegateMethod: (SEL)delegateMethod
 {
     NSNotification *notification = [NSNotification notificationWithName: notificationName

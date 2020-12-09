@@ -11,26 +11,47 @@
 #import "ADBFilesystem.h"
 
 
-//Used when decoding drive records from previous Boxer versions,
-//to decide whether to resolve bookmarks or aliases.
+/// Used when decoding drive records from previous Boxer versions,
+/// to decide whether to resolve bookmarks or aliases.
 #define BXCurrentDriveEncodingVersion 1400
 #define BXFirstBookmarkSupportingVersion 1400
 
 
-//Used for decoding NDAlias-encoded paths from previous Boxer versions.
+/// Used for decoding NDAlias-encoded paths from previous Boxer versions.
 @interface __NDAliasDecoder : NSObject
+@property (copy) NSData *aliasData;
 @end
 
 @implementation __NDAliasDecoder
 
-//NDAlias encoded its internal alias record as an NSData object;
-//we no longer use NDAlias, but we can convert its alias record
-//into modern bookmark data. This class is substituted for NDAlias
-//during decoding and returns the decoded NSData object directly.
+/// NDAlias encoded its internal alias record as an NSData object;
+/// we no longer use NDAlias, but we can convert its alias record
+/// into modern bookmark data. This class is substituted for NDAlias
+/// during decoding and returns the decoded NSData object directly.
 - (id) initWithCoder: (NSCoder *)aDecoder
 {
-    [self release];
-    return (id)[[aDecoder decodeDataObject] retain];
+    if (self = [super init]) {
+        self.aliasData = [aDecoder decodeDataObject];
+    }
+    return self;
+}
+
++ (BOOL)supportsSecureCoding
+{
+    return YES;
+}
+
+- (NSUInteger)hash
+{
+    return _aliasData.hash;
+}
+
+- (BOOL)isEqual:(id)object
+{
+    if ([object isKindOfClass:[__NDAliasDecoder class]]) {
+        return [_aliasData isEqualToData:[(__NDAliasDecoder*)object aliasData]];
+    }
+    return NO;
 }
 
 @end
@@ -38,18 +59,24 @@
 
 @implementation BXDrive (BXDriveArchiving)
 
++ (BOOL)supportsSecureCoding
+{
+    return YES;
+}
+
 - (id) initWithCoder: (NSCoder *)aDecoder
 {
     if ((self = [self init]))
     {
+        NSError *err;
         NSInteger encodingVersion = [aDecoder decodeIntegerForKey: @"encodingVersion"];
         
         //Paths were encoded as OS X 10.6+ bookmark data
         if (encodingVersion >= BXFirstBookmarkSupportingVersion)
         {
-#define URL_FROM_BOOKMARK(bookmark) ((NSURL *)[NSURL URLByResolvingBookmarkData: bookmark options: NSURLBookmarkResolutionWithoutUI relativeToURL: nil bookmarkDataIsStale: NULL error: NULL])
+#define URL_FROM_BOOKMARK(bookmark) ((NSURL *)[NSURL URLByResolvingBookmarkData: bookmark options: NSURLBookmarkResolutionWithoutUI relativeToURL: nil bookmarkDataIsStale: NULL error: &err])
             
-            NSData *sourceBookmarkData = [aDecoder decodeObjectForKey: @"sourceURLBookmark"];
+            NSData *sourceBookmarkData = [aDecoder decodeObjectOfClass: [NSData class] forKey: @"sourceURLBookmark"];
             if (sourceBookmarkData)
             {
                 self.sourceURL = URL_FROM_BOOKMARK(sourceBookmarkData);
@@ -58,23 +85,23 @@
             //and we shouldn't bother continuing.
             if (self.sourceURL == nil)
             {
-                [self release];
+                [aDecoder failWithError:err];
                 return nil;
             }
             
-            NSData *shadowBookmarkData = [aDecoder decodeObjectForKey: @"shadowURLBookmark"];
+            NSData *shadowBookmarkData = [aDecoder decodeObjectOfClass: [NSData class] forKey: @"shadowURLBookmark"];
             if (shadowBookmarkData)
             {
                 self.shadowURL = URL_FROM_BOOKMARK(shadowBookmarkData);
             }
             
-            NSData *mountPointBookmarkData = [aDecoder decodeObjectForKey: @"mountPointURLBookmark"];
+            NSData *mountPointBookmarkData = [aDecoder decodeObjectOfClass: [NSData class] forKey: @"mountPointURLBookmark"];
             if (mountPointBookmarkData)
             {
                 self.mountPointURL = URL_FROM_BOOKMARK(mountPointBookmarkData);
             }
             
-            NSSet *equivalentURLBookmarks = [aDecoder decodeObjectForKey: @"equivalentURLBookmarks"];
+            NSSet *equivalentURLBookmarks = [aDecoder decodeObjectOfClasses: [NSSet setWithObjects: [NSData class], [NSSet class], nil] forKey: @"equivalentURLBookmarks"];
             if (equivalentURLBookmarks)
             {
                 for (NSData *bookmarkData in equivalentURLBookmarks)
@@ -89,7 +116,7 @@
         //Paths were encoded as legacy alias data
         else
         {
-#define URL_FROM_ALIAS(alias) ((NSURL *)[NSURL URLByResolvingAliasRecord: alias options: NSURLBookmarkResolutionWithoutUI relativeToURL: nil bookmarkDataIsStale: NULL error: NULL])
+#define URL_FROM_ALIAS(alias) ((NSURL *)[NSURL URLByResolvingAliasRecord: [alias aliasData] options: NSURLBookmarkResolutionWithoutUI relativeToURL: nil bookmarkDataIsStale: NULL error: &err])
             
             //IMPLEMENTATION NOTE: previous Boxer versions encoded paths as NDAlias instances.
             //We no longer use NDAlias in favour of NSURL bookmarks, but we can still resolve encoded
@@ -98,7 +125,7 @@
                 [(NSKeyedUnarchiver *)aDecoder setClass: [__NDAliasDecoder class]
                                            forClassName: @"NDAlias"];
             
-            NSData *sourceAliasData = [aDecoder decodeObjectForKey: @"path"];
+            __NDAliasDecoder *sourceAliasData = [aDecoder decodeObjectOfClass: [__NDAliasDecoder class] forKey: @"path"];
             if (sourceAliasData)
             {
                 self.sourceURL = URL_FROM_ALIAS(sourceAliasData);
@@ -106,20 +133,20 @@
             
             if (self.sourceURL == nil)
             {
-                [self release];
+                [aDecoder failWithError:err];
                 return nil;
             }
             
-            NSData *shadowAliasData = [aDecoder decodeObjectForKey: @"shadowPath"];
+            __NDAliasDecoder *shadowAliasData = [aDecoder decodeObjectOfClass: [__NDAliasDecoder class] forKey: @"shadowPath"];
             if (shadowAliasData)
                 self.shadowURL = URL_FROM_ALIAS(shadowAliasData);
             
-            NSData *mountPointAliasData = [aDecoder decodeObjectForKey: @"mountPoint"];
+            __NDAliasDecoder *mountPointAliasData = [aDecoder decodeObjectOfClass: [__NDAliasDecoder class] forKey: @"mountPoint"];
             if (mountPointAliasData)
                 self.mountPointURL = URL_FROM_ALIAS(mountPointAliasData);
             
-            NSSet *pathAliases = [aDecoder decodeObjectForKey: @"pathAliases"];
-            for (NSData *aliasData in pathAliases)
+            NSSet<__NDAliasDecoder*> *pathAliases = [aDecoder decodeObjectOfClasses: [NSSet setWithObjects: [NSSet class], [__NDAliasDecoder class], nil] forKey: @"pathAliases"];
+            for (__NDAliasDecoder *aliasData in pathAliases)
             {
                 NSURL *equivalentURL = URL_FROM_ALIAS(aliasData);
                 if (equivalentURL)
@@ -129,13 +156,13 @@
         
         self.type = [aDecoder decodeIntegerForKey: @"type"];
         
-        NSString *letter = [aDecoder decodeObjectForKey: @"letter"];
+        NSString *letter = [aDecoder decodeObjectOfClass: [NSString class] forKey: @"letter"];
         if (letter) self.letter = letter;
         
-        NSString *title = [aDecoder decodeObjectForKey: @"title"];
+        NSString *title = [aDecoder decodeObjectOfClass: [NSString class] forKey: @"title"];
         if (title) self.title = title;
         
-        NSString *volumeLabel = [aDecoder decodeObjectForKey: @"volumeLabel"];
+        NSString *volumeLabel = [aDecoder decodeObjectOfClass: [NSString class] forKey: @"volumeLabel"];
         if (volumeLabel) self.volumeLabel = volumeLabel;
         
         if ([aDecoder containsValueForKey: @"freeSpace"])
@@ -176,18 +203,18 @@
     
     //For other paths and strings, only bother recording them if they have been
     //manually changed from their autodetected versions.
-    if (self.mountPointURL && !_hasAutodetectedMountPoint)
+    if (self.mountPointURL && !self.hasAutodetectedMountPoint)
     {
         NSData *mountPointURLBookmark = BOOKMARK_FROM_URL(self.mountPointURL);
         [aCoder encodeObject: mountPointURLBookmark forKey: @"mountPointURLBookmark"];
     }
     
-    if (self.title && !_hasAutodetectedTitle)
+    if (self.title && !self.hasAutodetectedTitle)
     {
         [aCoder encodeObject: self.title forKey: @"title"];
     }
     
-    if (self.volumeLabel && !_hasAutodetectedVolumeLabel)
+    if (self.volumeLabel && !self.hasAutodetectedVolumeLabel)
         [aCoder encodeObject: self.volumeLabel forKey: @"volumeLabel"];
     
     if (self.filesystem.representedURLs.count)
@@ -202,7 +229,6 @@
         }
         
         [aCoder encodeObject: equivalentURLBookmarks forKey: @"equivalentURLBookmarks"];
-        [equivalentURLBookmarks release];
     }
     
     //For scalar properties, we only bother recording exceptions to the defaults

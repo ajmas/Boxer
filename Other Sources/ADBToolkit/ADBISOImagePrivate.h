@@ -40,24 +40,24 @@
 @property (copy, nonatomic) NSString *volumeName;
 @property (assign, nonatomic) ADBISOFormat format;
 
-@property (retain, nonatomic) id <ADBReadable, ADBSeekable> handle;
+@property (strong, nonatomic) id <ADBReadable, ADBSeekable> handle;
 
-@property (retain, nonatomic) NSMutableDictionary *pathCache;
+@property (strong, nonatomic) NSMutableDictionary *pathCache;
 
 
 #pragma mark - Private helper class methods
 
-//Autodetects the format of the ISO at the specified location.
-//This is done by scanning for strings at known offsets in each
-//of the formats in turn until one matches. Returns ADBISOFormatUnknown
-//and populates outError if there was a read error or the format could
-//not be determined.
+/// Autodetects the format of the ISO at the specified location.
+/// This is done by scanning for strings at known offsets in each
+/// of the formats in turn until one matches. Returns ADBISOFormatUnknown
+/// and populates outError if there was a read error or the format could
+/// not be determined.
 + (ADBISOFormat) _formatOfISOAtURL: (NSURL *)URL error: (out NSError **)outError;
 + (ADBISOFormat) _formatOfISOInHandle: (id <ADBReadable, ADBSeekable>)handle error: (out NSError **)outError;
 
 
-//Returns autoreleased NSDate instances created from the date and time
-//data in the specified ISO-format date struct.
+/// Returns autoreleased @c NSDate instances created from the date and time
+/// data in the specified ISO-format date struct.
 + (NSDate *) _dateFromExtendedDateTime: (ADBISOExtendedDateTime) dateTime;
 + (NSDate *) _dateFromDateTime: (ADBISODateTime) dateTime;
 
@@ -132,7 +132,7 @@
 
 //The standard file attributes of this file.
 //Equivalent to the output of NSFileManager's attributesOfFileAtPath:.
-@property (readonly, nonatomic) NSDictionary *attributes;
+@property (weak, readonly, nonatomic) NSDictionary<NSFileAttributeKey,id> *attributes;
 
 //The image in which this file is located.
 @property (assign, nonatomic) ADBISOImage *parentImage;
@@ -172,7 +172,7 @@
     NSArray *_cachedSubentries;
 }
 //Populated by subrecordsWithError: the first time it is needed.
-@property (retain, nonatomic) NSArray *cachedSubentries;
+@property (strong, nonatomic) NSArray *cachedSubentries;
 
 //Returns an array of ADBISOFileEntry and ADBISODirectoryEntry objects
 //for all files within this directory (except the spurious . and .. entries.)
@@ -184,7 +184,6 @@
 
 @interface ADBISOEnumerator : ADBTreeEnumerator <ADBFilesystemPathEnumeration>
 {
-    ADBISOImage *_parentImage;
     NSString *_currentDirectoryPath;
     BOOL _skipDescendants;
     NSDirectoryEnumerationOptions _enumerationOptions;
@@ -192,7 +191,7 @@
 }
 
 //The image which this enumerator is iterating.
-@property (assign, nonatomic) ADBISOImage *parentImage;
+@property (unsafe_unretained, nonatomic) ADBISOImage *parentImage;
 
 //The filesystem path of the directory we are currently iterating, relative to the root of the image.
 @property (copy, nonatomic) NSString *currentDirectoryPath;

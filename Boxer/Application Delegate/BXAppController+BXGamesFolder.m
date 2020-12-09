@@ -23,20 +23,14 @@
 #import "NSURL+ADBAliasHelpers.h"
 #import "ADBAppKitVersionHelpers.h"
 
-//For determining maximum Finder folder-background sizes
-#import <OpenGL/OpenGL.h>
-#import <OpenGL/CGLMacro.h>
-#import <OpenGL/glu.h>
-
-
 #pragma mark - Constants
 
 NSString * const BXGamesFolderErrorDomain = @"BXGamesFolderErrorDomain";
 
-//Boxer 1.3.x and below stored the games folder as a serialized alias record under this user defaults key.
+/// Boxer 1.3.x and below stored the games folder as a serialized alias record under this user defaults key.
 NSString * const BXGamesFolderAliasUserDefaultsKey = @"gamesFolder";
 
-//Modern versions of Boxer store the games folder as NSURL bookmark data under this user defaults key.
+/// Modern versions of Boxer store the games folder as NSURL bookmark data under this user defaults key.
 NSString * const BXGamesFolderBookmarkUserDefaultsKey = @"gamesFolderURLBookmark";
 
 
@@ -45,21 +39,21 @@ NSString * const BXGamesFolderBookmarkUserDefaultsKey = @"gamesFolderURLBookmark
 
 @interface BXAppController (BXGamesFolderPrivate)
 
-//The maximum size of artwork to generate.
-//This corresponds to Finder's own builtin max size, independent of hardware.
+/// The maximum size of artwork to generate.
+/// This corresponds to Finder's own builtin max size, independent of hardware.
 + (NSSize) _maxArtworkSize;
 
-//The size of shelf artwork to generate.
-//This is dependent on the Finder version and the current graphics chipset.
+/// The size of shelf artwork to generate.
+/// This is dependent on the Finder version and the current graphics chipset.
 - (NSSize) _shelfArtworkSize;
 
-//Callback for the 'we-couldnt-find-your-games-folder' sheet.
+/// Callback for the 'we-couldnt-find-your-games-folder' sheet.
 - (void) _gamesFolderPromptDidEnd: (NSAlert *)alert
 					   returnCode: (NSInteger)returnCode
 						   window: (NSWindow *)window;
 
-//Returns whether the specified path is a reserved system directory.
-//Used by validateGamesFolderURL:error:
+/// Returns whether the specified path is a reserved system directory.
+/// Used by validateGamesFolderURL:error:
 + (BOOL) _isReservedURL: (NSURL *)URL;
 
 @end
@@ -91,13 +85,12 @@ NSString * const BXGamesFolderBookmarkUserDefaultsKey = @"gamesFolderURLBookmark
             [userAppURL URLByAppendingPathComponent: defaultName],
             [appURL URLByAppendingPathComponent: defaultName],
         ];
-        [URLs retain];
     });
     
 	return URLs;
 }
 
-+ (NSString *) preferredGamesFolderURL
++ (NSURL *) preferredGamesFolderURL
 {
     return [[self commonGamesFolderURLs] objectAtIndex: 0];
 }
@@ -135,57 +128,13 @@ NSString * const BXGamesFolderBookmarkUserDefaultsKey = @"gamesFolderURLBookmark
 
 - (NSSize) _maxArtworkSize
 {
-	//4000 appears to be the upper bound for Finder background images
-	//in 10.6 and above, regardless of OpenGL texture limits; backgrounds
-	//larger than this will be shrunk by Finder to fit within 4000x4000,
-	//with undesirable consequences.
-	
-	return NSMakeSize(4000, 4000);
+	// chosen arbitrarily
+	return NSMakeSize(4096, 4096);
 }
 
 - (NSSize) _shelfArtworkSize
 {
-	NSSize maxArtworkSize = self._maxArtworkSize;
-	
-    //Snow Leopard's and Lion's Finder use OpenGL textures for 
-    //rendering the window background, so we are limited by the
-    //current renderer's maximum texture size.
-    GLint maxTextureSize = 0;
-    
-    CGOpenGLDisplayMask displayMask = CGDisplayIDToOpenGLDisplayMask (CGMainDisplayID());
-    CGLPixelFormatAttribute attrs[] = {kCGLPFADisplayMask, displayMask, 0};
-    
-    CGLPixelFormatObj pixelFormat = NULL;
-    GLint numFormats = 0;
-    CGLChoosePixelFormat(attrs, &pixelFormat, &numFormats);
-    
-    if (pixelFormat)
-    {
-        CGLContextObj testContext = NULL;
-        
-        CGLCreateContext(pixelFormat, NULL, &testContext);
-        CGLDestroyPixelFormat(pixelFormat);
-        
-        if (testContext)
-        {
-            CGLContextObj cgl_ctx = testContext;
-            
-            //Just to be safe, check if rectangle textures are supported,
-            //falling back on the square texture size otherwise
-            const GLubyte *extensions = glGetString(GL_EXTENSIONS);
-            BOOL supportsRectangleTextures = gluCheckExtension((const GLubyte *)"GL_ARB_texture_rectangle", extensions) == GL_TRUE;
-            
-            GLenum textureSizeField = supportsRectangleTextures ? GL_MAX_RECTANGLE_TEXTURE_SIZE_ARB : GL_MAX_TEXTURE_SIZE;
-            glGetIntegerv(textureSizeField, &maxTextureSize);
-            
-            CGLDestroyContext (testContext);
-        }
-    }
-    
-    //Crop the GL size to the maximum Finder background size
-    //(see the note under +_maxArtworkSize for details)
-    return NSMakeSize(MIN((CGFloat)maxTextureSize, maxArtworkSize.width),
-                      MIN((CGFloat)maxTextureSize, maxArtworkSize.height));
+	return self._maxArtworkSize;
 }
 
 
@@ -229,10 +178,9 @@ NSString * const BXGamesFolderBookmarkUserDefaultsKey = @"gamesFolderURLBookmark
 		
 		NSImage *tiledShelf = [shelfArt tiledImageWithPixelSize: artworkPixelSize];
 		
-		[shelfArt release];
 		
         BOOL imageSaved = [tiledShelf saveToURL: artworkURL
-                                       withType: NSJPEGFileType
+                                       withType: NSBitmapImageFileTypeJPEG
                                      properties: @{ NSImageCompressionFactor: @(1.0)}
                                           error: NULL];
 		
@@ -364,7 +312,7 @@ NSString * const BXGamesFolderBookmarkUserDefaultsKey = @"gamesFolderURLBookmark
         }
 	}
     
-	return [[_gamesFolderURL retain] autorelease];
+	return _gamesFolderURL;
 }
 
 - (void) setGamesFolderURL: (NSURL *)newURL
@@ -375,8 +323,7 @@ NSString * const BXGamesFolderBookmarkUserDefaultsKey = @"gamesFolderURLBookmark
     
 	if (![_gamesFolderURL isEqual: newURL])
 	{
-		[_gamesFolderURL release];
-		_gamesFolderURL = [newURL.fileReferenceURL retain];
+		_gamesFolderURL = newURL.fileReferenceURL;
 		
         //Store the new location in user defaults as a bookmark, so that users can safely move the folder around.
 		if (newURL != nil)
@@ -592,7 +539,6 @@ NSString * const BXGamesFolderBookmarkUserDefaultsKey = @"gamesFolderURLBookmark
 {
 	NSURL *libraryURL = [[[NSFileManager defaultManager] URLsForDirectory: NSLibraryDirectory inDomains: NSUserDomainMask] objectAtIndex: 0];
     
-    [NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask, YES) objectAtIndex: 0];
 	NSURL *legacyAliasURL = [libraryURL URLByAppendingPathComponent: @"Preferences/Boxer/Default Folder"];
 	
     NSData *bookmarkData = [NSURL bookmarkDataWithContentsOfURL: legacyAliasURL error: NULL];
@@ -654,7 +600,6 @@ NSString * const BXGamesFolderBookmarkUserDefaultsKey = @"gamesFolderURLBookmark
 	}
 	
 	[self.generalQueue addOperation: applicator];
-	[applicator release];
 }
 
 - (void) removeShelfAppearanceFromURL: (NSURL *)URL
@@ -684,7 +629,6 @@ NSString * const BXGamesFolderBookmarkUserDefaultsKey = @"gamesFolderURLBookmark
 	}
 	
 	[self.generalQueue addOperation: remover];
-	[remover release];	
 }
 
 - (BOOL) appliesShelfAppearanceToGamesFolder
@@ -701,8 +645,8 @@ NSString * const BXGamesFolderBookmarkUserDefaultsKey = @"gamesFolderURLBookmark
 {
 	NSURL *sourceURL = [[NSBundle mainBundle] URLForResource: @"Sample Games" withExtension: nil];
 	
-	BXSampleGamesCopy *copyOperation = [[BXSampleGamesCopy alloc] initFromSourceURL: sourceURL
-																		toTargetURL: URL];
+	BXSampleGamesCopy *copyOperation = [[BXSampleGamesCopy alloc] initWithSourceURL: sourceURL
+																		  targetURL: URL];
 	
 	for (id operation in self.generalQueue.operations)
 	{
@@ -714,7 +658,6 @@ NSString * const BXGamesFolderBookmarkUserDefaultsKey = @"gamesFolderURLBookmark
 			if ([operation isKindOfClass: [BXSampleGamesCopy class]] &&
 				[[operation sourceURL] isEqual: sourceURL])
 			{
-				[copyOperation release];
 				return;
 			}
 			
@@ -725,7 +668,6 @@ NSString * const BXGamesFolderBookmarkUserDefaultsKey = @"gamesFolderURLBookmark
 	}
 	
 	[self.generalQueue addOperation: copyOperation];
-	[copyOperation release];
 }
 
 
@@ -748,10 +690,10 @@ NSString * const BXGamesFolderBookmarkUserDefaultsKey = @"gamesFolderURLBookmark
 	
 	if (window)
 	{
-		[alert beginSheetModalForWindow: window
-						  modalDelegate: self
-						 didEndSelector: @selector(_gamesFolderPromptDidEnd:returnCode:window:)
-							contextInfo: (__bridge void *)(window)];
+        [alert beginSheetModalForWindow: window
+                      completionHandler: ^(NSModalResponse returnCode) {
+                          [self _gamesFolderPromptDidEnd:alert returnCode:returnCode window:window];
+        }];
 	}
 	else
 	{
@@ -759,7 +701,6 @@ NSString * const BXGamesFolderBookmarkUserDefaultsKey = @"gamesFolderURLBookmark
 		[self _gamesFolderPromptDidEnd: alert returnCode: returnCode window: nil];
 	}
     
-    [alert release];
 }
 
 - (void) _gamesFolderPromptDidEnd: (NSAlert *)alert

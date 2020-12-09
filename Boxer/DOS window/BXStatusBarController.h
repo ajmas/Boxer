@@ -6,8 +6,6 @@
  */
 
 
-//BXStatusBarController manages the main window's status bar and button states.
-
 #import <Cocoa/Cocoa.h>
 
 @class BXDOSWindowController;
@@ -18,24 +16,20 @@ enum {
 	BXStatusBarMouseLockSegment
 };
 
+/// BXStatusBarController manages the main window's status bar and button states.
+__deprecated
 @interface BXStatusBarController : NSViewController
-{
-	NSSegmentedControl *_statusBarControls;
-	NSTextField *_notificationMessage;
-    NSButton *_mouseLockButton;
-    NSView *_volumeControls;
-}
 
-@property (assign, nonatomic) IBOutlet NSSegmentedControl *statusBarControls;
-@property (assign, nonatomic) IBOutlet NSTextField *notificationMessage;
-@property (assign, nonatomic) IBOutlet NSButton *mouseLockButton;
-@property (assign, nonatomic) IBOutlet NSView *volumeControls;
+@property (strong, nonatomic) IBOutlet NSSegmentedControl *statusBarControls;
+@property (strong, nonatomic) IBOutlet NSTextField *notificationMessage;
+@property (strong, nonatomic) IBOutlet NSButton *mouseLockButton;
+@property (strong, nonatomic) IBOutlet NSView *volumeControls;
 
-//The window controller for the window containing this statusbar
-@property (readonly, nonatomic) BXDOSWindowController *controller;
+/// The window controller for the window containing this statusbar
+@property (weak, readonly, nonatomic) BXDOSWindowController *controller;
 
-//Processes the selection/deselection of segments in the segmented button.
-//Called via statusBarControl's action.
+/// Processes the selection/deselection of segments in the segmented button.
+/// Called via statusBarControl's action.
 - (IBAction) performSegmentedButtonAction: (id) sender;
 
 @end

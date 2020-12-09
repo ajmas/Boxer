@@ -25,60 +25,14 @@
  */
 
 
-//The ADBWindowEffects category adds several Core Graphics-powered transition and filter effects
-//to use on windows.
-
 #import <Cocoa/Cocoa.h>
 
+/// The @c ADBWindowEffects category adds several Core Graphics-powered transition and filter effects
+/// to use on windows.
 @interface NSWindow (ADBWindowEffects)
 
-//Order the window in/out with a simple non-blocking fade effect.
+/// Order the window in/out with a simple non-blocking fade effect.
 - (void) fadeInWithDuration: (NSTimeInterval)duration;
 - (void) fadeOutWithDuration: (NSTimeInterval)duration;
 
 @end
-
-
-//The following methods use private Core Graphics APIs that will likely fall foul
-//of App Store private-API restrictions.
-#ifdef USE_PRIVATE_APIS
-
-#import "CGSPrivate.h"
-
-@interface NSWindow (ADBPrivateAPIWindowEffects)
-
-//Applies a gaussian blur filter behind the window background.
-//Only useful for HUD-style translucent windows.
-- (void) applyGaussianBlurWithRadius: (CGFloat)radius;
-
-//Hide the window by using the specified transition.
-- (void) hideWithTransition: (CGSTransitionType)type
-				  direction: (CGSTransitionOption)direction
-				   duration: (NSTimeInterval)duration
-			   blockingMode: (NSAnimationBlockingMode)blockingMode;
-
-//Reveal the window by using the specified transition.
-- (void) revealWithTransition: (CGSTransitionType)type
-					direction: (CGSTransitionOption)direction
-					 duration: (NSTimeInterval)duration
-				 blockingMode: (NSAnimationBlockingMode)blockingMode;
-
-#pragma mark -
-#pragma mark Low-level methods
-
-//Adds a filter with the specified name and options to the window. The backgroundOnly flag
-//determines whether the filter applies directly to the window's contents, or to what lies
-//behind the window.
-- (void) addCGSFilterWithName: (NSString *)filterName
-				  withOptions: (NSDictionary *)filterOptions
-			   backgroundOnly: (BOOL)backgroundOnly;
-
-//Applies the specified Core Graphics transition to the window.
-- (void) applyCGSTransition: (CGSTransitionType)type
-				  direction: (CGSTransitionOption)direction
-				   duration: (NSTimeInterval)duration
-			   blockingMode: (NSAnimationBlockingMode)blockingMode;
-
-@end
-
-#endif

@@ -24,16 +24,16 @@
  *	POSSIBILITY OF SUCH DAMAGE.
  */
 
-//ADBContinuousThread is an NSThread subclass designed to run continuously until cancelled.
 
 #import <Foundation/Foundation.h>
 
+/// @c ADBContinuousThread is an @c NSThread subclass designed to run continuously until cancelled.
 @interface ADBContinuousThread : NSThread
 
-//Runs the thread's run-loop until distantFuture, waiting for the thread to be cancelled.
+/// Runs the thread's run-loop until distantFuture, waiting for the thread to be cancelled.
 - (void) runUntilCancelled;
 
-//Blocks the current thread until the thread has finished.
+/// Blocks the current thread until the thread has finished.
 - (void) waitUntilFinished;
 
 @end

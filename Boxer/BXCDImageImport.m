@@ -20,14 +20,12 @@ NSString * const BXCDImageImportErrorDomain = @"BXCDImageImportErrorDomain";
 #pragma mark Implementations
 
 @implementation BXCDImageImport
+@synthesize currentProgress = _currentProgress;
+@synthesize indeterminate = _indeterminate;
+
 @synthesize drive = _drive;
 @synthesize destinationFolderURL	= _destinationFolderURL;
 @synthesize destinationURL          = _destinationURL;
-
-@synthesize numBytes			= _numBytes;
-@synthesize bytesTransferred	= _bytesTransferred;
-@synthesize currentProgress		= _currentProgress;
-@synthesize indeterminate		= _indeterminate;
 
 
 #pragma mark -
@@ -82,15 +80,6 @@ NSString * const BXCDImageImportErrorDomain = @"BXCDImageImportErrorDomain";
         self.destinationFolderURL = destinationFolderURL;
 	}
 	return self;
-}
-
-- (void) dealloc
-{
-    self.drive = nil;
-    self.destinationFolderURL = nil;
-    self.destinationURL = nil;
-    
-	[super dealloc];
 }
 
 
@@ -201,12 +190,11 @@ NSString * const BXCDImageImportErrorDomain = @"BXCDImageImportErrorDomain";
 	hdiutil.standardError = [NSPipe pipe];
 	
 	self.task = hdiutil;
-	[hdiutil release];
 	
 	//Run the task to completion and monitor its progress
-    _hasWrittenFiles = NO;
+    self.hasWrittenFiles = NO;
 	[super main];
-    _hasWrittenFiles = YES;
+    self.hasWrittenFiles = YES;
 	
 	if (!self.error)
 	{
@@ -249,7 +237,6 @@ NSString * const BXCDImageImportErrorDomain = @"BXCDImageImportErrorDomain";
 	NSString *currentOutput = [[NSString alloc] initWithData: outputHandle.availableData
                                                     encoding: NSUTF8StringEncoding];
 	NSArray *progressValues = [currentOutput componentsMatchedByRegex: @"PERCENT:(-?[0-9\\.]+)" capture: 1];
-	[currentOutput release];
 	
 	ADBOperationProgress latestProgress = [progressValues.lastObject floatValue];
 	
@@ -279,7 +266,7 @@ NSString * const BXCDImageImportErrorDomain = @"BXCDImageImportErrorDomain";
 - (BOOL) undoTransfer
 {
 	BOOL undid = NO;
-	if (self.destinationURL && _hasWrittenFiles)
+	if (self.destinationURL && self.hasWrittenFiles)
 	{
         undid = [[NSFileManager defaultManager] removeItemAtURL: self.destinationURL error: NULL];
 	}

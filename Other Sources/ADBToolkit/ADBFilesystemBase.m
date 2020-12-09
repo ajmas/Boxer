@@ -45,9 +45,6 @@
 - (void) dealloc
 {
     self.baseURL = nil;
-    self.mutableRepresentedURLs = nil;
-    
-    [super dealloc];
 }
 
 //Include the base URL as one of our represented URLs.
@@ -58,7 +55,6 @@
         if (_baseURL)
             [self removeRepresentedURL: _baseURL];
         
-        [_baseURL release];
         _baseURL = [URL copy];
         
         if (_baseURL)

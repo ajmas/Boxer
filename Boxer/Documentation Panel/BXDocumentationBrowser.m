@@ -15,37 +15,43 @@
 #import "NSError+ADBErrorHelpers.h"
 #import "NSBezierPath+MCAdditions.h"
 
-enum {
+NS_ENUM(NSInteger) {
     BXDocumentationItemIcon = 1,
     BXDocumentationItemLabel = 2,
 };
 
 @interface BXDocumentationBrowser ()
 
-//A copy of the gamebox's reported documentation.
-//Repopulated whenever the gamebox announces that it has been updated.
+/// A copy of the gamebox's reported documentation.
+/// Repopulated whenever the gamebox announces that it has been updated.
 @property (readwrite, copy, nonatomic) NSArray *documentationURLs;
 
-//Called to repopulate and re-sort our local copy of the documentation URLs.
+/// Called to repopulate and re-sort our local copy of the documentation URLs.
 - (void) _syncDocumentationURLs;
 
 @end
 
-@implementation BXDocumentationBrowser
-@synthesize documentationScrollView = _documentationScrollView;
-@synthesize documentationList = _documentationList;
-@synthesize titleLabel = _titleLabel;
-@synthesize helpTextLabel = _helpTextLabel;
+@interface BXDocumentationBrowser (BXDocumentPreviews)
+- (void) synchronizePreviewToSelection;
+@end
 
-@synthesize documentationURLs = _documentationURLs;
-@synthesize documentationSelectionIndexes = _documentationSelectionIndexes;
-@synthesize delegate = _delegate;
+@implementation BXDocumentationBrowser
+
+- (void) setDocumentationSelectionIndexes: (NSIndexSet *)indexes
+{
+    if (![self.documentationSelectionIndexes isEqualToIndexSet: indexes])
+    {
+        _documentationSelectionIndexes = indexes;
+    }
+    
+    [self synchronizePreviewToSelection];
+}
 
 #pragma mark - Initialization and deallocation
 
 + (id) browserForSession: (BXSession *)session
 {
-    return [[[self alloc] initWithSession: session] autorelease];
+    return [[self alloc] initWithSession: session];
 }
 
 - (id) initWithSession: (BXSession *)session
@@ -87,7 +93,7 @@ enum {
     if ([self.documentationScrollView respondsToSelector: @selector(setHorizontalScrollElasticity:)])
         self.documentationScrollView.horizontalScrollElasticity = NSScrollElasticityNone;
     
-	[self.view registerForDraggedTypes: @[NSFilenamesPboardType]];
+	[self.view registerForDraggedTypes: @[NSPasteboardTypeFileURL]];
     //Allow documentation files to be dragged out of the documentation list to other applications,
     //but not be dragged anywhere within Boxer.
     [self.documentationList setDraggingSourceOperationMask: NSDragOperationCopy | NSDragOperationLink forLocal: NO];
@@ -108,10 +114,7 @@ enum {
     self.representedObject = nil;
     self.view.nextResponder = self.nextResponder;
     
-    self.documentationURLs = nil;
     self.documentationSelectionIndexes = nil;
-    
-    [super dealloc];
 }
 
 #pragma mark - Error handling
@@ -194,8 +197,6 @@ enum {
         //Flash the scrollbars (if any) to indicate that the content of the scroller has changed.
         if ([self.documentationScrollView respondsToSelector: @selector(flashScrollers)])
             [self.documentationScrollView flashScrollers];
-        
-        [oldURLs release];
     }
 }
 
@@ -277,7 +278,6 @@ enum {
                                               selector: comparison];
 	
 	NSArray *sortDescriptors = @[sortByType, sortByName];
-	[sortByType release], [sortByName release];
 	return sortDescriptors;
 }
 
@@ -646,24 +646,17 @@ enum {
 @end
 
 @implementation BXDocumentationBrowserPreviewItem
-@synthesize originalURL = _originalURL;
 
 + (id) previewItemWithURL: (NSURL *)URL
 {
     BXDocumentationBrowserPreviewItem *previewItem = [[self alloc] init];
     previewItem.originalURL = URL;
-    return [previewItem autorelease];
+    return previewItem;
 }
 
 - (NSURL *) previewItemURL
 {
     return self.originalURL.URLByResolvingSymlinksInPath;
-}
-
-- (void) dealloc
-{   
-    self.originalURL = nil;
-    [super dealloc];
 }
 
 @end
@@ -747,17 +740,6 @@ enum {
     else return nil;
 }
 
-- (void) setDocumentationSelectionIndexes: (NSIndexSet *)indexes
-{
-    if (![self.documentationSelectionIndexes isEqualToIndexSet: indexes])
-    {
-        [_documentationSelectionIndexes release];
-        _documentationSelectionIndexes = [indexes retain];
-    }
-    
-    [self synchronizePreviewToSelection];
-}
-
 - (void) synchronizePreviewToSelection
 {
     if (![QLPreviewPanel sharedPreviewPanelExists])
@@ -802,7 +784,6 @@ enum {
 @end
 
 @implementation BXDocumentationItem
-@synthesize icon = _icon;
 
 - (void) viewDidLoad
 {
@@ -896,7 +877,6 @@ enum {
 @end
 
 @implementation BXDocumentationWrapper
-@synthesize highlightStrength = _highlightStrength;
 
 + (id) defaultAnimationForKey: (NSString *)key
 {
@@ -1012,7 +992,7 @@ enum {
     }
     //Delete the selected items when the user presses Cmd+Backspace.
     else if ([theEvent.charactersIgnoringModifiers isEqualToString: @"\x7f"] &&
-             (theEvent.modifierFlags & NSCommandKeyMask))
+             (theEvent.modifierFlags & NSEventModifierFlagCommand))
     {
         [NSApp sendAction: @selector(trashSelectedDocumentationItems:) to: nil from: self];
     }
@@ -1022,6 +1002,7 @@ enum {
     }
 }
 
+// TODO: re-write to use NSCollectionViewGridLayout for NSCollectionView.
 - (NSSize) minContentSizeForNumberOfItems: (NSUInteger)numItems
 {
     //IMPLEMENTATION NOTE: we could (and should) defer to our assigned minItemSize instead.
@@ -1039,7 +1020,7 @@ enum {
     if (self.maxNumberOfColumns > 0)
     {
         numColumns = MIN(self.maxNumberOfColumns, numItems);
-        numRows = ceilf((float)numItems / (float)numColumns);
+        numRows = ceil((CGFloat)numItems / (CGFloat)numColumns);
     }
     //Otherwise, we'll display all our items in a single row.
     else
@@ -1065,7 +1046,7 @@ enum {
         if (targetWidth >= maxWidth) return targetWidth;
     }
     
-    CGFloat roundedWidth = ceilf(targetWidth / itemWidth) * itemWidth;
+    CGFloat roundedWidth = ceil(targetWidth / itemWidth) * itemWidth;
     
     return roundedWidth;
 }
@@ -1081,8 +1062,6 @@ enum {
                                                          endingColor: [NSColor clearColor]];
     
     [gradient drawInRect: self.bounds relativeCenterPosition: NSZeroPoint];
-    
-    [gradient release];
 }
 
 @end

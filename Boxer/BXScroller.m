@@ -63,7 +63,7 @@
 	[slotShadow setShadowBlurRadius: 3];
 	[slotShadow setShadowColor: [NSColor colorWithCalibratedWhite: 0.0f alpha: 0.5f]];
     
-	return [slotShadow autorelease];
+	return slotShadow;
 }
 
 - (NSColor *) knobStroke
@@ -76,7 +76,7 @@
 	NSGradient *knobGradient = [[NSGradient alloc] initWithStartingColor: [NSColor colorWithCalibratedWhite: 0.6f alpha: 1.0f]
 															 endingColor: [NSColor colorWithCalibratedWhite: 0.5f alpha: 1.0f]
 								];
-	return [knobGradient autorelease];
+	return knobGradient;
 }
 
 
@@ -109,9 +109,9 @@
 	NSRect	knobRect;
 	CGFloat	knobRadius;
 	CGFloat	knobGradientAngle;
-	NSGradient *knobGradient	= [self knobGradient];
-    NSColor *knobStroke         = [self knobStroke];
-	NSSize	knobMargin			= [self knobMargin];
+	NSGradient *knobGradient	= self.knobGradient;
+    NSColor *knobStroke         = self.knobStroke;
+	NSSize	knobMargin			= self.knobMargin;
 	
 	if ([self isVertical])
 	{
@@ -149,15 +149,15 @@
 {
 	if (NSEqualRects(regionRect, NSZeroRect)) return;
 	
-	NSColor *slotFill		= [self slotFill];
-	NSShadow *slotShadow	= [self slotShadow];
+    NSColor *slotFill		= self.slotFill;
+	NSShadow *slotShadow	= self.slotShadow;
 	
 	
 	NSRect slotRect;
 	CGFloat slotRadius;
-	NSSize slotMargin = [self slotMargin];
+	NSSize slotMargin = self.slotMargin;
 	
-	if ([self isVertical])
+	if (self.vertical)
 	{	
 		slotRect = NSInsetRect(regionRect, slotMargin.width, slotMargin.height);
 		slotRadius = slotRect.size.width / 2;
@@ -218,7 +218,7 @@
 	NSGradient *knobGradient = [[NSGradient alloc] initWithStartingColor: [NSColor colorWithCalibratedWhite: 0.5f alpha: 1.0f]
 															 endingColor: [NSColor colorWithCalibratedWhite: 0.4f alpha: 1.0f]
 								];
-	return [knobGradient autorelease];
+	return knobGradient;
 }
 
 @end

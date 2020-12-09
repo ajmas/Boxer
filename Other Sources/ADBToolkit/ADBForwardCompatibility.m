@@ -27,12 +27,6 @@
 #import "ADBForwardCompatibility.h"
 #import <objc/runtime.h>
 
-NSString * const NSWindowDidChangeBackingPropertiesNotification = @"NSWindowDidChangeBackingPropertiesNotification";
-NSString * const NSWindowWillEnterFullScreenNotification = @"NSWindowWillEnterFullScreenNotification";
-NSString * const NSWindowDidEnterFullScreenNotification = @"NSWindowDidEnterFullScreenNotification";
-NSString * const NSWindowWillExitFullScreenNotification = @"NSWindowWillExitFullScreenNotification";
-NSString * const NSWindowDidExitFullScreenNotification = @"NSWindowDidExitFullScreenNotification";
-
 
 @implementation ADBFallbackProxyCategory
 
@@ -49,89 +43,6 @@ NSString * const NSWindowDidExitFullScreenNotification = @"NSWindowDidExitFullSc
     const char *types = method_getTypeEncoding(method);
     
     class_addMethod(targetClass, selector, implementation, types);
-}
-
-@end
-
-@implementation NSFileManagerProxyCategory
-
-+ (void) load
-{
-    Class proxiedClass = [NSFileManager class];
-    
-    //Implementation for createDirectoryAtURL:withIntermediateDirectories:attributes:error:
-    SEL createDir = @selector(createDirectoryAtURL:withIntermediateDirectories:attributes:error:);
-    [self addInstanceMethod: createDir toClass: proxiedClass];
-    
-    SEL createSymlink = @selector(createSymbolicLinkAtURL:withDestinationURL:error:);
-    [self addInstanceMethod: createSymlink toClass: proxiedClass];
-    
-    SEL trashItem = @selector(trashItemAtURL:resultingItemURL:error:);
-    [self addInstanceMethod: trashItem toClass: proxiedClass];
-}
-
-- (BOOL) createDirectoryAtURL: (NSURL *)URL
-  withIntermediateDirectories: (BOOL)createIntermediates
-                   attributes: (NSDictionary *)attributes
-                        error: (out NSError **)error
-{
-    return [(NSFileManager *)self createDirectoryAtPath: URL.path
-                            withIntermediateDirectories: createIntermediates
-                                             attributes: attributes
-                                                  error: error];
-}
-
-- (BOOL) createSymbolicLinkAtURL: (NSURL *)URL
-              withDestinationURL: (NSURL *)destURL
-                           error: (out NSError **)error
-{
-    return [(NSFileManager *)self createSymbolicLinkAtPath: URL.path
-                                       withDestinationPath: destURL.path
-                                                     error: error];
-    
-}
-
-- (BOOL) trashItemAtURL: (NSURL *)url resultingItemURL: (out NSURL **)outResultingURL error: (out NSError **)outError
-{
-    const char *originalPath = [(NSFileManager *)self fileSystemRepresentationWithPath: url.path];
-    char *trashedPath = NULL;
-    
-    OSStatus result = FSPathMoveObjectToTrashSync(originalPath, (outResultingURL ? &trashedPath : NULL), kFSFileOperationDefaultOptions);
-    if (result == noErr)
-    {
-        if (outResultingURL && trashedPath)
-        {
-            NSString *path = [(NSFileManager *)self stringWithFileSystemRepresentation: trashedPath length: strlen(trashedPath)];
-            *outResultingURL = [NSURL fileURLWithPath: path];
-            free(trashedPath);
-        }
-        return YES;
-    }
-    else
-    {
-        if (outError)
-            *outError = [NSError errorWithDomain: NSOSStatusErrorDomain code: result userInfo: @{ NSURLErrorKey: url }];
-        
-        return NO;
-    }
-}
-@end
-
-
-@implementation NSURLProxyCategory
-
-+ (void) load
-{
-    Class proxiedClass = [NSURL class];
-    
-    SEL filesystemRepresentation = @selector(fileSystemRepresentation);
-    [self addInstanceMethod: filesystemRepresentation toClass: proxiedClass];
-}
-
-- (const char *) fileSystemRepresentation
-{
-    NSURL *url = (NSURL *)self;
-    return url.path.fileSystemRepresentation;
 }
 
 @end

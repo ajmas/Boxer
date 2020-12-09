@@ -41,9 +41,9 @@ const ADBISOFormat ADBISOFormatXAMode2Form2   = { 2324, 24, 4 };
 
 #pragma mark - Date helpers
 
-//Converts the digits of an ISO extended date format (e.g. {'1','9','9','0'})
-//into a proper integer (e.g. 1990).
-int extdate_to_int(uint8_t *digits, int length)
+//! Converts the digits of an ISO extended date format (e.g. {'1','9','9','0'})
+//! into a proper integer (e.g. 1990).
+static int extdate_to_int(uint8_t *digits, int length)
 {
     //Convert the unterminated char array to a str
     char buf[5];
@@ -67,39 +67,65 @@ int extdate_to_int(uint8_t *digits, int length)
 
 + (NSDate *) _dateFromDateTime: (ADBISODateTime)dateTime
 {
-    struct tm timeStruct;
-    timeStruct.tm_year     = dateTime.year;
-    timeStruct.tm_mon      = dateTime.month - 1;
-    timeStruct.tm_mday     = dateTime.day;
-    timeStruct.tm_hour     = dateTime.hour;
-    timeStruct.tm_min      = dateTime.minute;
-    timeStruct.tm_sec      = dateTime.second;
-    timeStruct.tm_gmtoff   = dateTime.gmtOffset * 15 * 60;
-    
-    time_t epochtime = mktime(&timeStruct);
-    
-    return [NSDate dateWithTimeIntervalSince1970: epochtime];
+    NSDateComponents *comps = [[NSDateComponents alloc] init];
+    comps.year = 1900 + dateTime.year;
+    comps.month = dateTime.month - 1;
+    comps.day = dateTime.day;
+    comps.hour = dateTime.hour;
+    comps.minute = dateTime.minute;
+    comps.second = dateTime.second;
+    comps.timeZone = [NSTimeZone timeZoneForSecondsFromGMT:dateTime.gmtOffset * 15 * 60];
+    NSDate *toRet = [[NSCalendar calendarWithIdentifier:NSCalendarIdentifierGregorian] dateFromComponents:comps];
+
+    if (!toRet) {
+        struct tm timeStruct;
+        timeStruct.tm_year     = dateTime.year;
+        timeStruct.tm_mon      = dateTime.month - 1;
+        timeStruct.tm_mday     = dateTime.day;
+        timeStruct.tm_hour     = dateTime.hour;
+        timeStruct.tm_min      = dateTime.minute;
+        timeStruct.tm_sec      = dateTime.second;
+        timeStruct.tm_gmtoff   = dateTime.gmtOffset * 15 * 60;
+        
+        time_t epochtime = mktime(&timeStruct);
+        
+        return [NSDate dateWithTimeIntervalSince1970: epochtime];
+    }
+    return toRet;
 }
 
 + (NSDate *) _dateFromExtendedDateTime: (ADBISOExtendedDateTime)dateTime
 {
-    struct tm timeStruct;
-    timeStruct.tm_year     = extdate_to_int(dateTime.year, 4);
-    timeStruct.tm_mon      = extdate_to_int(dateTime.month, 2) - 1;
-    timeStruct.tm_mday     = extdate_to_int(dateTime.day, 2);
-    timeStruct.tm_hour     = extdate_to_int(dateTime.hour, 2);
-    timeStruct.tm_min      = extdate_to_int(dateTime.minute, 2);
-    timeStruct.tm_sec      = extdate_to_int(dateTime.second, 2);
-    timeStruct.tm_gmtoff   = dateTime.gmtOffset * 15 * 60;
-    
-    time_t epochtime = mktime(&timeStruct);
-    
-    return [NSDate dateWithTimeIntervalSince1970: epochtime];
+    NSDateComponents *comps = [[NSDateComponents alloc] init];
+    comps.year = extdate_to_int(dateTime.year, 4);
+    comps.month = extdate_to_int(dateTime.month, 2) - 1;
+    comps.day = extdate_to_int(dateTime.day, 2);
+    comps.hour = extdate_to_int(dateTime.hour, 2);
+    comps.minute = extdate_to_int(dateTime.minute, 2);
+    comps.second = extdate_to_int(dateTime.second, 2);
+    comps.nanosecond = extdate_to_int(dateTime.hsecond, 2);
+    comps.timeZone = [NSTimeZone timeZoneForSecondsFromGMT:dateTime.gmtOffset * 15 * 60];
+    NSDate *toRet = [[NSCalendar calendarWithIdentifier:NSCalendarIdentifierGregorian] dateFromComponents:comps];
+    if (!toRet) {
+        struct tm timeStruct;
+        timeStruct.tm_year     = extdate_to_int(dateTime.year, 4);
+        timeStruct.tm_mon      = extdate_to_int(dateTime.month, 2) - 1;
+        timeStruct.tm_mday     = extdate_to_int(dateTime.day, 2);
+        timeStruct.tm_hour     = extdate_to_int(dateTime.hour, 2);
+        timeStruct.tm_min      = extdate_to_int(dateTime.minute, 2);
+        timeStruct.tm_sec      = extdate_to_int(dateTime.second, 2);
+        timeStruct.tm_gmtoff   = dateTime.gmtOffset * 15 * 60;
+        
+        time_t epochtime = mktime(&timeStruct);
+        
+        return [NSDate dateWithTimeIntervalSince1970: epochtime];
+    }
+    return toRet;
 }
 
 + (ADBISOFormat) _formatOfISOAtURL: (NSURL *)URL error: (out NSError **)outError
 {
-    ADBFileHandle *handle = [ADBFileHandle handleForURL: URL options: ADBOpenForReading error: outError];
+    ADBFileHandle *handle = [ADBFileHandle handleForURL: URL options: ADBHandleOpenForReading error: outError];
     if (handle)
     {
         ADBISOFormat format = [self _formatOfISOInHandle: handle error: outError];
@@ -177,7 +203,7 @@ int extdate_to_int(uint8_t *digits, int length)
 + (id) imageWithContentsOfURL: (NSURL *)URL
                         error: (NSError **)outError
 {
-    return [[(ADBISOImage *)[self alloc] initWithContentsOfURL: URL error: outError] autorelease];
+    return [(ADBISOImage *)[self alloc] initWithContentsOfURL: URL error: outError];
 }
 
 - (id) initWithContentsOfURL: (NSURL *)URL
@@ -189,8 +215,7 @@ int extdate_to_int(uint8_t *digits, int length)
         BOOL loaded = [self _loadImageAtURL: URL error: outError];
         if (!loaded)
         {
-            [self release];
-            self = nil;
+            return nil;
         }
     }
     return self;
@@ -202,12 +227,8 @@ int extdate_to_int(uint8_t *digits, int length)
     {
         [(id)self.handle close];
     }
-    self.handle = nil;
     
     self.baseURL = nil;
-    self.volumeName = nil;
-    self.pathCache = nil;
-    [super dealloc];
 }
 
 
@@ -235,8 +256,8 @@ int extdate_to_int(uint8_t *digits, int length)
 - (NSString *) typeOfFileAtPath: (NSString *)path
 {
     NSString *extension = path.pathExtension;
-    CFStringRef UTI = UTTypeCreatePreferredIdentifierForTag(kUTTagClassFilenameExtension, (CFStringRef)extension, NULL);
-    return [(NSString *)UTI autorelease];
+    CFStringRef UTI = UTTypeCreatePreferredIdentifierForTag(kUTTagClassFilenameExtension, (__bridge CFStringRef)extension, NULL);
+    return (NSString *)CFBridgingRelease(UTI);
 }
 
 - (NSString *) typeOfFileAtPath: (NSString *)path matchingTypes: (NSSet *)comparisonUTIs
@@ -246,7 +267,7 @@ int extdate_to_int(uint8_t *digits, int length)
     {
         for (NSString *comparisonUTI in comparisonUTIs)
         {
-            if (UTTypeConformsTo((CFStringRef)UTI, (CFStringRef)comparisonUTI))
+            if (UTTypeConformsTo((__bridge CFStringRef)UTI, (__bridge CFStringRef)comparisonUTI))
                 return comparisonUTI;
         }
     }
@@ -256,7 +277,7 @@ int extdate_to_int(uint8_t *digits, int length)
 - (BOOL) fileAtPath: (NSString *)path conformsToType: (NSString *)comparisonUTI
 {
     NSString *UTI = [self typeOfFileAtPath: path];
-    return (UTI != nil && UTTypeConformsTo((CFStringRef)UTI, (CFStringRef)comparisonUTI));
+    return (UTI != nil && UTTypeConformsTo((__bridge CFStringRef)UTI, (__bridge CFStringRef)comparisonUTI));
 }
 
 
@@ -292,8 +313,14 @@ int extdate_to_int(uint8_t *digits, int length)
                                                                 options: (ADBHandleOptions)options
                                                                   error: (out NSError **)outError;
 {
-    //TODO: make this an error instead?
-    NSAssert(options == ADBOpenForReading, @"The only supported file mode for ISO filesystems is ADBOpenForReading.");
+    if (options != ADBHandleOpenForReading)
+    {
+        if (outError)
+        {
+            *outError = [NSError errorWithDomain:NSCocoaErrorDomain code:NSFileWriteNoPermissionError userInfo:@{NSLocalizedDescriptionKey: @"The only supported file mode for ISO filesystems is ADBHandleOpenForReading."}];
+        }
+        return nil;
+    }
     
     ADBISOFileEntry *entry = [self _fileEntryAtPath: path error: outError];
     if (entry)
@@ -356,10 +383,10 @@ int extdate_to_int(uint8_t *digits, int length)
                                 options: (NSDirectoryEnumerationOptions)mask
                            errorHandler: (ADBFilesystemPathErrorHandler)errorHandler
 {
-    return [[[ADBISOEnumerator alloc] initWithPath: path
-                                       parentImage: self
-                                           options: mask
-                                      errorHandler: errorHandler] autorelease];
+    return [[ADBISOEnumerator alloc] initWithPath: path
+                                      parentImage: self
+                                          options: mask
+                                     errorHandler: errorHandler];
 }
 
 
@@ -416,11 +443,10 @@ int extdate_to_int(uint8_t *digits, int length)
     
     if (populated)
     {
-        return [data autorelease];
+        return data;
     }
     else
     {
-        [data release];
         return nil;
     }
 }
@@ -464,9 +490,9 @@ int extdate_to_int(uint8_t *digits, int length)
     
     //If we got this far, then we succeeded in loading the image. Hurrah!
     //Get on with parsing out whatever other info interests us from the primary volume descriptor.
-    self.volumeName = [[[NSString alloc] initWithBytes: descriptor.volumeID
-                                                length: ADBISOVolumeIdentifierLength
-                                              encoding: NSASCIIStringEncoding] autorelease];
+    self.volumeName = [[NSString alloc] initWithBytes: descriptor.volumeID
+                                               length: ADBISOVolumeIdentifierLength
+                                             encoding: NSASCIIStringEncoding];
     
     //Prepare the path cache starting with the root directory file entry.
     ADBISODirectoryRecord rootDirectoryRecord;
@@ -668,7 +694,7 @@ int extdate_to_int(uint8_t *digits, int length)
 {
     BOOL isDirectory = (record.fileFlags & ADBISOFileIsDirectory);
     Class entryClass = isDirectory ? [ADBISODirectoryEntry class] : [ADBISOFileEntry class];
-    return [[[entryClass alloc] initWithDirectoryRecord: record inImage: image] autorelease];
+    return [[entryClass alloc] initWithDirectoryRecord: record inImage: image];
 }
 
 - (id) initWithDirectoryRecord: (ADBISODirectoryRecord)record
@@ -736,22 +762,12 @@ int extdate_to_int(uint8_t *digits, int length)
                 if ([self.fileName hasSuffix: @"."])
                     self.fileName = self.fileName.stringByDeletingPathExtension;
             }
-            
-            [identifier release];
         }
         
         self.creationDate = [ADBISOImage _dateFromDateTime: record.recordingTime];
         self.hidden = (record.fileFlags & ADBISOFileIsHidden) == ADBISOFileIsHidden;
     }
     return self;
-}
-
-- (void) dealloc
-{
-    self.fileName = nil;
-    self.creationDate = nil;
-    
-    [super dealloc];
 }
 
 - (BOOL) isDirectory
@@ -796,12 +812,6 @@ int extdate_to_int(uint8_t *digits, int length)
 
 @implementation ADBISODirectoryEntry
 @synthesize cachedSubentries = _cachedSubentries;
-
-- (void) dealloc
-{
-    self.cachedSubentries = nil;
-    [super dealloc];
-}
 
 - (BOOL) isDirectory
 {
@@ -910,19 +920,9 @@ int extdate_to_int(uint8_t *digits, int length)
     else
     {
         errorHandler(path, error);
-        [self release];
-        self = nil;
+        return nil;
     }
     return self;
-}
-
-- (void) dealloc
-{
-    self.parentImage = nil;
-    self.currentDirectoryPath = nil;
-    self.errorHandler = nil;
-    
-    [super dealloc];
 }
 
 #pragma mark - ADBFilesystemPathEnumeration protocol implementations

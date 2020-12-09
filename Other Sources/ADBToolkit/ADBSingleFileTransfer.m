@@ -26,6 +26,7 @@
 
 
 #import "ADBSingleFileTransfer.h"
+#include <copyfile.h>
 
 #pragma mark -
 #pragma mark Notification constants and keys
@@ -62,11 +63,49 @@ NSString * const ADBFileTransferCurrentPathKey		= @"ADBFileTransferCurrentPathKe
 #pragma mark Implementation
 
 @implementation ADBSingleFileTransfer
+{
+    copyfile_state_t _copyState;
+@package
+	NSInteger _storedCurrentFileCount;
+	NSString *_storedCurrentFile;
+	BOOL _isDone;
+}
 @synthesize copyFiles = _copyFiles, pollInterval = _pollInterval;
 @synthesize sourcePath = _sourcePath, destinationPath = _destinationPath, currentPath = _currentPath;
 @synthesize numFiles = _numFiles, filesTransferred = _filesTransferred;
 @synthesize numBytes = _numBytes, bytesTransferred = _bytesTransferred;
 
+static int ADBSingleFileCallback(int what, int stage, copyfile_state_t state,
+								 const char * src, const char * dst, void * ctx)
+{
+    ADBSingleFileTransfer *nsCtx = (__bridge ADBSingleFileTransfer *)(ctx);
+    @synchronized(nsCtx) {
+		if (nsCtx.cancelled) {
+			return COPYFILE_QUIT;
+			nsCtx->_isDone = YES;
+		}
+		switch (what) {
+			case COPYFILE_RECURSE_FILE:
+				nsCtx->_storedCurrentFileCount++;
+				nsCtx->_storedCurrentFile = [nsCtx->_manager stringWithFileSystemRepresentation: src length: strlen(src)];
+				break;
+				
+			case COPYFILE_RECURSE_ERROR:
+				nsCtx.error = [NSError errorWithDomain:NSPOSIXErrorDomain code:errno
+											  userInfo:@{NSFilePathErrorKey: [nsCtx->_manager stringWithFileSystemRepresentation: src length: strlen(src)]}];
+				return COPYFILE_QUIT;
+				break;
+				
+			default:
+				break;
+		}
+		if (stage == COPYFILE_ERR) {
+			return COPYFILE_QUIT;
+		}
+    }
+    
+    return COPYFILE_CONTINUE;
+}
 
 #pragma mark -
 #pragma mark Initialization and deallocation
@@ -75,7 +114,9 @@ NSString * const ADBFileTransferCurrentPathKey		= @"ADBFileTransferCurrentPathKe
 {
 	if ((self = [super init]))
 	{
-		_fileOp = FSFileOperationCreate(kCFAllocatorDefault);
+        _copyState = copyfile_state_alloc();
+        copyfile_state_set(_copyState, COPYFILE_STATE_STATUS_CB, &ADBSingleFileCallback);
+        copyfile_state_set(_copyState, COPYFILE_STATE_STATUS_CTX, (__bridge CFTypeRef)(self));
 		
 		_pollInterval = ADBFileTransferDefaultPollInterval;
 		
@@ -98,21 +139,14 @@ NSString * const ADBFileTransferCurrentPathKey		= @"ADBFileTransferCurrentPathKe
 
 + (id) transferFromPath: (NSString *)sourcePath toPath: (NSString *)destinationPath copyFiles: (BOOL)copyFiles
 {
-	return [[[self alloc] initFromPath: sourcePath
+	return [[self alloc] initFromPath: sourcePath
 								toPath: destinationPath
-							 copyFiles: copyFiles] autorelease];
+							 copyFiles: copyFiles];
 }
 
 - (void) dealloc
 {
-	CFRelease(_fileOp);
-	[_manager release], _manager = nil;
-	
-    self.currentPath = nil;
-    self.sourcePath = nil;
-    self.destinationPath = nil;
-	
-	[super dealloc];
+	copyfile_state_free(_copyState);
 }
 
 
@@ -167,13 +201,13 @@ NSString * const ADBFileTransferCurrentPathKey		= @"ADBFileTransferCurrentPathKe
         //Run the runloop until the transfer is finished, letting the timer call our polling function.
         //We use a runloop instead of just sleeping, because the runloop lets cancellation messages
         //get dispatched to us correctly.)
-        while (_stage != kFSOperationStageComplete && [[NSRunLoop currentRunLoop] runMode: NSDefaultRunLoopMode
+        while (_isDone == NO && [[NSRunLoop currentRunLoop] runMode: NSDefaultRunLoopMode
                                                                                beforeDate: [NSDate dateWithTimeIntervalSinceNow: self.pollInterval]])
         {
             //Cancel the file operation if we've been cancelled in the meantime
             //(this will break out of the loop once the file operation finishes)
-            if (self.isCancelled)
-                FSFileOperationCancel(_fileOp);
+            //if (self.isCancelled)
+            //    FSFileOperationCancel(_fileOp);
         }
         
         [timer invalidate];
@@ -182,10 +216,6 @@ NSString * const ADBFileTransferCurrentPathKey		= @"ADBFileTransferCurrentPathKe
 
 - (BOOL) _beginTransfer
 {
-	OSStatus status;
-	status = FSFileOperationScheduleWithRunLoop(_fileOp, CFRunLoopGetCurrent(), kCFRunLoopDefaultMode);
-	NSAssert1(!status, @"Could not schedule file operation in current run loop, FSFileOperationScheduleWithRunLoop returned error code: %li", (long)status);
-	
 	NSString *destinationBase = self.destinationPath.stringByDeletingLastPathComponent;
 	
 	//If the destination base folder does not yet exist, create it and any intermediate directories
@@ -208,46 +238,34 @@ NSString * const ADBFileTransferCurrentPathKey		= @"ADBFileTransferCurrentPathKe
 	}
 	
 	const char *srcPath = self.sourcePath.fileSystemRepresentation;
-	//FSPathCopyObjectAsync expects the destination base path and filename to be provided separately
-	const char *destPath = destinationBase.fileSystemRepresentation;
-	CFStringRef destName = (__bridge CFStringRef)(self.destinationPath.lastPathComponent);
+	const char *destPath = self.destinationPath.fileSystemRepresentation;
 	
-	_stage = kFSOperationStageUndefined;
-	
-	if (self.copyFiles)
-	{
-		status = FSPathCopyObjectAsync(_fileOp,		//Our file operation object
-									   srcPath,		//The full path to the source file
-									   destPath,	//The path to the destination folder
-									   destName,	//The destination filename
-									   kFSFileOperationDefaultOptions,	//File operation flags
-									   NULL,
-									   0.0,
-									   NULL);
-		
-		//NSAssert1(!status, @"Could not start file operation, FSPathCopyObjectAsync returned error code: %i", status);		
+	NSArray *contents = [_manager subpathsAtPath:self.sourcePath];
+	unsigned long long fileSize = 0;
+	//TODO: More accurate sizing.
+	for (NSString *path in contents) {
+		NSDictionary *fattrib = [_manager attributesOfItemAtPath:[self.sourcePath stringByAppendingPathComponent:path] error:nil];
+		fileSize +=[fattrib fileSize];
 	}
-	else
-	{
-		status = FSPathMoveObjectAsync(_fileOp,		//Our file operation object
-									   srcPath,		//The full path to the source file
-									   destPath,	//The path to the destination folder
-									   destName,	//The destination filename
-									   kFSFileOperationDefaultOptions,	//File operation flags
-									   NULL,
-									   0.0,
-									   NULL);
-		
-		//NSAssert1(!status, @"Could not start file operation, FSPathMoveObjectAsync returned error code: %i", status);		
-	}
+	self.numBytes = fileSize;
+	//TODO: more accurate counting
+	self.numFiles = contents.count;
 
-	if (status != noErr)
-	{
-		//TODO: use this as the underlying error, wrapped inside a more legible human-friendly error
-		NSError *FSError = [NSError errorWithDomain: NSOSStatusErrorDomain code: status userInfo: nil];
-		[self setError: FSError];
-		return NO;
+	copyfile_flags_t copyFlags = COPYFILE_RECURSIVE;
+	if (self.copyFiles) {
+		copyFlags |= COPYFILE_CLONE;
+	} else {
+		copyFlags |= COPYFILE_ALL | COPYFILE_MOVE;
 	}
+	_isDone = NO;
+	dispatch_async(dispatch_get_global_queue(0, 0), ^{
+		if (copyfile(srcPath, destPath, self->_copyState, copyFlags) != 0) {
+			if (errno != ECANCELED) {
+				self.error = [NSError errorWithDomain:NSPOSIXErrorDomain code:errno userInfo:nil];
+			}
+		}
+		self->_isDone = YES;
+	});
 	
 	return YES;
 }
@@ -265,51 +283,31 @@ NSString * const ADBFileTransferCurrentPathKey		= @"ADBFileTransferCurrentPathKe
 
 - (void) _checkTransferProgress
 {	
-	char *currentItem = NULL;
-	CFDictionaryRef statusInfo = NULL;
-	OSStatus errorCode = noErr;
+	off_t copybytesTransferred = 0;
 	
-	OSStatus status = FSPathFileOperationCopyStatus(_fileOp,
-													&currentItem,
-													&_stage,
-													&errorCode,
-													&statusInfo,
-													NULL);
+	int status = copyfile_state_get(_copyState, COPYFILE_STATE_COPIED, &copybytesTransferred);
 	
 	//NSAssert1(!status, @"Could not get file operation status, FSPathFileOperationCopyStatus returned error code: %i", status);
-	if (currentItem)
+	if (_storedCurrentFile)
 	{
-		self.currentPath = [_manager stringWithFileSystemRepresentation: currentItem length: strlen(currentItem)];
+		@synchronized(self) {
+			self.currentPath = _storedCurrentFile;
+		}
 	}
     
-	if (status && status != userCanceledErr)
+	if (status != 0 && errno != ECANCELED && _currentPath)
 	{
         NSDictionary *info = (self.currentPath) ? @{ NSFilePathErrorKey: self.currentPath } : nil;
-		self.error = [NSError errorWithDomain: NSOSStatusErrorDomain code: status userInfo: info];
+		self.error = [NSError errorWithDomain: NSPOSIXErrorDomain code: errno userInfo: info];
 	}
 	
-	if (errorCode && errorCode != userCanceledErr)
-	{
-        NSDictionary *info = (self.currentPath) ? @{ NSFilePathErrorKey: self.currentPath } : nil;
-		self.error = [NSError errorWithDomain: NSOSStatusErrorDomain code: errorCode userInfo: info];
-	}
-		
-	if (statusInfo)
-	{
-		NSNumber *bytes				= (NSNumber *)CFDictionaryGetValue(statusInfo, kFSOperationTotalBytesKey);
-		NSNumber *bytesTransferred	= (NSNumber *)CFDictionaryGetValue(statusInfo, kFSOperationBytesCompleteKey);
-		NSNumber *files				= (NSNumber *)CFDictionaryGetValue(statusInfo, kFSOperationTotalObjectsKey);
-		NSNumber *filesTransferred	= (NSNumber *)CFDictionaryGetValue(statusInfo, kFSOperationObjectsCompleteKey);
-		
-		self.numBytes           = bytes.unsignedLongLongValue;
-		self.bytesTransferred   = bytesTransferred.unsignedLongLongValue;
-		self.numFiles           = files.unsignedIntegerValue;
-		self.filesTransferred   = filesTransferred.unsignedIntegerValue;
-		
-		CFRelease(statusInfo);
-	}
+	//self.numBytes           = bytes.unsignedLongLongValue;
+	self.bytesTransferred   = copybytesTransferred;
+	//self.numFiles           = files.unsignedIntegerValue;
+	self.filesTransferred   = _storedCurrentFileCount;
+
 	
-	if (_stage == kFSOperationStageRunning)
+	if (!_isDone)
 	{
 		NSDictionary *info = @{
             ADBFileTransferFilesTransferredKey: @(self.filesTransferred),

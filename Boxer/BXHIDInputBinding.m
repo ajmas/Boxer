@@ -14,11 +14,10 @@
 #define BXDefaultAxisDeadzone 0.20f
 
 @implementation BXHIDButtonBinding
-@synthesize outputBinding = _outputBinding;
 
 + (id) binding
 {
-    return [[[self alloc] init] autorelease];
+    return [[self alloc] init];
 }
 
 + (id) bindingWithOutputBinding: (id <BXOutputBinding>)outputBinding
@@ -26,12 +25,6 @@
     BXHIDButtonBinding *binding = [self binding];
     binding.outputBinding = outputBinding;
     return binding;
-}
-
-- (void) dealloc
-{
-    self.outputBinding = nil;
-    [super dealloc];
 }
 
 - (void) processEvent: (ADBHIDEvent *)event
@@ -51,15 +44,10 @@
 
 
 @implementation BXHIDAxisBinding
-@synthesize positiveBinding = _positiveBinding;
-@synthesize negativeBinding = _negativeBinding;
-@synthesize deadzone = _deadzone;
-@synthesize inverted = _inverted;
-@synthesize unidirectional = _unidirectional;
 
 + (id) binding
 {
-    return [[[self alloc] init] autorelease];
+    return [[self alloc] init];
 }
 
 + (id) bindingWithPositiveBinding: (id< BXOutputBinding>)positiveBinding
@@ -79,13 +67,6 @@
         self.deadzone = BXDefaultAxisDeadzone;
     }
     return self;
-}
-
-- (void) dealloc
-{
-    self.positiveBinding = nil;
-    self.negativeBinding = nil;
-    [super dealloc];
 }
 
 - (float) _normalizedAxisValue: (NSInteger)axisValue
@@ -142,15 +123,17 @@
 
 
 @interface BXHIDPOVSwitchBinding ()
-@property (retain, nonatomic) NSMutableDictionary *outputBindings;
+
+@property (strong, nonatomic) NSMutableDictionary *outputBindings;
+@property (nonatomic) ADBHIDPOVSwitchDirection previousDirection;
+
 @end
 
 @implementation BXHIDPOVSwitchBinding
-@synthesize outputBindings = _outputBindings;
 
 + (id) binding
 {
-    return [[[self alloc] init] autorelease];
+    return [[self alloc] init];
 }
 
 + (id) bindingWithOutputBindingsAndDirections: (id <BXOutputBinding>)subBinding, ... NS_REQUIRES_NIL_TERMINATION
@@ -187,15 +170,9 @@
     if (self)
     {
         self.outputBindings = [NSMutableDictionary dictionaryWithCapacity: 8];
-		_previousDirection = ADBHIDPOVCentered;
+		self.previousDirection = ADBHIDPOVCentered;
     }
     return self;
-}
-
-- (void) dealloc
-{
-    self.outputBindings = nil;
-    [super dealloc];
 }
 
 - (id <BXHIDInputBinding>) bindingForDirection: (ADBHIDPOVSwitchDirection)direction
@@ -241,9 +218,9 @@
 {
     ADBHIDPOVSwitchDirection direction = [ADBHIDEvent closest8WayDirectionForPOV: event.POVDirection];
     
-    if (direction != _previousDirection)
+    if (direction != self.previousDirection)
     {
-        NSSet *inactiveBindings = [self closestBindingsForDirection: _previousDirection];
+        NSSet *inactiveBindings = [self closestBindingsForDirection: self.previousDirection];
         NSSet *activeBindings = [self closestBindingsForDirection: direction];
         
         for (id <BXOutputBinding> binding in inactiveBindings)
@@ -258,7 +235,7 @@
                 [binding applyInputValue: kBXOutputBindingMax];
         }
         
-        _previousDirection = direction;
+        self.previousDirection = direction;
     }
 }
 

@@ -19,36 +19,36 @@
 
 @interface BXMIDIDeviceMonitor()
 
-//The message we send to MIDI devices to check if they're MT-32s.
-//This is an MT-32-specific message requesting an arbitrary byte value
-//from the MT-32's patch bank: no other MIDI device should respond to
-//this request.
+/// The message we send to MIDI devices to check if they're MT-32s.
+/// This is an MT-32-specific message requesting an arbitrary byte value
+/// from the MT-32's patch bank: no other MIDI device should respond to
+/// this request.
 + (NSData *) _MT32IdentityRequest;
 
-//The response stub we need to receive from a MIDI device to identify
-//it as being an MT-32.
+/// The response stub we need to receive from a MIDI device to identify
+/// it as being an MT-32.
 + (NSData *) _MT32ExpectedResponseHeader;
 
-//Called when a CoreMIDI event notification is received (e.g. a device
-//connection or disconnection.)
+/// Called when a CoreMIDI event notification is received (e.g. a device
+/// connection or disconnection.)
 void _didReceiveMIDINotification(const MIDINotification *message, void *context);
 - (void) _MIDINotificationReceived: (const MIDINotification *)message;
 
-//Scan the specified MIDI destination for an MT-32.
+/// Scan the specified MIDI destination for an MT-32.
 - (void) _scanDestination: (MIDIEndpointRef)destination;
 
-//Scan all currently-connected destinations for MT-32s.
+/// Scan all currently-connected destinations for MT-32s.
 - (void) _scanAvailableDestinations;
 
-//Returns the currently-active listener for the specified source,
-//or nil if no listener is found.
+/// Returns the currently-active listener for the specified source,
+/// or \c nil if no listener is found.
 - (BXMIDIInputListener *) _listenerForSource: (MIDIEndpointRef)source;
 
-//Returns our best guess at the MIDI source corresponding to the specified destination. 
-//This will first try to find an available source on the same entity as the destination,
-//falling back on any available source in the system. (Skips sources we're already
-//listening to on behalf of other destinations, as this would otherwise lead to mixups
-//where we wouldn't be able to tell which destination a message is for.)
+/// Returns our best guess at the MIDI source corresponding to the specified destination.
+/// This will first try to find an available source on the same entity as the destination,
+/// falling back on any available source in the system. (Skips sources we're already
+/// listening to on behalf of other destinations, as this would otherwise lead to mixups
+/// where we wouldn't be able to tell which destination a message is for.)
 - (MIDIEndpointRef) _probableSourceForDestination: (MIDIEndpointRef)destination;
 
 @end
@@ -58,7 +58,13 @@ void _didReceiveMIDINotification(const MIDINotification *message, void *context)
 #pragma mark Implementation
 
 @implementation BXMIDIDeviceMonitor
-@synthesize discoveredMT32s = _discoveredMT32s;
+{
+	MIDIClientRef _client;
+	MIDIPortRef _outputPort;
+	MIDIPortRef _inputPort;
+	NSMutableArray *_discoveredMT32s;
+	NSMutableArray *_listeners;
+}
 
 #pragma mark -
 #pragma mark Public API
@@ -72,7 +78,7 @@ void _didReceiveMIDINotification(const MIDINotification *message, void *context)
     {
         MT32s = [[NSArray alloc] initWithArray: _discoveredMT32s copyItems: YES];
     }
-    return [MT32s autorelease];
+    return MT32s;
 }
 
 - (id) init
@@ -88,7 +94,7 @@ void _didReceiveMIDINotification(const MIDINotification *message, void *context)
 
 - (void) main
 {
-    NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+    @autoreleasepool {
     
     //Create a MIDI client
     OSStatus errCode = MIDIClientCreate((CFStringRef)@"Boxer MT-32 Scanner", _didReceiveMIDINotification, (__bridge void *)self, &_client);
@@ -125,15 +131,7 @@ void _didReceiveMIDINotification(const MIDINotification *message, void *context)
     _inputPort = (MIDIObjectRef)NULL;
     _outputPort = (MIDIObjectRef)NULL;
     
-    [pool drain];
-}
-
-- (void) dealloc
-{
-    [_listeners release], _listeners = nil;
-    [_discoveredMT32s release], _discoveredMT32s = nil;
-    
-    [super dealloc];
+    }
 }
 
 
@@ -148,7 +146,6 @@ void _didReceiveMIDINotification(const MIDINotification *message, void *context)
         //Perform an arbitrary request for a byte from patch memory.
         UInt8 address[3] = { BXMT32SysexAddressPatchMemory, 0x00, 0x00 };
         request = [BXExternalMT32 sysexRequestForDataOfLength: 1 fromAddress: address];
-        [request retain];
     }
     return request;
 }
@@ -363,7 +360,7 @@ void _didReceiveMIDINotification(const MIDINotification *message, void *context)
 
         //Set up a listener to receive responses from the device.
         BXMIDIInputListener *listener = [[BXMIDIInputListener alloc] initWithDelegate: self];
-        [listener listenToSource: source onPort: _inputPort contextInfo: (void *)destination];
+        [listener listenToSource: source onPort: _inputPort contextInfo: (void *)(uintptr_t)destination];
         
         //Send the request to the device.
         OSStatus errCode = MIDISend(_outputPort, destination, packets);
@@ -377,8 +374,6 @@ void _didReceiveMIDINotification(const MIDINotification *message, void *context)
         {
             [listener stopListening];
         }
-        
-        [listener release];
     }
 }
 
@@ -404,18 +399,15 @@ void _didReceiveMIDINotification(const MIDINotification *message, void *context)
 @end
 
 @implementation BXMIDIInputListener
-@synthesize port = _port;
-@synthesize source = _source;
-@synthesize contextInfo = _contextInfo;
-@synthesize timeout = _timeout;
-@synthesize delegate = _delegate;
-@synthesize receivedData = _receivedData;
-
+{
+	NSMutableData *_receivedData;
+	NSThread *_notificationThread;
+}
 
 #pragma mark -
 #pragma mark Class helpers
 
-void _didReceiveMIDIInput(const MIDIPacketList *packets, void *portContext, void *connectionContext)
+static void _didReceiveMIDIInput(const MIDIPacketList *packets, void *portContext, void *connectionContext)
 {
     [(__bridge BXMIDIInputListener *)connectionContext receivePackets: packets];
 }
@@ -442,7 +434,7 @@ void _didReceiveMIDIInput(const MIDIPacketList *packets, void *portContext, void
 #pragma mark -
 #pragma mark Initialization and deallocation
 
-- (id) init
+- (instancetype) init
 {
     self = [super init];
     if (self)
@@ -453,7 +445,7 @@ void _didReceiveMIDIInput(const MIDIPacketList *packets, void *portContext, void
     return self;
 }
 
-- (id) initWithDelegate: (id <BXMIDIInputListenerDelegate>)delegate
+- (instancetype) initWithDelegate: (id <BXMIDIInputListenerDelegate>)delegate
 {
     self = [self init];
     if (self)
@@ -466,9 +458,6 @@ void _didReceiveMIDIInput(const MIDIPacketList *packets, void *portContext, void
 - (void) dealloc
 {
     [self stopListening];
-    [_receivedData release], _receivedData = nil;
-    
-    [super dealloc];
 }
 
 
@@ -525,8 +514,6 @@ void _didReceiveMIDIInput(const MIDIPacketList *packets, void *portContext, void
     }
     
     [self _addPacketData: packetData];
-    
-    [packetData release];
 }
 
 - (BOOL) isListening

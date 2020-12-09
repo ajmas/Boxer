@@ -42,8 +42,6 @@ enum {
 #pragma mark Implementation
 
 @implementation BXGameboxPanelController
-@synthesize programSelector = _programSelector;
-@synthesize sessionMediator = _sessionMediator;
 
 - (BXSession *) session
 {
@@ -53,8 +51,6 @@ enum {
 - (void) dealloc
 {
     self.sessionMediator = nil;
-    self.programSelector = nil;
-	[super dealloc];
 }
 
 - (void) setSessionMediator: (NSObjectController *)mediator
@@ -69,8 +65,7 @@ enum {
 		for (NSString *path in observePaths)
 			[_sessionMediator removeObserver: self forKeyPath: path];
 	
-		[_sessionMediator release];
-		_sessionMediator = [mediator retain];
+		_sessionMediator = mediator;
 	
 		for (NSString *path in observePaths)
 			[mediator addObserver: self forKeyPath: path options: NSKeyValueObservingOptionInitial context: nil];
@@ -161,16 +156,16 @@ enum {
     
     [openPanel beginSheetModalForWindow: self.view.window
                       completionHandler: ^(NSInteger result) {
-                          if (result == NSFileHandlingPanelOKButton)
-                          {
-                              [self chooseDefaultProgramWithURL: openPanel.URL];
-                          }
-                          else if (result == NSFileHandlingPanelCancelButton)
-                          {
-                              //If the user cancelled, revert the menu item selection back to the default program
-                              [self syncSelection];
-                          }
-                      }];
+        if (result == NSModalResponseOK)
+        {
+            [self chooseDefaultProgramWithURL: openPanel.URL];
+        }
+        else if (result == NSModalResponseCancel)
+        {
+            //If the user cancelled, revert the menu item selection back to the default program
+            [self syncSelection];
+        }
+    }];
 }
 
 - (void) chooseDefaultProgramWithURL: (NSURL *)URL
@@ -254,7 +249,7 @@ enum {
 - (NSArray *) _programMenuItems
 {	
 	NSDictionary *allPrograms	= [self.session.executableURLs valueForKey: @"path"];
-    NSString *currentTarget     = self.session.gamebox.targetPath;
+    NSString *currentTarget     = self.session.gamebox.legacyTargetURL.path;
 	NSMutableArray *items		= [NSMutableArray arrayWithCapacity: allPrograms.count];
 	
 	NSArray *driveLetters = [allPrograms.allKeys sortedArrayUsingSelector: @selector(compare:)];
@@ -264,9 +259,7 @@ enum {
 	{
 		BXEmulator *emulator = self.session.emulator;
 		for (NSString *driveLetter in driveLetters)
-		{
-			NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
-			
+		@autoreleasepool {
 			BXDrive *drive = [emulator driveAtLetter: driveLetter];
 			
 			//Skip drives that aren't located inside the gamebox
@@ -293,7 +286,6 @@ enum {
                     [items addObject: [NSMenuItem separatorItem]];
                 }
             }
-			[pool release];
 		}
 	}
 	
@@ -312,8 +304,8 @@ enum {
 	//Use the DOS path of the executable to display it
 	NSString *displayPath = nil;
 	//If we know the drive already, we can look up the path directly; otherwise, get the emulator to determine the drive
-	if (drive) displayPath	= [emulator DOSPathForPath: path onDrive: drive];
-	else		displayPath = [emulator DOSPathForPath: path];
+	if (drive) displayPath	= [emulator DOSPathForLogicalURL: [NSURL fileURLWithPath: path] onDrive: drive];
+	else		displayPath = [emulator DOSPathForLogicalURL: [NSURL fileURLWithPath: path]];
 	
 	//If the file is not accessible in DOS, use the file's OSX filesystem path
 	//(This should never happen - we don't list programs that aren't on mounted drives - but just in case)
@@ -322,9 +314,7 @@ enum {
 	item.representedObject = path;
 	item.title = [pathFormat transformedValue: displayPath];
 	
-	[pathFormat release];
-	
-	return [item autorelease];
+	return item;
 }
 
 @end

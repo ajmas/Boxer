@@ -14,23 +14,23 @@
 #import "BXDOSWindowController.h"
 #import "BXInputController.h"
 
+#import <DDHidLib/DDHidJoystick.h>
+
 @interface BXJoystickController ()
 
-@property (retain, nonatomic) ADBHIDMonitor *HIDMonitor;
-@property (retain, nonatomic) NSArray *recentHIDRemappers;
+@property (strong, nonatomic) ADBHIDMonitor *HIDMonitor;
+@property (strong, nonatomic) NSArray *recentHIDRemappers;
 
 @end
 
 @implementation BXJoystickController
-@synthesize HIDMonitor = _HIDMonitor;
-@synthesize recentHIDRemappers = _recentHIDRemappers;
 
 - (id) init
 {
     self = [super init];
     if (self)
     {
-        self.HIDMonitor = [[[ADBHIDMonitor alloc] init] autorelease];
+        self.HIDMonitor = [[ADBHIDMonitor alloc] init];
         
         self.HIDMonitor.delegate = self;
         NSArray *deviceProfiles = @[[ADBHIDMonitor joystickDescriptor], [ADBHIDMonitor gamepadDescriptor]];
@@ -49,11 +49,6 @@
 {
     [[NSNotificationCenter defaultCenter] removeObserver: self];
     [self.HIDMonitor stopObserving];
-    
-    self.recentHIDRemappers = nil;
-    self.HIDMonitor = nil;
-	
-	[super dealloc];
 }
 
 + (NSSet *) keyPathsForValuesAffectingJoystickDevices
@@ -106,9 +101,9 @@
     //Populate the remapper array the first time we are asked
     if (!_recentHIDRemappers)
     {
-        _recentHIDRemappers = [[self.class runningHIDRemapperIdentifiers] retain];
+        _recentHIDRemappers = [self.class runningHIDRemapperIdentifiers];
     }
-    return [[_recentHIDRemappers retain] autorelease];
+    return _recentHIDRemappers;
 }
 
 - (void) clearRecentHIDRemappers

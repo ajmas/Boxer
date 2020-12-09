@@ -32,7 +32,7 @@ NSString * const ADBUserNotificationTypeKey = @"ADBUserNotificationType";
 
 @interface ADBUserNotificationDispatcher ()
 
-@property (retain, nonatomic) NSMutableDictionary *activationHandlers;
+@property (strong, nonatomic) NSMutableDictionary<NSNumber*,ADBUserNotificationActivationHandler> *activationHandlers;
 
 //Called to remove an activation handler for the specified notification, usually because
 //the notification itself is being removed.
@@ -78,42 +78,34 @@ NSString * const ADBUserNotificationTypeKey = @"ADBUserNotificationType";
     return self;
 }
 
-- (void) dealloc
-{
-    self.activationHandlers = nil;
-    
-    [super dealloc];
-}
-
 - (void) scheduleNotification: (NSUserNotification *)notification
-                       ofType: (id)typeKey
+                       ofType: (ADBUserNotificationType)typeKey
                    fromSender: (id)sender
                  onActivation: (ADBUserNotificationActivationHandler)activationHandler;
 {
-    NSMutableDictionary *userInfo = [NSMutableDictionary dictionary];
+    NSMutableDictionary<NSString*,id> *userInfo = [NSMutableDictionary dictionary];
     if (notification.userInfo)
         [userInfo addEntriesFromDictionary: notification.userInfo];
     
     if (activationHandler != nil)
     {
         activationHandler = [activationHandler copy];
-        id handlerKey = @([activationHandler hash]);
+        NSNumber *handlerKey = @([activationHandler hash]);
         
-        [self.activationHandlers setObject: activationHandler forKey: handlerKey];
-        [activationHandler release];
+        self.activationHandlers[handlerKey] = activationHandler;
         
-        [userInfo setObject: handlerKey forKey: ADBUserNotificationHandlerKey];
+        userInfo[ADBUserNotificationHandlerKey] = handlerKey;
     }
     
     if (typeKey != nil)
     {
-        [userInfo setObject: typeKey forKey: ADBUserNotificationTypeKey];
+        userInfo[ADBUserNotificationTypeKey] = typeKey;
     }
     
     if (sender != nil)
     {
         NSNumber *senderHash = @([sender hash]);
-        [userInfo setObject: senderHash forKey: ADBUserNotificationSenderKey];
+        userInfo[ADBUserNotificationSenderKey] = senderHash;
     }
     
     notification.userInfo = userInfo;
@@ -140,7 +132,6 @@ NSString * const ADBUserNotificationTypeKey = @"ADBUserNotificationType";
         NSMutableArray *filteredNotifications = [center.scheduledNotifications mutableCopy];
         [filteredNotifications removeObject: notification];
         center.scheduledNotifications = filteredNotifications;
-        [filteredNotifications release];
         
         [center removeDeliveredNotification: notification];
     }
@@ -191,7 +182,6 @@ NSString * const ADBUserNotificationTypeKey = @"ADBUserNotificationType";
             }
         }
         center.scheduledNotifications = filteredNotifications;
-        [filteredNotifications release];
         
         for (NSUserNotification *notification in center.deliveredNotifications)
         {

@@ -10,11 +10,9 @@
 #import "BXBaseAppController.h"
 #import "BXSession.h"
 #import "BXJoystickController.h"
-#import "BXJoypadController.h"
 #import "ADBGeometry.h"
 #import "BXCursorFadeAnimation.h"
 #import "BXDOSWindowController.h"
-#import "BXGLRenderingView.h"
 #import "BXDOSWindow.h"
 #import "ADBForwardCompatibility.h"
 #import "ADBAppKitVersionHelpers.h"
@@ -78,7 +76,7 @@
     }
     
 	//Tell the view to accept touch events
-    self.view.acceptsTouchEvents = YES;
+    self.view.allowedTouchTypes = NSTouchTypeMaskDirect;
          
 	//Set up a cursor region in the view for mouse handling
 	NSTrackingAreaOptions options = NSTrackingMouseEnteredAndExited | NSTrackingEnabledDuringMouseDrag | NSTrackingCursorUpdate | NSTrackingActiveInKeyWindow | NSTrackingInVisibleRect | NSTrackingAssumeInside;
@@ -89,12 +87,11 @@
 															   userInfo: nil];
 	
 	[self.view addTrackingArea: trackingArea];
-	[trackingArea release];
 	 
 	
 	//Set up our cursor fade animation
-	self.cursorFade = [[[BXCursorFadeAnimation alloc] initWithDuration: BXCursorFadeDuration
-                                                        animationCurve: NSAnimationEaseIn] autorelease];
+	self.cursorFade = [[BXCursorFadeAnimation alloc] initWithDuration: BXCursorFadeDuration
+                                                        animationCurve: NSAnimationEaseIn];
     
     self.cursorFade.delegate = self;
     self.cursorFade.originalCursor = [NSCursor arrowCursor];
@@ -108,12 +105,6 @@
     self.view.nextResponder = self.nextResponder;
     
 	[self.cursorFade stopAnimation];
-    
-    self.cursorFade = nil;
-    self.controllerProfiles = nil;
-    self.availableJoystickTypes = nil;
-    
-	[super dealloc];
 }
 
 - (BXSession *)representedObject
@@ -127,7 +118,6 @@
 	if (session != previousSession)
 	{
 		BXJoystickController *joystickController    = [(BXBaseAppController *)[NSApp delegate] joystickController];
-        BXJoypadController *joypadController        = [(BXBaseAppController *)[NSApp delegate] joypadController];
 		
 		if (previousSession)
 		{
@@ -143,7 +133,6 @@
 			[previousSession removeObserver: self forKeyPath: @"emulator.joystickSupport"];
 			
 			[joystickController removeObserver: self forKeyPath: @"joystickDevices"];
-			[joypadController removeObserver: self forKeyPath: @"hasJoypadDevices"];
 			
             CFNotificationCenterRef cfCenter = CFNotificationCenterGetDistributedCenter();
             CFNotificationCenterRemoveObserver(cfCenter, (__bridge const void *)(self), kTISNotifySelectedKeyboardInputSourceChanged, NULL);
@@ -195,11 +184,6 @@
 								 forKeyPath: @"joystickDevices"
 									options: NSKeyValueObservingOptionInitial
 									context: nil];
-            
-			[joypadController addObserver: self
-                               forKeyPath: @"hasJoypadDevices"
-                                  options: NSKeyValueObservingOptionInitial
-                                  context: nil];
 			
 			[session addObserver: self
 					  forKeyPath: @"emulator.joystick"
@@ -229,7 +213,7 @@
 
 - (void) observeValueForKeyPath: (NSString *)keyPath
 					   ofObject: (id)object
-						 change: (NSDictionary *)change
+						 change: (NSDictionary<NSKeyValueChangeKey, id> *)change
 						context: (void *)context
 {
 	//Ignore mouse position updates if we know we were the ones that moved the mouse
@@ -294,16 +278,6 @@
         [self willChangeValueForKey: @"controllersAvailable"];
         [self didChangeValueForKey: @"controllersAvailable"];
     }
-    
-    else if ([keyPath isEqualToString: @"hasJoypadDevices"])
-    {
-        //Connect a joystick if none was available before
-		[self _syncJoystickType];
-        
-        //Let the Inspector UI know to switch from the connect-a-controller panel
-        [self willChangeValueForKey: @"controllersAvailable"];
-        [self didChangeValueForKey: @"controllersAvailable"];
-	}		 
 }
 
 
@@ -322,7 +296,10 @@
         return NO;
     
     //If it is, check if the mouse is inside our actual DOS view.
-    NSPoint locationInWindow = [window convertScreenToBase: locationOnScreen];
+    NSRect tmpRect;
+    tmpRect.origin = locationOnScreen;
+    tmpRect.size = NSMakeSize(1, 1);
+    NSPoint locationInWindow = [window convertRectFromScreen:tmpRect].origin;
     NSPoint locationInView = [self.view convertPoint: locationInWindow fromView: nil];
     
     if (![self.view mouse: locationInView inRect: self.view.bounds])
@@ -605,7 +582,7 @@ void _inputSourceChanged(CFNotificationCenterRef center,
 		NSUInteger modifiers = theEvent.modifierFlags;
 		
         //Cmd-clicking toggles mouse-locking and causes the actual click to be ignored.
-		if ((modifiers & NSCommandKeyMask) == NSCommandKeyMask)
+		if ((modifiers & NSEventModifierFlagCommand) == NSEventModifierFlagCommand)
 		{
 			[self toggleMouseLocked: self];
 		}
@@ -1019,14 +996,20 @@ void _inputSourceChanged(CFNotificationCenterRef center,
 									  canvasPoint.y * canvas.size.height);
 	
 	NSPoint pointInWindow = [self.view convertPoint: pointInView toView: nil];
-	NSPoint pointOnScreen = [self.view.window convertBaseToScreen: pointInWindow];
+    NSRect tmpRect;
+    tmpRect.origin = pointInWindow;
+    tmpRect.size = NSMakeSize(1, 1);
+	NSPoint pointOnScreen = [self.view.window convertRectToScreen:tmpRect].origin;
 	
 	return pointOnScreen;
 }
 
 - (NSPoint) _pointInCanvas: (NSPoint)screenPoint
 {
-	NSPoint pointInWindow	= [self.view.window convertScreenToBase: screenPoint];
+    NSRect tmpRect;
+    tmpRect.origin = screenPoint;
+    tmpRect.size = NSMakeSize(1, 1);
+	NSPoint pointInWindow	= [self.view.window convertRectFromScreen:tmpRect].origin;
 	NSPoint pointInView		= [self.view convertPoint: pointInWindow fromView: nil];
 	
 	NSRect canvas = self.view.bounds;

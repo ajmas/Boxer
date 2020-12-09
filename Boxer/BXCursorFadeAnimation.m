@@ -11,13 +11,6 @@
 
 
 @implementation BXCursorFadeAnimation
-@synthesize originalCursor;
-
-- (void) dealloc
-{
-	[originalCursor release], originalCursor = nil;
-	[super dealloc];
-}
 
 - (void) setCurrentProgress: (NSAnimationProgress)progress
 {
@@ -43,13 +36,12 @@
 	if (opacity > 0.0f)
 	{
 		[fadedImage lockFocus];
-		[[cursor image] drawAtPoint: NSZeroPoint fromRect: NSZeroRect operation: NSCompositeSourceOver fraction: opacity];
+        [[cursor image] drawAtPoint: NSZeroPoint fromRect: NSZeroRect operation: NSCompositingOperationSourceOver fraction: opacity];
 		[fadedImage unlockFocus];
 	}
 	
 	NSCursor *fadedCursor = [[NSCursor alloc] initWithImage: fadedImage hotSpot: [cursor hotSpot]];
-	[fadedImage release];
-	return [fadedCursor autorelease];
+	return fadedCursor;
 }
 
 @end

@@ -11,29 +11,21 @@
 
 
 @implementation BXHUDLevelIndicatorCell
-@synthesize indicatorShadow, indicatorColor;
 
 + (CGFloat) heightForControlSize: (NSControlSize)size
 {
     switch (size)
     {
-        case NSMiniControlSize:
+        case NSControlSizeMini:
             return 10.0f;
             
-        case NSSmallControlSize:
+        case NSControlSizeSmall:
             return 12.0f;
             
-        case NSRegularControlSize:
+        case NSControlSizeRegular:
         default:
             return 14.0f;
     }
-}
-
-- (void) dealloc
-{
-    self.indicatorColor = nil;
-    self.indicatorShadow = nil;
-	[super dealloc];
 }
 
 - (void) awakeFromNib

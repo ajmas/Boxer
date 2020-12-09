@@ -14,7 +14,7 @@
 
 - (void) _drawBlueprintInRect: (NSRect)dirtyRect
 {	
-	NSColor *blueprintColor = [NSColor colorWithPatternImage: [NSImage imageNamed: @"Blueprint.jpg"]];
+	NSColor *blueprintColor = [NSColor colorWithPatternImage: [NSImage imageNamed: @"Blueprint"]];
 	NSSize patternSize		= blueprintColor.patternImage.size;
 	NSSize viewSize			= self.bounds.size;
 	NSPoint patternOffset	= [NSView focusView].offsetFromWindowOrigin;
@@ -39,7 +39,7 @@
 	{
 		[brand drawInRect: brandRegion
 				 fromRect: NSZeroRect
-				operation: NSCompositeSourceOver
+				operation: NSCompositingOperationSourceOver
 				 fraction: 1.0f];	
 	}
 }
@@ -58,8 +58,6 @@
 	[lighting drawFromCenter: startPoint radius: startRadius
 					toCenter: endPoint radius: endRadius
 					 options: NSGradientDrawsBeforeStartingLocation | NSGradientDrawsAfterEndingLocation];
-	
-	[lighting release];	
 }
 
 - (void) _drawShadowInRect: (NSRect)dirtyRect
@@ -73,7 +71,6 @@
 															  endingColor: [NSColor colorWithCalibratedWhite: 0.0f alpha: 0.0f]];
 		
 		[topShadow drawInRect: shadowRect angle: 270.0f];
-		[topShadow release];
 	}
 }
 

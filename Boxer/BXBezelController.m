@@ -41,35 +41,10 @@
 #define BXMouseLockedBezelDuration 1.5
 
 @implementation BXBezelController
-
-@synthesize driveAddedBezel = _driveAddedBezel;
-@synthesize driveRemovedBezel = _driveRemovedBezel;
-@synthesize driveSwappedBezel = _driveSwappedBezel;
-@synthesize driveImportedBezel = _driveImportedBezel;
-
-@synthesize pauseBezel = _pauseBezel;
-@synthesize playBezel = _playBezel;
-@synthesize fastForwardBezel = _fastForwardBezel;
-
-@synthesize fullscreenBezel = _fullscreenBezel;
-@synthesize screenshotBezel = _screenshotBezel;
-
-@synthesize CPUSpeedBezel = _CPUSpeedBezel;
-@synthesize volumeBezel = _volumeBezel;
-
-@synthesize throttleBezel = _throttleBezel;
-@synthesize joystickIgnoredBezel = _joystickIgnoredBezel;
-
-@synthesize MT32MessageBezel = _MT32MessageBezel;
-@synthesize MT32MissingBezel = _MT32MissingBezel;
-
-@synthesize numpadActiveBezel = _numpadActiveBezel;
-@synthesize numpadInactiveBezel = _numpadInactiveBezel;
-@synthesize numlockActiveBezel = _numlockActiveBezel;
-@synthesize numlockInactiveBezel = _numlockInactiveBezel;
-
-@synthesize mouseLockedBezel = _mouseLockedBezel;
-
+{
+	BXBezelPriority _currentPriority;	
+	BOOL _hasShownFullscreenBezel;
+}
 
 + (NSImage *) bezelIconForDrive: (BXDrive *)drive
 {
@@ -116,7 +91,7 @@
     //Create our own window, as one is not defined in the NIB.
     //(we need a borderless transparent window, which XCode can't define in a NIB file.)
     NSWindow *bezelWindow = [[NSWindow alloc] initWithContentRect: NSZeroRect
-                                                        styleMask: NSBorderlessWindowMask
+                                                        styleMask: NSWindowStyleMaskBorderless
                                                           backing: NSBackingStoreBuffered
                                                             defer: YES];
     
@@ -127,7 +102,7 @@
     bezelWindow.level = NSPopUpMenuWindowLevel;
     bezelWindow.collectionBehavior = NSWindowCollectionBehaviorCanJoinAllSpaces | NSWindowCollectionBehaviorFullScreenAuxiliary;
     
-    self.window = [bezelWindow autorelease];
+    self.window = bezelWindow;
 }
 
 - (BOOL) showBezel: (NSView *)bezel
@@ -497,7 +472,7 @@
     NSTextField *actionLabel    = [bezel viewWithTag: BXBezelDriveAction];
     NSTextField *titleLabel     = [bezel viewWithTag: BXBezelDriveTitle];
     
-    NSString *actionFormat = NSLocalizedString(@"Drive %2$@ imported", @"Label for drive-imported bezel notification. %1$@ is the drive letter.");
+    NSString *actionFormat = NSLocalizedString(@"Drive %1$@ imported", @"Label for drive-imported bezel notification. %1$@ is the drive letter.");
     
     actionLabel.stringValue = [NSString stringWithFormat: actionFormat, drive.letter];
     titleLabel.stringValue = drive.title;

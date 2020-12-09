@@ -119,24 +119,6 @@ na vlastních osách.";
 /* Bold message in skip confirmation alert when importing from a folder or other source with no more specific message. */
 "Boxer is importing the game’s source files so that the game can find them later." = "Boxer importuje zdrojové soubory hry, aby je hra později dokázala najít.";
 
-/* Label for simple joystick Joypad layout. */
-"Boxer: 2-axis, 2-button joystick" = "Boxer: joystick s 2 osami a 2 tlačítky";
-
-/* Label for standard joystick Joypad layout. */
-"Boxer: 2-axis, 4-button joystick" = "Boxer: joystick s 2 osami a 4 tlačítky";
-
-/* Label for 4-button wheel Joypad layout. */
-"Boxer: 2-button racing wheel" = "Boxer: závodní volant s 2 tlačítky";
-
-/* Label for flightstick Joypad layout. */
-"Boxer: 4-button flightstick with POV switch" = "Boxer: knipl se 4 tlačítky a pozičním kloboučkem";
-
-/* Label for 4-button wheel Joypad layout. */
-"Boxer: 4-button racing wheel" = "Boxer: závodní volant se 4 tlačítky";
-
-/* Label for brake pedal on Joypad wheel layouts. */
-"Brake" = "Brzda";
-
 /* Label for CD-ROM drive mounts. */
 "CD-ROM" = "CD-ROM";
 
@@ -253,7 +235,7 @@ na vlastních osách.";
 "Drive %1$@ swapped" = "Disk %1$@ vyměněn";
 
 /* Label for drive-imported bezel notification. %1$@ is the drive letter. */
-"Drive %2$@ imported" = "Disk %2$@ naimportován";
+"Drive %1$@ imported" = "Disk %1$@ naimportován";
 
 /* Subtitle of notification shown when a drive has finished importing. %@ is the letter of the drive. */
 "Drive %@ imported" = "Disk %@ naimportován";
@@ -263,9 +245,6 @@ na vlastních osách.";
 
 /* The display title for Boxer’s dummy CD-ROM drive. */
 "Dummy CD" = "Fiktivní CD";
-
-/* Label for Escape button on Joypad layouts. */
-"ESC" = "Esc";
 
 /* Label for drive panel menu item to remove selected drives entirely from the drive list. Shown when one or more selected drives is currently mounted. */
 "Eject and Remove from List" = "Vysunout a odebrat ze seznamu";
@@ -328,9 +307,6 @@ na vlastních osách.";
 /* Subtitle of user notification shown when a game finishes importing. */
 "Game imported successfully" = "Hra byla úspěšně naimportována";
 
-/* Label for gas pedal on Joypad wheel layouts. */
-"Gas" = "Plyn";
-
 /* View menu option for hiding the launch panel. */
 "Hide Launch Panel" = "Skrýt panel spuštění";
 
@@ -369,7 +345,7 @@ na vlastních osách.";
 "Import a Game" = "Importovat hru";
 
 /* Label for confirmation button on open panel when importing a game state. */
-"Import and Relaunch" = "Importovat a resetovat";
+"Import and Relaunch" = "Importovat a restartovat";
 
 /* Import window title once an import has finished. */
 "Import complete" = "Import dokončen";
@@ -509,10 +485,6 @@ na vlastních osách.";
 
 /* Label of default button in hotkey warning alert. %@ is the localized name of the preferences pane that contains the relevant accessibility controls. */
 "Open %@ Preferences" = "Otevřít panel %@";
-
-/* Label for Pause button on Joypad layouts.
-   Label for pause button on Joypad layouts. */
-"PAUSE" = "POZASTAVIT";
 
 /* The term to use for MT-32 PCM ROMs in error messages. */
 "PCM ROM" = "PCM ROM";
@@ -845,7 +817,16 @@ Přetáhněte sem prosím náhradní ROM.";
 "“%@” is not a valid joystick type." = "“%@” není platný typ joysticku.";
 
 /* Explanatory message shown in Keyboard Preferences if Boxer is not able to install its hotkey capture event tap on OS X 10.8 and below. %1$@ is the localized name of the Accessibility preferences pane. */
-"“Enable access for assistive devices” must also
- be enabled in OS X’s %1$@ preferences." = "Na panelu %1$@ OS X musí být rovněž zaškrtnuta
-možnost “Zapnout přístup pro asistenční zařízení”.";
+"“Enable access for assistive devices” must also\n be enabled in OS X’s %1$@ preferences." = "Na panelu %1$@ OS X musí být rovněž zaškrtnuta\nmožnost “Zapnout přístup pro asistenční zařízení”.";
 
+/* A DOSBox configuration file was provided that defines drives with paths that cannot be found. */
+//"A DOSBox configuration file was provided that defines drives with paths that cannot be found." = "A DOSBox configuration file was provided that defines drives with paths that cannot be found.";
+
+/* Unsupported state */
+//"Unsupported state" = "Unsupported state";
+
+/* Explanatory message when an unsupported state was requested. */
+//"The current session does not support game states. (e.g. no gamebox is present.)" = "The current session does not support game states. (e.g. no gamebox is present.)";
+
+/* Localized description for when a requested URL cannot be opened from within DOS. */
+//"URL not reachable in DOS" = "URL not reachable in DOS";

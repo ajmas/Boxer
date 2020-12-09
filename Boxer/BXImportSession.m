@@ -192,8 +192,12 @@
         //choose which installer to use.
 		if (!scan.isAlreadyInstalled && self.installerURLs.count)
         {
+            #ifdef BOXER_DEBUG
 			self.importStage = BXImportSessionWaitingForInstaller;
             [NSApp requestUserAttention: NSInformationalRequest];
+			#else
+			[self skipInstaller];
+            #endif
         }
         //Otherwise, we'll get on with finalizing the import directly.
 		else
@@ -241,14 +245,7 @@
 - (void) makeWindowControllers
 {
     BXDOSWindowController *controller;
-	if (isRunningOnLionOrAbove())
-	{
-		controller = [[BXDOSWindowControllerLion alloc] initWithWindowNibName: @"DOSImportWindow"];
-	}
-	else
-	{
-		controller = [[BXDOSWindowController alloc] initWithWindowNibName: @"DOSImportWindow"];
-	}
+	controller = [[BXDOSWindowControllerLion alloc] initWithWindowNibName: @"DOSImportWindow"];
 	
 	[self addWindowController: controller];
 	self.DOSWindowController = controller;
@@ -332,9 +329,9 @@
 		//Show our custom close alert, passing it the callback so we can complete
 		//our response down in _closeAlertDidEnd:returnCode:contextInfo:
 		[alert beginSheetModalForWindow: self.windowForSheet
-						  modalDelegate: self
-						 didEndSelector: @selector(_closeAlertDidEnd:returnCode:contextInfo:)
-							contextInfo: (__bridge void *)([callback retain])];
+					  completionHandler: ^(NSModalResponse returnCode) {
+						  [self _closeAlertDidEnd: alert returnCode: returnCode contextInfo: [callback retain]];
+					  }];
 	}
 	else
 	{
@@ -346,10 +343,10 @@
 }
 
 - (void) _closeAlertDidEnd: (BXCloseAlert *)alert
-				returnCode: (int)returnCode
+				returnCode: (NSModalResponse)returnCode
 			   contextInfo: (NSInvocation *)callback
 {
-	if (alert.showsSuppressionButton && alert.suppressionButton.state == NSOnState)
+	if (alert.showsSuppressionButton && alert.suppressionButton.state == NSControlStateValueOn)
 		[[NSUserDefaults standardUserDefaults] setBool: YES forKey: @"suppressCloseAlert"];
 	
     //Hide the alert before we go any further, so that it has time to get out of the way
@@ -623,7 +620,7 @@
 - (void) importFromSourceURL: (NSURL *)URL
 {
 	NSError *readError = nil;
-	BOOL readSucceeded = [self readFromURL: URL ofType: nil error: &readError];
+	BOOL readSucceeded = [self readFromURL: URL ofType: @"net.washboardabs.boxer-game-package" error: &readError];
     
     if (readSucceeded)
     {

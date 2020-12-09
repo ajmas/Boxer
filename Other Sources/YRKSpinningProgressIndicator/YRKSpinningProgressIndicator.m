@@ -7,7 +7,7 @@
 #import "YRKSpinningProgressIndicator.h"
 
 
-@interface YRKSpinningProgressIndicator (YRKSpinningProgressIndicatorPrivate)
+@interface YRKSpinningProgressIndicator ()
 
 - (void) updateFrame: (NSTimer *)timer;
 - (void) animateInBackgroundThread;
@@ -42,11 +42,7 @@
 }
 
 - (void) dealloc {
-    [_foreColor release];
-    [_backColor release];
     if (_isAnimating) [self stopAnimation:self];
-    
-    [super dealloc];
 }
 
 - (void) viewDidMoveToWindow
@@ -65,7 +61,7 @@
 - (void) drawRect:(NSRect)rect
 {
     int i;
-    float alpha = 1.0f;
+    CGFloat alpha = 1.0f;
 
     // Determine size based on current bounds
     NSSize size = [self bounds].size;
@@ -78,7 +74,7 @@
         [NSBezierPath fillRect:[self bounds]];
     }
 
-    CGContextRef currentContext = (CGContextRef)[[NSGraphicsContext currentContext] graphicsPort];
+	CGContextRef currentContext = [[NSGraphicsContext currentContext] CGContext];
     [NSGraphicsContext saveGraphicsState];
 
     // Move the CTM so 0,0 is at the center of our bounds
@@ -115,7 +111,6 @@
             CGContextRotateCTM(currentContext, anglePerFin);
             alpha -= 1.0f / _numFins;
         }
-        [path release];
     }
     else
 	{
@@ -130,7 +125,6 @@
         [path setLineWidth:lineWidth];
         [path appendBezierPathWithOvalInRect:NSMakeRect(-circleRadius, -circleRadius, circleRadius*2, circleRadius*2)];
         [path stroke];
-        [path release];
 		
         path = [[NSBezierPath alloc] init];
         [path appendBezierPathWithArcWithCenter: circleCenter
@@ -140,7 +134,6 @@
 									  clockwise: YES];
         [path lineToPoint: circleCenter];
         [path fill];
-        [path release];
     }
 
     [NSGraphicsContext restoreGraphicsState];
@@ -167,7 +160,6 @@
 
 - (void) animateInBackgroundThread
 {
-	NSAutoreleasePool *animationPool = [[NSAutoreleasePool alloc] init];
 	
 	// Set up the animation speed to subtly change with size > 32.
 	// int animationDelay = 38000 + (2000 * ([self bounds].size.height / 32));
@@ -178,23 +170,18 @@
 	int poolFlushCounter = 0;
     
 	do {
+        @autoreleasepool {
 		[self updateFrame:nil];
 		usleep(animationDelay);
 		poolFlushCounter++;
 		if (poolFlushCounter > 256) {
-			[animationPool drain];
-			animationPool = [[NSAutoreleasePool alloc] init];
 			poolFlushCounter = 0;
 		}
-	} while (![[NSThread currentThread] isCancelled]); 
-    
-	[animationPool release];
+        }
+	} while (![[NSThread currentThread] isCancelled]);
 }
 
-- (BOOL) isAnimating
-{
-	return _isAnimating;
-}
+@synthesize animating=_isAnimating;
 
 - (void) setAnimating: (BOOL)animate
 {
@@ -232,11 +219,11 @@
             [_animationThread start];
         }
         else {
-            _animationTimer = [[NSTimer timerWithTimeInterval: (NSTimeInterval)0.05
-                                                       target: self
-                                                     selector: @selector(updateFrame:)
-                                                     userInfo: nil
-                                                      repeats: YES] retain];
+            _animationTimer = [NSTimer timerWithTimeInterval: (NSTimeInterval)0.05
+                                                      target: self
+                                                    selector: @selector(updateFrame:)
+                                                    userInfo: nil
+                                                     repeats: YES];
             
             [[NSRunLoop currentRunLoop] addTimer: _animationTimer forMode: NSRunLoopCommonModes];
             [[NSRunLoop currentRunLoop] addTimer: _animationTimer forMode: NSDefaultRunLoopMode];
@@ -254,13 +241,11 @@
 			[[NSRunLoop currentRunLoop] runMode: NSModalPanelRunLoopMode
 									 beforeDate: [NSDate dateWithTimeIntervalSinceNow: 0.05]];
 		}
-		[_animationThread release];
         _animationThread = nil;
 	}
     else if (_animationTimer) {
         // we were using timer-based animation
         [_animationTimer invalidate];
-        [_animationTimer release];
         _animationTimer = nil;
     }
     [self setNeedsDisplay:YES];
@@ -270,7 +255,7 @@
 
 - (void) setStyle: (NSProgressIndicatorStyle)style
 {
-    if (NSProgressIndicatorSpinningStyle != style)
+	if (NSProgressIndicatorStyleSpinning != style)
 	{
         NSAssert(NO, @"Non-spinning styles not available.");
     }
@@ -280,39 +265,28 @@
 # pragma mark -
 # pragma mark Accessors
 
-- (NSColor *) color
-{
-    return [[_foreColor retain] autorelease];
-}
+@synthesize color=_foreColor;
 
 - (void) setColor: (NSColor *)value
 {
     if (_foreColor != value) {
-        [_foreColor release];
         _foreColor = [value copy];
         [self setNeedsDisplay: YES];
     }
 }
 
-- (NSColor *) backgroundColor
-{
-    return [[_backColor retain] autorelease];
-}
+@synthesize backgroundColor=_backColor;
 
 - (void) setBackgroundColor: (NSColor *)value
 {
     if (_backColor != value)
 	{
-        [_backColor release];
         _backColor = [value copy];
         [self setNeedsDisplay: YES];
     }
 }
 
-- (BOOL) drawsBackground
-{
-    return _drawBackground;
-}
+@synthesize drawsBackground=_drawBackground;
 
 - (void) setDrawsBackground: (BOOL)value
 {
@@ -323,10 +297,7 @@
     [self setNeedsDisplay: YES];
 }
 
-- (BOOL) isIndeterminate
-{
-    return _isIndeterminate;
-}
+@synthesize indeterminate=_isIndeterminate;
 
 - (void) setIndeterminate: (BOOL)isIndeterminate
 {
@@ -335,10 +306,7 @@
     [self setNeedsDisplay: YES];
 }
 
-- (double) doubleValue
-{
-    return _currentValue;
-}
+@synthesize doubleValue=_currentValue;
 
 - (void) setDoubleValue: (double)doubleValue
 {
@@ -351,10 +319,7 @@
     [self setNeedsDisplay: YES];
 }
 
-- (double) maxValue
-{
-    return _maxValue;
-}
+@synthesize maxValue=_maxValue;
 
 - (void) setMaxValue: (double)maxValue
 {
@@ -377,9 +342,6 @@
     }
 }
 
-- (BOOL) usesThreadedAnimation
-{
-    return _usesThreadedAnimation;
-}
+@synthesize usesThreadedAnimation=_usesThreadedAnimation;
 
 @end

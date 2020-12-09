@@ -34,15 +34,12 @@
 	[background drawFromCenter: center radius: innerRadius
 					  toCenter: center radius: outerRadius
 					   options: NSGradientDrawsBeforeStartingLocation | NSGradientDrawsAfterEndingLocation];
-	
-	[background release];
 }
 
 @end
 
 
 @implementation BXWelcomeButton
-@synthesize draggingDelegate = _draggingDelegate;
 
 - (void) awakeFromNib
 {
@@ -52,7 +49,6 @@
                                                                userInfo: nil];
     
     [self addTrackingArea: trackingArea];
-    [trackingArea release];
 }
 
 - (void) setHighlighted: (BOOL)flag
@@ -62,7 +58,7 @@
 
 - (BOOL) isHighlighted
 {
-	return self.illumination > 0 || self.state == NSOnState;
+	return self.illumination > 0 || self.state == NSControlStateValueOn;
 }
 
 - (void) mouseEntered: (NSEvent *)event
@@ -149,7 +145,7 @@
 	
 	[spotlight drawInRect: spotlightFrame
 				 fromRect: NSZeroRect
-				operation: NSCompositePlusLighter
+				operation: NSCompositingOperationPlusLighter
 				 fraction: alpha
            respectFlipped: YES
                     hints: nil];
@@ -162,7 +158,7 @@
 	
 	[spotlight drawInRect: spotlightFrame
 				 fromRect: NSZeroRect
-				operation: NSCompositePlusLighter
+				operation: NSCompositingOperationPlusLighter
 				 fraction: 1.0
            respectFlipped: YES
                     hints: nil];

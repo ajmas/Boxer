@@ -10,30 +10,12 @@
 
 @class BXSession;
 @class BXJoystickController;
-@class BXJoypadController;
 @class BXMIDIDeviceMonitor;
 @class BXKeyboardEventTap;
 
 /// A base class for application delegates, that centralises functionality that is shared between
 /// the standard and standalone app controller subclasses. It is not intended to be instantiated directly.
 @interface BXBaseAppController : NSDocumentController <NSApplicationDelegate, NSAlertDelegate>
-
-{
-	BXSession *_currentSession;
-	NSOperationQueue *_generalQueue;
-	
-    BXJoystickController *_joystickController;
-    BXJoypadController *_joypadController;
-    
-    BXMIDIDeviceMonitor *_MIDIDeviceMonitor;
-    
-    void (^_postTerminationHandler)();
-    
-    BXKeyboardEventTap *_hotkeySuppressionTap;
-    NSAlert *_activeHotkeyAlert;
-    BOOL _couldCaptureHotkeysAtStartup;
-    BOOL _needsRestartForHotkeyCapture;
-}
 
 #pragma mark - Properties
 
@@ -42,16 +24,13 @@
 
 /// An array of open @c BXSession documents.
 /// This is equivalent to @c [NSDocumentController documents] filtered to contain just @c BXSession instances.
-@property (readonly, nonatomic) NSArray *sessions;
+@property (readonly, nonatomic) NSArray<BXSession*> *sessions;
 
 
 #pragma mark App-wide controllers
 
 /// Responds to incoming HID controller events from gamepads and joysticks, and dispatches them the current DOS session.
 @property (retain, nonatomic) IBOutlet BXJoystickController *joystickController;
-
-/// Responds to incoming JoyPad controller events and dispatches them to the current DOS session.
-@property (retain, nonatomic) IBOutlet BXJoypadController *joypadController;
 
 /// Monitors the connected MIDI devices, and scans newly-connected devices to see if they're MT-32 units.
 @property (retain, nonatomic) BXMIDIDeviceMonitor *MIDIDeviceMonitor;
@@ -79,37 +58,37 @@
 #pragma mark Application metadata
 
 /// A human-readable representation of the application version. This is only used for display to the user.
-+ (NSString *) localizedVersion;
+@property (readonly, class, copy) NSString *localizedVersion;
 
 /// The internal build number. This is the version number actually used for version comparison checks and the like.
-+ (NSString *) buildNumber;
+@property (readonly, class, copy) NSString *buildNumber;
 
 /// The localized name of the application.
-+ (NSString *) appName;
+@property (readonly, class, copy) NSString *appName;
 
 /// The bundle identifier of the application.
-+ (NSString *) appIdentifier;
+@property (readonly, class, copy) NSString *appIdentifier;
 
 /// Whether this is a standalone app bundled with a gamebox.
-/// Returns NO by default; overridden by @c BXStandaloneAppController.
-- (BOOL) isStandaloneGameBundle;
+/// Returns @c NO by default; overridden by @c BXStandaloneAppController.
+@property (readonly, getter=isStandaloneGameBundle) BOOL standaloneGameBundle;
 
 /// Whether the app should hide all potential branding.
-/// Returns NO by default; overridden by @c BXStandaloneAppController.
-- (BOOL) isUnbrandedGameBundle;
+/// Returns @c NO by default; overridden by @c BXStandaloneAppController.
+@property (readonly, getter=isUnbrandedGameBundle) BOOL unbrandedGameBundle;
 
 
 #pragma mark Application audio
 
 /// Returns whether we should play sounds for UI events. This checks OS X's own user defaults
 /// for whether the user has enabled "Play user interface sound effects" in OS X's Sound Preferences.
-- (BOOL) shouldPlayUISounds;
+@property (readonly) BOOL shouldPlayUISounds;
 
 /// If UI sounds are enabled, play the sound matching the specified name  at the specified volume.
 /// @param soundName    The resource name of the sound effect to play.
 /// @param volume       The relative volume at which to play the sound,
 ///                     where 0.0 is silent and 1.0 is full volume.
-- (void) playUISoundWithName: (NSString *)soundName
+- (void) playUISoundWithName: (NSSoundName)soundName
                     atVolume: (float)volume;
 
 /// If UI sounds are enabled, play the sound matching the specified name  at the specified volume at the specified delay.
@@ -117,7 +96,7 @@
 /// @param volume       The relative volume at which to play the sound,
 ///                     where 0.0 is silent and 1.0 is full volume.
 /// @param delay        The delay in seconds before playing the sound.
-- (void) playUISoundWithName: (NSString *)soundName
+- (void) playUISoundWithName: (NSSoundName)soundName
                     atVolume: (float)volume
                   afterDelay: (NSTimeInterval)delay;
 
@@ -152,12 +131,12 @@
 ///                         which will usually be the OS X default application for that filetype.
 /// @param launchOptions    The options which NSWorkspace should use when opening the URLs.
 /// @see BXFileTypes  @c -bundleIdentifierForApplicationToOpenURL:
-- (BOOL) openURLsInPreferredApplications: (NSArray *)URLs
+- (BOOL) openURLsInPreferredApplications: (NSArray<NSURL*> *)URLs
                                  options: (NSWorkspaceLaunchOptions)launchOptions;
 
 /// Reveal and select the specified URLs in Finder.
 /// @param URLs The URLs to reveal in Finder. URLs located in the same folder will be shown in the same Finder window.
-- (BOOL) revealURLsInFinder: (NSArray *)URLs;
+- (BOOL) revealURLsInFinder: (NSArray<NSURL*> *)URLs;
 
 /// Open the specified help anchor in Boxer's help.
 /// @param anchor   The name of the help anchor to open. This is assumed to be in Boxer's own helpbook.

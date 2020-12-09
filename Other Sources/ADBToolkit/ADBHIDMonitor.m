@@ -78,32 +78,32 @@ static void _deviceRemoved(void *context, IOReturn result, void *sender, IOHIDDe
 + (NSDictionary *) joystickDescriptor
 {
 	return @{
-        (NSString *)CFSTR(kIOHIDDeviceUsagePageKey): @(kHIDPage_GenericDesktop),
-        (NSString *)CFSTR(kIOHIDDeviceUsageKey): @(kHIDUsage_GD_Joystick),
+        @kIOHIDDeviceUsagePageKey: @(kHIDPage_GenericDesktop),
+        @kIOHIDDeviceUsageKey: @(kHIDUsage_GD_Joystick),
     };
 }
 
 + (NSDictionary *) gamepadDescriptor
 {
 	return @{
-        (NSString *)CFSTR(kIOHIDDeviceUsagePageKey): @(kHIDPage_GenericDesktop),
-        (NSString *)CFSTR(kIOHIDDeviceUsageKey): @(kHIDUsage_GD_GamePad),
+        @kIOHIDDeviceUsagePageKey: @(kHIDPage_GenericDesktop),
+        @kIOHIDDeviceUsageKey: @(kHIDUsage_GD_GamePad),
     };
 }
 
 + (NSDictionary *) keyboardDescriptor
 {
 	return @{
-        (NSString *)CFSTR(kIOHIDDeviceUsagePageKey): @(kHIDPage_GenericDesktop),
-        (NSString *)CFSTR(kIOHIDDeviceUsageKey): @(kHIDUsage_GD_Keyboard),
+        @kIOHIDDeviceUsagePageKey: @(kHIDPage_GenericDesktop),
+        @kIOHIDDeviceUsageKey: @(kHIDUsage_GD_Keyboard),
     };
 }
 
 + (NSDictionary *) mouseDescriptor
 {
 	return @{
-        (NSString *)CFSTR(kIOHIDDeviceUsagePageKey): @(kHIDPage_GenericDesktop),
-        (NSString *)CFSTR(kIOHIDDeviceUsageKey): @(kHIDUsage_GD_Mouse),
+        @kIOHIDDeviceUsagePageKey: @(kHIDPage_GenericDesktop),
+        @kIOHIDDeviceUsageKey: @(kHIDUsage_GD_Mouse),
     };
 }
 
@@ -135,10 +135,7 @@ static void _deviceRemoved(void *context, IOReturn result, void *sender, IOHIDDe
 	
     self.delegate = nil;
     
-	CFRelease(_ioManager), _ioManager = NULL;
-	[_knownDevices release], _knownDevices = nil;
-	
-	[super dealloc];
+    CFRelease(_ioManager); _ioManager = NULL;
 }
 
 
@@ -191,13 +188,11 @@ static void _deviceRemoved(void *context, IOReturn result, void *sender, IOHIDDe
 	DDHidDevice *device = [_knownDevices objectForKey: key];
 	if (device)
 	{
-		[device retain];
 		[self willChangeValueForKey: @"matchedDevices"];
 		[_knownDevices removeObjectForKey: key];
 		[self didChangeValueForKey: @"matchedDevices"];
 		
 		[self deviceRemoved: device];
-		[device release];
 	}
 }
 

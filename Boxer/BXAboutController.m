@@ -10,7 +10,6 @@
 
 
 @implementation BXAboutController
-@synthesize version = _version;
 
 + (id) controller
 {
@@ -35,12 +34,6 @@
     self.version.stringValue = versionString;
 }
 
-- (void) dealloc
-{
-    self.version = nil;
-    [super dealloc];
-}
-
 - (IBAction) showAcknowledgements: (id)sender
 {
 	[(BXBaseAppController *)[NSApp delegate] showHelpAnchor: @"acknowledgements"];
@@ -57,8 +50,8 @@
     
     [background drawInRect: self.bounds
                   fromRect: NSZeroRect
-                 operation: NSCompositeSourceOver
-                  fraction: 1.0f];
+                 operation: NSCompositingOperationSourceOver
+                  fraction: 1.0];
     
     //Render vignetting
     NSGradient *lighting = [[NSGradient alloc] initWithColorsAndLocations:
@@ -68,8 +61,6 @@
     
     [lighting drawInRect: self.bounds
   relativeCenterPosition: NSMakePoint(0.25f, 0.5f)];
-    
-    [lighting release];
 }
 
 @end

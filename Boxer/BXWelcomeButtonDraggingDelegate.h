@@ -5,14 +5,16 @@
  online at [http://www.gnu.org/licenses/gpl-2.0.txt].
  */
 
-//BXWelcomeButtonDraggingDelegate is a basic protocol to let us pass the work of handling
-//welcome button drag-drop events off to an arbitrary delegate (in practice, the window controller.)
-//These methods take an additional button: parameter to let the delegate know which button is
-//receiving the drag operation (since the NSDraggingInfo protocol offers no way to determine this.)
+
+#import <Cocoa/Cocoa.h>
 
 @class BXWelcomeButton;
 
-@protocol BXWelcomeButtonDraggingDelegate
+/// \c BXWelcomeButtonDraggingDelegate is a basic protocol to let us pass the work of handling
+/// welcome button drag-drop events off to an arbitrary delegate (in practice, the window controller.)
+/// These methods take an additional button: parameter to let the delegate know which button is
+/// receiving the drag operation (since the \c NSDraggingInfo protocol offers no way to determine this.)
+@protocol BXWelcomeButtonDraggingDelegate <NSObject>
 
 - (NSDragOperation) button: (BXWelcomeButton *)button draggingEntered: (id <NSDraggingInfo>)sender;
 - (void) button: (BXWelcomeButton *)button draggingExited: (id <NSDraggingInfo>)sender;

@@ -5,10 +5,10 @@
  online at [http://www.gnu.org/licenses/gpl-2.0.txt].
  */
 
+
 #import <Cocoa/Cocoa.h>
 
-//A subclass to tweak certain aspects of NSApplication's behaviour (currently, event-handling.)
-
+/// A subclass to tweak certain aspects of NSApplication's behaviour (currently, event-handling.)
 @interface BXApplication : NSApplication
 
 @end

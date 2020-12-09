@@ -102,7 +102,7 @@ includingPropertiesForKeys: (NSArray *)keys
 
 + (id) filesystemWithBaseURL: (NSURL *)sourceURL shadowURL: (NSURL *)shadowURL
 {
-    return [[[self alloc] initWithBaseURL: sourceURL shadowURL: shadowURL] autorelease];
+    return [[self alloc] initWithBaseURL: sourceURL shadowURL: shadowURL];
 }
 
 - (id) initWithBaseURL: (NSURL *)sourceURL shadowURL: (NSURL *)shadowURL
@@ -118,9 +118,11 @@ includingPropertiesForKeys: (NSArray *)keys
 
 - (void) dealloc
 {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wnonnull"
     self.shadowURL = nil;
     
-    [super dealloc];
+#pragma clang diagnostic pop
 }
 
 - (void) setShadowURL: (NSURL *)URL
@@ -138,7 +140,6 @@ includingPropertiesForKeys: (NSArray *)keys
         if (_shadowURL)
             [self removeRepresentedURL: _shadowURL];
         
-        [_shadowURL release];
         _shadowURL = [URL copy];
         
         if (_shadowURL)
@@ -306,13 +307,13 @@ includingPropertiesForKeys: (NSArray *)keys
         else
             wrappedHandler = nil;
         
-        return [[[ADBShadowedDirectoryEnumerator alloc] initWithLocalURL: sourceURL
+        return [[ADBShadowedDirectoryEnumerator alloc] initWithLocalURL: sourceURL
                                                              shadowedURL: shadowedURL
                                                              inFilesytem: self
                                               includingPropertiesForKeys: nil
                                                                  options: options
                                                               returnURLs: NO
-                                                            errorHandler: wrappedHandler] autorelease];
+                                                            errorHandler: wrappedHandler];
     }
     else
     {
@@ -399,7 +400,7 @@ includingPropertiesForKeys: (NSArray *)keys
                                                                              options: (ADBHandleOptions)options
                                                                                error: (out NSError **)outError
 {
-    NSAssert((options & ADBCreateAlways) == 0, @"ADBCreateAlways is not currently supported.");
+    NSAssert((options & ADBHandleCreateAlways) == 0, @"ADBCreateAlways is not currently supported.");
     
     if (self.shadowURL)
     {
@@ -408,7 +409,7 @@ includingPropertiesForKeys: (NSArray *)keys
         
         NSURL *deletionMarkerURL = [shadowedURL URLByAppendingPathExtension: ADBShadowedDeletionMarkerExtension];
         
-        BOOL createIfMissing = (options & ADBCreateIfMissing) == ADBCreateIfMissing;
+        BOOL createIfMissing = (options & ADBHandleCreateIfMissing) == ADBHandleCreateIfMissing;
         
         BOOL deletionMarkerExists = [deletionMarkerURL checkResourceIsReachableAndReturnError: NULL];
         BOOL shadowExists = [shadowedURL checkResourceIsReachableAndReturnError: NULL];
@@ -452,7 +453,7 @@ includingPropertiesForKeys: (NSArray *)keys
         //If we're opening the file for writing and we don't have a shadowed version of it,
         //copy any original version to the shadowed location first (creating any necessary
         //directories along the way) and then open the newly-shadowed copy.
-        else if ((options & ADBOpenForWriting) != 0)
+        else if ((options & ADBHandleOpenForWriting) != 0)
         {
             //Ensure the necessary path exists for the shadow file to be stored in.
             //IMPLEMENTATION NOTE: this ignores failure because the directories may already
@@ -464,7 +465,7 @@ includingPropertiesForKeys: (NSArray *)keys
                                          error: NULL];
             
             //If we'll be truncating the file anyway, don't bother copying the original.
-            BOOL truncateExistingFile = (options & ADBTruncate) == ADBTruncate;
+            BOOL truncateExistingFile = (options & ADBHandleTruncate) == ADBHandleTruncate;
             if (!truncateExistingFile)
             {
                 NSError *copyError = nil;
@@ -579,13 +580,13 @@ includingPropertiesForKeys: (NSArray *)keys
             NSURL *sourceURL = [self _sourceURLForLogicalPath: path];
             NSURL *shadowedURL = [self _shadowedURLForLogicalPath: path];
             
-            return [[[ADBShadowedDirectoryEnumerator alloc] initWithLocalURL: sourceURL
+            return [[ADBShadowedDirectoryEnumerator alloc] initWithLocalURL: sourceURL
                                                                  shadowedURL: shadowedURL
                                                                  inFilesytem: self
                                                   includingPropertiesForKeys: keys
                                                                      options: options
                                                                   returnURLs: YES
-                                                                errorHandler: errorHandler] autorelease];
+                                                                errorHandler: errorHandler];
         }
         else
         {
@@ -966,9 +967,7 @@ includingPropertiesForKeys: (NSArray *)keys
         //If the base URL is a directory, merge its contents.
         if (isDirectory.boolValue)
         {   
-            NSArray *properties = [NSArray arrayWithObjects:
-                                   NSURLIsDirectoryKey,
-                                   nil];
+            NSArray *properties = @[NSURLIsDirectoryKey];
             
             NSDirectoryEnumerator *shadowEnumerator = [self.manager enumeratorAtURL: baseShadowedURL
                                                          includingPropertiesForKeys: properties
@@ -1013,14 +1012,14 @@ includingPropertiesForKeys: (NSArray *)keys
 
 @property (copy, nonatomic) NSURL *currentURL;
 
-@property (retain, nonatomic) NSDirectoryEnumerator *localEnumerator;
-@property (retain, nonatomic) NSDirectoryEnumerator *shadowEnumerator;
+@property (strong, nonatomic) NSDirectoryEnumerator *localEnumerator;
+@property (strong, nonatomic) NSDirectoryEnumerator *shadowEnumerator;
 @property (assign, nonatomic) NSDirectoryEnumerator *currentEnumerator;
 
-@property (retain, nonatomic) NSMutableSet *shadowedPaths;
-@property (retain, nonatomic) NSMutableSet *deletedPaths;
+@property (strong, nonatomic) NSMutableSet *shadowedPaths;
+@property (strong, nonatomic) NSMutableSet *deletedPaths;
 
-@property (retain, nonatomic) ADBShadowedFilesystem *filesystem;
+@property (strong, nonatomic) ADBShadowedFilesystem *filesystem;
 
 - (NSURL *) _nextURLFromLocal;
 - (NSURL *) _nextURLFromShadow;
@@ -1081,15 +1080,7 @@ includingPropertiesForKeys: (NSArray *)keys
 
 - (void) dealloc
 {
-    self.localEnumerator = nil;
-    self.shadowEnumerator = nil;
     self.currentEnumerator = nil;
-    self.shadowedPaths = nil;
-    self.deletedPaths = nil;
-    self.filesystem = nil;
-    self.currentURL = nil;
-    
-    [super dealloc];
 }
 
 - (void) skipDescendants

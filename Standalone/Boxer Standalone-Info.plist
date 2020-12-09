@@ -9,12 +9,12 @@
 	<key>BXOrganizationWebsiteURL</key>
 	<string>{{ORGANIZATION_URL}}</string>
 	<key>CFBundleDevelopmentRegion</key>
-	<string>English</string>
+	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDocumentTypes</key>
 	<array>
 		<dict>
 			<key>CFBundleTypeIconFile</key>
-			<string>package.icns</string>
+			<string>package</string>
 			<key>CFBundleTypeName</key>
 			<string>Gamebox</string>
 			<key>CFBundleTypeRole</key>
@@ -30,7 +30,7 @@
 		</dict>
 		<dict>
 			<key>CFBundleTypeIconFile</key>
-			<string>package.icns</string>
+			<string>package</string>
 			<key>CFBundleTypeName</key>
 			<string>Game state</string>
 			<key>CFBundleTypeRole</key>
@@ -52,7 +52,7 @@
 	<key>CFBundleIconFile</key>
 	<string>app.icns</string>
 	<key>CFBundleIdentifier</key>
-	<string>net.washboardabs.boxer-standalone</string>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
@@ -64,9 +64,7 @@
 	<key>CFBundleSignature</key>
 	<string>Boxr</string>
 	<key>CFBundleVersion</key>
-	<string>20151122.1</string>
-	<key>JoypadURL</key>
-	<string>http://getjoypad.com/</string>
+	<string>20151206.1</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>${MACOSX_DEPLOYMENT_TARGET}</string>
 	<key>NSHumanReadableCopyright</key>
@@ -105,7 +103,7 @@
 			<key>UTTypeDescription</key>
 			<string>MS-DOS gamebox</string>
 			<key>UTTypeIconFile</key>
-			<string>package.icns</string>
+			<string>package</string>
 			<key>UTTypeIdentifier</key>
 			<string>net.washboardabs.boxer-game-package</string>
 			<key>UTTypeTagSpecification</key>
@@ -194,7 +192,7 @@
 			<key>UTTypeDescription</key>
 			<string>Boxer game state</string>
 			<key>UTTypeIconFile</key>
-			<string>package.icns</string>
+			<string>package</string>
 			<key>UTTypeIdentifier</key>
 			<string>net.washboardabs.boxer-game-state</string>
 			<key>UTTypeTagSpecification</key>
@@ -217,7 +215,7 @@
 			<key>UTTypeDescription</key>
 			<string>Microsoft MS-DOS application</string>
 			<key>UTTypeIconFile</key>
-			<string>executable.icns</string>
+			<string>executable</string>
 			<key>UTTypeIdentifier</key>
 			<string>com.microsoft.msdos-executable</string>
 			<key>UTTypeTagSpecification</key>
@@ -229,13 +227,14 @@
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
+				<string>public.text</string>
 				<string>public.script</string>
 				<string>public.executable</string>
 			</array>
 			<key>UTTypeDescription</key>
 			<string>Microsoft Windows/MS-DOS batch file</string>
 			<key>UTTypeIconFile</key>
-			<string>executable.icns</string>
+			<string>executable</string>
 			<key>UTTypeIdentifier</key>
 			<string>com.microsoft.batch-file</string>
 			<key>UTTypeTagSpecification</key>

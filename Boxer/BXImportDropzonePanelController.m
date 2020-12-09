@@ -14,18 +14,7 @@
 #import "BXAppController.h"
 
 
-#pragma mark -
-#pragma mark Private method declarations
-
-@interface BXImportDropzonePanelController ()
-
-@end
-
-
 @implementation BXImportDropzonePanelController
-@synthesize dropzone = _dropzone;
-@synthesize controller = _controller;
-@synthesize spinner = _spinner;
 
 #pragma mark -
 #pragma mark Initialization and deallocation
@@ -33,21 +22,13 @@
 - (void) awakeFromNib
 {
 	//Set up the dropzone panel to support drag-drop operations
-	[self.view registerForDraggedTypes: @[NSFilenamesPboardType]];
+	[self.view registerForDraggedTypes: @[NSPasteboardTypeFileURL]];
     
     //Disabled as this was causing CATransaction errors.
     //self.spinner.usesThreadedAnimation = YES;
 	//Since the spinner is on a separate view that's only added to the window
 	//when it's spinnin' time, we can safely start it animating now
 	[self.spinner startAnimation: self];
-}
-
-- (void) dealloc
-{
-    self.dropzone = nil;
-    self.spinner = nil;
-	
-	[super dealloc];
 }
 
 
@@ -72,7 +53,7 @@
     
     [openPanel beginSheetModalForWindow: self.view.window
                       completionHandler: ^(NSInteger result) {
-                          if (result == NSFileHandlingPanelOKButton)
+                          if (result == NSModalResponseOK)
                           {
                               //Ensure the open panel is closed before we continue,
                               //in case importFromSourcePath: decides to display errors.

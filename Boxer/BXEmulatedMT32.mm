@@ -29,7 +29,7 @@ NSString * const BXMT32PCMROMTypeKey = @"BXMT32PCMROMType";
 #pragma mark Private method declarations
 
 @interface BXEmulatedMT32 ()
-@property (retain, nonatomic) NSError *synthError;
+@property (strong, nonatomic) NSError *synthError;
 
 - (BOOL) _prepareMT32EmulatorWithError: (NSError **)outError;
 
@@ -40,12 +40,14 @@ NSString * const BXMT32PCMROMTypeKey = @"BXMT32PCMROMType";
 #pragma mark Implementation
 
 @implementation BXEmulatedMT32
-@synthesize delegate = _delegate;
-@synthesize PCMROMURL = _PCMROMURL;
-@synthesize controlROMURL = _controlROMURL;
-@synthesize synthError = _synthError;
-@synthesize sampleRate = _sampleRate;
-
+{
+	MT32Emu::Synth *_synth;
+	BXEmulatedMT32ReportHandler *_reportHandler;
+	MT32Emu::FileStream *_PCMROMHandle;
+	MT32Emu::FileStream *_controlROMHandle;
+	const MT32Emu::ROMImage *_PCMROMImage;
+	const MT32Emu::ROMImage *_controlROMImage;
+}
 
 #pragma mark - ROM validation methods
 
@@ -200,8 +202,7 @@ NSString * const BXMT32PCMROMTypeKey = @"BXMT32PCMROMType";
         
         if (![self _prepareMT32EmulatorWithError: outError])
         {
-            [self release];
-            self = nil;
+            return nil;
         }
     }
     return self;
@@ -242,12 +243,6 @@ NSString * const BXMT32PCMROMTypeKey = @"BXMT32PCMROMType";
 - (void) dealloc
 {
     [self close];
-    
-    self.synthError = nil;
-    self.PCMROMURL = nil;
-    self.controlROMURL = nil;
-    
-    [super dealloc];
 }
 
 
@@ -402,13 +397,13 @@ void BXEmulatedMT32ReportHandler::onErrorPCMROM()
 
 void BXEmulatedMT32ReportHandler::showLCDMessage(const char *cMessage)
 {
-    NSString *message = [NSString stringWithCString: cMessage encoding: NSASCIIStringEncoding];
+    NSString *message = @(cMessage);
     [_delegate.delegate emulatedMT32: _delegate didDisplayMessage: message];
 }
 
 void BXEmulatedMT32ReportHandler::printDebug(const char *fmt, va_list list)
 {
 #ifdef BOXER_DEBUG
-    NSLogv([NSString stringWithCString: fmt encoding: NSASCIIStringEncoding], list);
+    NSLogv(@(fmt), list);
 #endif
 }

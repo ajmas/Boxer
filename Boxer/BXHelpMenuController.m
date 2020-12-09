@@ -28,10 +28,10 @@
 
 
 @implementation BXHelpMenuController
-@synthesize mobygamesItem = _mobygamesItem;
-@synthesize replacementDocsItem = _replacementDocsItem;
-@synthesize documentationDivider = _documentationDivider;
-@synthesize helpLinksDivider = _helpLinksDivider;
+{
+	BOOL _needsHelpLinksRefresh;
+	BOOL _needsSessionDocsRefresh;
+}
 
 - (void) awakeFromNib
 {
@@ -48,13 +48,6 @@
 {
     [(BXBaseAppController *)[NSApp delegate] removeObserver: self
                                                  forKeyPath: @"currentSession.gamebox.documentationURLs"];
-    
-    self.mobygamesItem = nil;
-    self.replacementDocsItem = nil;
-    self.documentationDivider = nil;
-    self.helpLinksDivider = nil;
-    
-    [super dealloc];
 }
 
 - (void) observeValueForKeyPath: (NSString *)keyPath
@@ -290,7 +283,6 @@
         icon = [icon copy];
         icon.size = iconSize;
         newItem.image = icon;
-        [icon release];
     }
     
 	return newItem;
@@ -308,8 +300,7 @@
 											ascending: YES
 											selector: comparison];
 	
-	NSArray *sortDescriptors = [NSArray arrayWithObjects: sortByType, sortByName, nil];
-	[sortByType release], [sortByName release];
+	NSArray *sortDescriptors = @[sortByType, sortByName];
 	return sortDescriptors;
 }
 

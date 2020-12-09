@@ -35,11 +35,11 @@ enum {
 #pragma mark -
 #pragma mark Implementation
 
+@interface BXDrivePanelController ()
+@property (strong, nonatomic) NSWindow *driveRemovalDropzone;
+@end
+
 @implementation BXDrivePanelController
-@synthesize driveControls = _driveControls;
-@synthesize driveActionsMenu = _driveActionsMenu;
-@synthesize driveList = _driveList;
-@synthesize selectedDriveIndexes = _selectedDriveIndexes;
 
 #pragma mark -
 #pragma mark Initialization and teardown
@@ -55,9 +55,6 @@ enum {
         
         [NSValueTransformer setValueTransformer: fullDisplayPath forName: @"BXDriveDisplayPath"];
         [NSValueTransformer setValueTransformer: displayName forName: @"BXDriveDisplayName"];
-        
-        [fullDisplayPath release];
-        [displayName release];
     }
 }
 
@@ -77,7 +74,7 @@ enum {
     
     
 	//Register the entire drive panel as a drag-drop target.
-	[self.view registerForDraggedTypes: @[NSFilenamesPboardType]];
+	[self.view registerForDraggedTypes: @[NSPasteboardTypeFileURL]];
     
 	//Assign the appropriate menu to the drive-actions button segment.
 	[self.driveControls setMenu: self.driveActionsMenu forSegment: BXDriveActionsMenuSegment];
@@ -103,13 +100,8 @@ enum {
 	[center removeObserver: self];
     
     self.selectedDriveIndexes = nil;
-    self.driveList = nil;
-    self.driveControls = nil;
-    self.driveActionsMenu = nil;
     
-    [_driveRemovalDropzone close], _driveRemovalDropzone = nil;
-    
-	[super dealloc];
+    [self.driveRemovalDropzone close]; self.driveRemovalDropzone = nil;
 }
 
 - (void) observeValueForKeyPath: (NSString *)keyPath
@@ -165,8 +157,7 @@ enum {
 {
     if (![indexes isEqualToIndexSet: self.selectedDriveIndexes])
     {
-        [_selectedDriveIndexes release];
-        _selectedDriveIndexes = [indexes retain];
+        _selectedDriveIndexes = [indexes copy];
         
         //Sync the action buttons whenever our selection changes
         [self syncButtonStates];
@@ -570,7 +561,7 @@ enum {
     if (!session)
         return NSDragOperationNone;
     
-    if (_driveRemovalDropzone && sender.draggingDestinationWindow == _driveRemovalDropzone)
+    if (self.driveRemovalDropzone && sender.draggingDestinationWindow == self.driveRemovalDropzone)
     {
         if (sender.draggingSource == self)
         {
@@ -611,7 +602,7 @@ enum {
     
     if (draggedURLs.count)
     {
-        if (_driveRemovalDropzone && sender.draggingDestinationWindow == _driveRemovalDropzone)
+        if (self.driveRemovalDropzone && sender.draggingDestinationWindow == self.driveRemovalDropzone)
         {
             BOOL removed = [self _unmountDrives: self.selectedDrives
                                         options: BXDefaultDriveUnmountOptions | BXDriveRemoveExistingFromQueue];
@@ -662,9 +653,19 @@ enum {
     else return NO;
 }
 
-- (NSDragOperation) draggingSourceOperationMaskForLocal: (BOOL)isLocal
+- (NSDragOperation) draggingSession: (NSDraggingSession *)session sourceOperationMaskForDraggingContext: (NSDraggingContext)context
 {
-	return (isLocal) ? NSDragOperationPrivate | NSDragOperationDelete : NSDragOperationNone;
+    switch (context) {
+        case NSDraggingContextWithinApplication:
+            return NSDragOperationPrivate | NSDragOperationDelete;
+            break;
+            
+        case NSDraggingContextOutsideApplication:
+            return NSDragOperationNone;
+            break;
+            
+            //No default case, so when Apple adds more, warnings happen.
+    }
 }
 
 //Required for us to work as a dragging source *rolls eyes all the way out of head*
@@ -673,47 +674,47 @@ enum {
     return self.view.window;
 }
 
-- (void) draggedImage: (NSImage *)image beganAt: (NSPoint)screenPoint
+- (void) draggingSession: (NSDraggingSession *)session willBeginAtPoint: (NSPoint)screenPoint
 {
     //Create a transparent backing window the first time we need it
-    if (!_driveRemovalDropzone)
+    if (!self.driveRemovalDropzone)
     {
         NSScreen *screen = self.view.window.screen;
-        _driveRemovalDropzone = [[NSWindow alloc] initWithContentRect: screen.frame
-                                                            styleMask: NSBorderlessWindowMask
+        self.driveRemovalDropzone = [[NSWindow alloc] initWithContentRect: screen.frame
+                                                                styleMask: NSWindowStyleMaskBorderless
                                                               backing: NSBackingStoreBuffered
                                                                 defer: YES
                                                                screen: screen];
         
-        _driveRemovalDropzone.backgroundColor = [NSColor clearColor];
-        _driveRemovalDropzone.opaque = NO;
-        _driveRemovalDropzone.ignoresMouseEvents = NO; //Will default to YES for fully transparent windows
-        _driveRemovalDropzone.hidesOnDeactivate = YES;
-        _driveRemovalDropzone.releasedWhenClosed = YES;
-        _driveRemovalDropzone.level = NSNormalWindowLevel;
-        _driveRemovalDropzone.collectionBehavior = NSWindowCollectionBehaviorCanJoinAllSpaces;
-        _driveRemovalDropzone.delegate = self;
+        self.driveRemovalDropzone.backgroundColor = [NSColor clearColor];
+        self.driveRemovalDropzone.opaque = NO;
+        self.driveRemovalDropzone.ignoresMouseEvents = NO; //Will default to YES for fully transparent windows
+        self.driveRemovalDropzone.hidesOnDeactivate = YES;
+        self.driveRemovalDropzone.releasedWhenClosed = YES;
+        self.driveRemovalDropzone.level = NSNormalWindowLevel;
+        self.driveRemovalDropzone.collectionBehavior = NSWindowCollectionBehaviorCanJoinAllSpaces;
+        self.driveRemovalDropzone.delegate = self;
         
-        [_driveRemovalDropzone registerForDraggedTypes: @[NSFilenamesPboardType]];
+        [self.driveRemovalDropzone registerForDraggedTypes: @[NSPasteboardTypeFileURL]];
     }
     
     //Place the dropzone behind all of Boxer's windows, but on top of windows in other applications.
     NSInteger furthestWindowNumber = -1;
     for (NSWindow *window in [NSApp windows])
     {
-        if (window != _driveRemovalDropzone && window.isVisible
-            && window.level == _driveRemovalDropzone.level
+        if (window != self.driveRemovalDropzone && window.isVisible
+            && window.level == self.driveRemovalDropzone.level
             && window.windowNumber > furthestWindowNumber)
             furthestWindowNumber = window.windowNumber;
     }
     
     if (furthestWindowNumber > -1)
-        [_driveRemovalDropzone orderWindow: NSWindowBelow relativeTo: furthestWindowNumber];
+        [self.driveRemovalDropzone orderWindow: NSWindowBelow relativeTo: furthestWindowNumber];
     else
-        [_driveRemovalDropzone orderWindow: NSWindowBelow relativeTo: self.view.window.windowNumber];
+        [self.driveRemovalDropzone orderWindow: NSWindowBelow relativeTo: self.view.window.windowNumber];
 }
 
-- (void) draggedImage: (NSImage *)image movedTo: (NSPoint)screenPoint
+- (void) draggingSession: (NSDraggingSession *)session movedToPoint: (NSPoint)screenPoint
 {
     //Once the image is dragged away from its original location, hide the views represented by the image.
     [self.driveList.selectionIndexes enumerateIndexesUsingBlock:^(NSUInteger idx, BOOL *stop) {
@@ -722,16 +723,16 @@ enum {
     }];
 }
 
-- (void) draggedImage: (NSImage *)draggedImage
-			  endedAt: (NSPoint)screenPoint
-		    operation: (NSDragOperation)operation
+- (void) draggingSession: (NSDraggingSession *)session
+            endedAtPoint: (NSPoint)screenPoint
+               operation: (NSDragOperation)operation
 {
     [self.driveList.selectionIndexes enumerateIndexesUsingBlock: ^(NSUInteger idx, BOOL *stop) {
         NSCollectionViewItem *item = [self.driveList itemAtIndex: idx];
         item.view.hidden = NO;
     }];
     
-    [_driveRemovalDropzone orderOut: self];
+    [self.driveRemovalDropzone orderOut: self];
 }
 
 @end

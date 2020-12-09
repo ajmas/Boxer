@@ -16,17 +16,6 @@
 @end
 
 @implementation BXJoystickItem
-@synthesize titleLabel = _titleLabel;
-@synthesize descriptionLabel = _descriptionLabel;
-@synthesize icon = _icon;
-
-- (void) dealloc
-{
-    self.titleLabel = nil;
-    self.descriptionLabel = nil;
-    self.icon = nil;
-    [super dealloc];
-}
 
 - (void) setSelected: (BOOL)selected
 {
@@ -50,7 +39,7 @@
     else
     {
         self.titleLabel.themeKey = @"BXInspectorListTheme";
-        self.descriptionLabel.themeKey = @"BXInspectorListHelpTextTheme";
+        self.descriptionLabel.themeKey = @"BXInspectorListTheme";
         self.icon.themeKey = @"BXInspectorListTheme";
     }
 }

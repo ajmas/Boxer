@@ -13,35 +13,31 @@
 
 #pragma mark - Properties
 
-//The popover for this documentation panel. Created the first time it is needed.
-//Unused on 10.6, which does not support popovers.
-@property (retain, nonatomic) NSPopover *popover;
+/// The popover for this documentation panel. Created the first time it is needed.
+/// Unused on 10.6, which does not support popovers.
+@property (strong, nonatomic) NSPopover *popover;
 
-//The documentation browsers for our popover and window respectively.
-//Populated the first time the documentation list is displayed in either mode.
-//(These cannot be shared, as the two may be displayed at the same time.)
-@property (retain, nonatomic) BXDocumentationBrowser *popoverBrowser;
-@property (retain, nonatomic) BXDocumentationBrowser *windowBrowser;
+/// The documentation browsers for our popover and window respectively.
+/// Populated the first time the documentation list is displayed in either mode.
+/// (These cannot be shared, as the two may be displayed at the same time.)
+@property (strong, nonatomic) BXDocumentationBrowser *popoverBrowser;
+@property (strong, nonatomic) BXDocumentationBrowser *windowBrowser;
 
 
-//Resize the window/popover to accommodate the specified number of documentation items.
+/// Resize the window to accommodate the specified number of documentation items.
 - (void) _sizeWindowToFitNumberOfItems: (NSUInteger)numItems;
+/// Resize the popover to accommodate the specified number of documentation items.
 - (void) _sizePopoverToFitNumberOfItems: (NSUInteger)numItems;
 
 @end
 
 @implementation BXDocumentationPanelController
-@synthesize session = _session;
-@synthesize popover = _popover;
-@synthesize windowBrowser = _windowBrowser;
-@synthesize popoverBrowser = _popoverBrowser;
-@synthesize maxPopoverSize = _maxPopoverSize;
 
 #pragma mark - Initialization and deallocation
 
 + (BXDocumentationPanelController *) controller
 {
-    return [[[self alloc] initWithWindowNibName: @"DocumentationPanel"] autorelease];
+    return [[self alloc] initWithWindowNibName: @"DocumentationPanel"];
 }
 
 - (id) initWithWindow: (NSWindow *)window
@@ -57,11 +53,6 @@
 - (void) dealloc
 {
     self.session = nil;
-    self.popover = nil;
-    self.popoverBrowser = nil;
-    self.windowBrowser = nil;
-    
-    [super dealloc];
 }
 
 - (void) windowDidLoad
@@ -85,8 +76,7 @@
 {
     if (self.session != session)
     {
-        [_session release];
-        _session = [session retain];
+        _session = session;
         
         self.popoverBrowser.representedObject = session;
         self.windowBrowser.representedObject = session;
@@ -132,7 +122,7 @@
     {
         NSSize idealSize = [self.windowBrowser idealContentSizeForNumberOfItems: numItems];
         NSRect windowRect = [self windowRectForIdealBrowserSize: idealSize];
-        [self.window setFrame: windowRect display: self.window.isVisible animate: self.window.isVisible];
+        [self.window setFrame: windowRect display: self.window.isVisible animate: self.window.visible];
     }
 }
 
@@ -228,7 +218,7 @@
             self.popoverBrowser = [BXDocumentationBrowser browserForSession: session];
             self.popoverBrowser.delegate = self;
             
-            self.popover = [[[NSPopover alloc] init] autorelease];
+            self.popover = [[NSPopover alloc] init];
             //NSPopoverBehaviorSemitransient stays open when the application is inactive,
             //which allows files to be drag-dropped into the popover from Finder.
             self.popover.behavior = NSPopoverBehaviorSemitransient;

@@ -25,36 +25,40 @@
  */
 
 #import "NSWorkspace+ADBIconHelpers.h"
+#import "NSURL+ADBFilesystemHelpers.h"
 
 
 @implementation NSWorkspace (ADBIconHelpers)
 
 - (BOOL) fileHasCustomIcon: (NSString *)path
 {
-    return [self URLHasCustomIcon: [NSURL fileURLWithPath: path]];
+    return [self directoryAtURLHasCustomIcon: [NSURL fileURLWithPath: path]];
 }
 
 - (BOOL) URLHasCustomIcon: (NSURL *)URL
 {
-    FSRef fileRef;
-    struct FSCatalogInfo catInfo;
-    struct FileInfo *finderInfo = (struct FileInfo *)&catInfo.finderInfo;
-	
-	//Get an FSRef filesystem reference to the specified path
-	BOOL gotFileRef = (BOOL)CFURLGetFSRef((CFURLRef)URL, &fileRef);
-	//Bail out if we couldn't resolve an FSRef
-	if (!gotFileRef) return NO;
-		
-	//Retrieve the Finder catalog info for the file
-    OSStatus result = FSGetCatalogInfo(&fileRef,
-									   kFSCatInfoFinderInfo,
-									   &catInfo,
-									   NULL,
-									   NULL,
-									   NULL);
-    if (result != noErr) return NO;
-	
-	//Return whether the custom icon bit has been set
-    return (finderInfo->finderFlags & kHasCustomIcon) == kHasCustomIcon;
+    return [self directoryAtURLHasCustomIcon: URL];
+}
+
+- (BOOL) directoryAtURLHasCustomIcon: (NSURL *)URL
+{
+    // IMPLEMENTATION NOTE:
+    //
+    // FSCatalogInfo.finderInfo.finderFlags & kHasCustomIcon still works in 10.13.4,
+    // but has been deprecated for years and cannot be long for this world.
+    //
+    // It has two replacement APIs, neither of which actually work:
+    // MDItemCopyAttribute(itemFromURL, kMDItemFSHasCustomIcon) always returns NULL.
+    // [URL resourceValueForKey:NSURLCustomIconKey] always returns nil.
+    //
+    // Custom icons on folders and bundles are stored in a file called `Icon\r` in the root of that folder,
+    // and are marked with a special metadata attribute which tells Finder to bother looking for that icon.
+    // If the file is present, but the attribute isn't, then no custom icon will be displayed.
+    // (The attribute can sometimes be stripped by Dropbox and other file-syncing services.)
+    //
+    // We can no longer reliably check for the presence of that attribute,
+    // but we can at least check if the icon is there and hope that the attribute is still intact.
+    NSURL *iconURL = [URL URLByAppendingPathComponent: @"Icon\r"];
+    return [iconURL checkResourceIsReachableAndReturnError: NULL];
 }
 @end

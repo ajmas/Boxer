@@ -6,15 +6,12 @@
  */
 
 
-//BXCursorFadeAnimation class description goes here.
-
 #import <Cocoa/Cocoa.h>
 
+/// BXCursorFadeAnimation class description goes here.
 @interface BXCursorFadeAnimation : NSAnimation
-{
-	NSCursor *originalCursor;
-}
-@property (retain) NSCursor *originalCursor;
+
+@property (strong, nonatomic) NSCursor *originalCursor;
 
 - (NSCursor *) cursorWithOpacity: (CGFloat)opacity;
 

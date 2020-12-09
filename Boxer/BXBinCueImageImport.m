@@ -17,13 +17,12 @@
 #pragma mark -
 #pragma mark Private function declarations
 
-enum
+typedef NS_ENUM(NSInteger, BXDADiskOperationStatus)
 {
 	BXDADiskOperationInProgress = -1,
 	BXDADiskOperationFailed = 0,
 	BXDADiskOperationSucceeded = 1
 };
-typedef NSInteger BXDADiskOperationStatus;
 
 BOOL _mountSynchronously(DASessionRef, DADiskRef disk, CFURLRef path, DADiskUnmountOptions options);
 BOOL _unmountSynchronously(DASessionRef session, DADiskRef disk, DADiskMountOptions options);
@@ -76,9 +75,7 @@ BOOL _mountSynchronously(DASessionRef session, DADiskRef disk, CFURLRef path, DA
 	return status == BXDADiskOperationSucceeded;
 }
 
-
 @implementation BXBinCueImageImport
-@synthesize usesErrorCorrection = _usesErrorCorrection;
 
 + (BOOL) driveUnavailableDuringImport
 {
@@ -142,7 +139,7 @@ BOOL _mountSynchronously(DASessionRef session, DADiskRef disk, CFURLRef path, DA
     if (!self.destinationURL)
         self.destinationURL = self.preferredDestinationURL;
     
-    _hasWrittenFiles = NO;
+    self.hasWrittenFiles = NO;
     
 	NSURL *sourceURL		= self.drive.sourceURL;
 	NSURL *destinationURL	= self.destinationURL;
@@ -192,7 +189,7 @@ BOOL _mountSynchronously(DASessionRef session, DADiskRef disk, CFURLRef path, DA
 		CFStringRef pathRef = CFDictionaryGetValue(description, kDADiskDescriptionDevicePathKey);
 		CFNumberRef sizeRef = CFDictionaryGetValue(description, kDADiskDescriptionMediaSizeKey);
 		
-		devicePath	= [[(__bridge NSString *)pathRef copy] autorelease];
+		devicePath	= [(__bridge NSString *)pathRef copy];
 		diskSize	= [(__bridge NSNumber *)sizeRef unsignedLongLongValue];
 		
 		CFRelease(description);
@@ -225,7 +222,7 @@ BOOL _mountSynchronously(DASessionRef session, DADiskRef disk, CFURLRef path, DA
 	
 	//At this point we have started creating data; record this fact so that we will
 	//clean up our partial files in BXCDImageImport -undoTransfer if the import is aborted.
-	_hasWrittenFiles = YES;
+	self.hasWrittenFiles = YES;
 
 	
 	//Unmount the disc's volume without ejecting it, so that cdrdao can access the device exclusively.
@@ -270,7 +267,6 @@ BOOL _mountSynchronously(DASessionRef session, DADiskRef disk, CFURLRef path, DA
 	cdrdao.arguments = arguments;
 	
 	self.task = cdrdao;
-	[cdrdao release];
 	
 	//Run the task to completion and monitor its progress
 	[super main];
@@ -292,7 +288,6 @@ BOOL _mountSynchronously(DASessionRef session, DADiskRef disk, CFURLRef path, DA
 			//toc2cue takes hardly any time to run, so just block until it finishes.
 			[toc2cue launch];
 			[toc2cue waitUntilExit];
-			[toc2cue release];
 			
 			//Once the CUE file is ready, delete the original TOC.
 			if ([cueURL checkResourceIsReachableAndReturnError: NULL])

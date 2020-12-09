@@ -17,8 +17,8 @@
 + (NSBezierPath *) dropZoneForFrame: (NSRect)containingFrame
 {
 	//Border attributes for the bezier path
-	CGFloat pattern[2]	= {12.0f, 6.0f};
-	CGFloat borderWidth	= 4.0f;
+	CGFloat pattern[2]	= {12.0, 6.0};
+	CGFloat borderWidth	= 4.0;
 
 	//Invent typical box-art dimensions (the ratio is all that matters, since we will be scaling up/down from there)
 	NSSize dropZoneSize	= NSMakeSize(384, 512);
@@ -49,7 +49,7 @@
 		yRadius: borderWidth];
 		
 	[dropZone setLineWidth: borderWidth];
-	[dropZone setLineDash: pattern count: 2 phase: 0.0f];
+	[dropZone setLineDash: pattern count: 2 phase: 0.0];
 	
 	return dropZone;
 }
@@ -61,14 +61,14 @@
 	CGFloat w=size.width, h=size.height;
 	
 	NSBezierPath *arrow = [NSBezierPath bezierPath];
-	NSPoint arrowTip = NSMakePoint(NSMidX(containingFrame), NSMidY(containingFrame) - h * 0.5f);
+	NSPoint arrowTip = NSMakePoint(NSMidX(containingFrame), NSMidY(containingFrame) - h * 0.5);
 	[arrow moveToPoint: arrowTip];
-	[arrow relativeLineToPoint: NSMakePoint(w * -0.5f,	h * 0.5f)];
-	[arrow relativeLineToPoint: NSMakePoint(w * 0.25f,	h * 0.0f)];
-	[arrow relativeLineToPoint: NSMakePoint(w * 0.0f,	h * 0.5f)];
-	[arrow relativeLineToPoint: NSMakePoint(w * 0.5f,	h * 0.0f)];
-	[arrow relativeLineToPoint: NSMakePoint(w * 0.0f,	h * -0.5f)];
-	[arrow relativeLineToPoint: NSMakePoint(w * 0.25f,	h * 0.0f)];
+	[arrow relativeLineToPoint: NSMakePoint(w * -0.5,	h * 0.5)];
+	[arrow relativeLineToPoint: NSMakePoint(w * 0.25,	h * 0.0f)];
+	[arrow relativeLineToPoint: NSMakePoint(w * 0.0,	h * 0.5)];
+	[arrow relativeLineToPoint: NSMakePoint(w * 0.5,	h * 0.0)];
+	[arrow relativeLineToPoint: NSMakePoint(w * 0.0,	h * -0.5)];
+	[arrow relativeLineToPoint: NSMakePoint(w * 0.25,	h * 0.0)];
 	[arrow closePath];
 	
 	return arrow;
@@ -94,7 +94,7 @@
 	return isDragTarget || [[self window] firstResponder] == self;
 }
 
-- (CGFloat) highlightRadius	{ return 6.0f; }
+- (CGFloat) highlightRadius	{ return 6.0; }
 
 - (NSShadow *) highlightGlow
 {
@@ -115,8 +115,8 @@
 		if ([self isHighlighted]) [[self highlightGlow] set];
 		[image	drawInRect: imageFrame
 				fromRect: NSZeroRect
-				operation: NSCompositeSourceOver
-				fraction: 1.0f];
+                operation: NSCompositingOperationSourceOver
+				fraction: 1.0];
 	[NSGraphicsContext restoreGraphicsState];	
 }
 
@@ -134,7 +134,7 @@
 
 	//Isolate the current context on a transparent layer of its own,
 	//so that our compositing operation won't pick up the containing view's background
-	CGContextRef context = [[NSGraphicsContext currentContext] graphicsPort];
+    CGContextRef context = [[NSGraphicsContext currentContext] CGContext];
 	CGContextBeginTransparencyLayerWithRect(context, NSRectToCGRect(frame), NULL);
 		
 	[NSGraphicsContext saveGraphicsState];
@@ -148,7 +148,7 @@
 	[NSGraphicsContext restoreGraphicsState];
 	
 	//Add our own box shine to the rendered dropzone (this is the part that requires the transparency layer)
-	[shine drawInRect: frame fromRect: NSZeroRect operation: NSCompositeSourceAtop fraction: 0.25f];
+    [shine drawInRect: frame fromRect: NSZeroRect operation: NSCompositingOperationSourceAtop fraction: 0.25];
 	
 	CGContextEndTransparencyLayer(context);
 }

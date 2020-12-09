@@ -6,44 +6,35 @@
  */
 
 
-//BXInstallerScan is used by BXImportSession for locating DOS game installers within a path
-//or volume. It populates its matchingPaths with all the DOS installers it finds, ordered
-//by relevance - with the preferred installer first. 
-
-//It also collects overall file data about the source while scanning, such as the game profile
-//and whether the game appears to be already installed (or not a DOS game at all).
-
 #import "ADBImageAwareFileScan.h"
 
 @class BXGameProfile;
+
+/// \c BXInstallerScan is used by BXImportSession for locating DOS game installers within a path
+/// or volume. It populates its matchingPaths with all the DOS installers it finds, ordered
+/// by relevance - with the preferred installer first. 
+///
+/// It also collects overall file data about the source while scanning, such as the game profile
+/// and whether the game appears to be already installed (or not a DOS game at all).
 @interface BXInstallerScan : ADBImageAwareFileScan
-{
-    NSMutableArray *_windowsExecutables;
-    NSMutableArray *_DOSExecutables;
-    NSMutableArray *_macOSApps;
-    NSMutableArray *_DOSBoxConfigurations;
-    BOOL _alreadyInstalled;
-    
-    BXGameProfile *_detectedProfile;
-} 
 
-//The relative paths of all DOS and Windows executables and DOSBox configuration files
-//discovered during scanning.
-@property (readonly, retain, nonatomic) NSArray *windowsExecutables;
-@property (readonly, retain, nonatomic) NSArray *DOSExecutables;
-@property (readonly, retain, nonatomic) NSArray *macOSApps;
-@property (readonly, retain, nonatomic) NSArray *DOSBoxConfigurations;
+/// The relative paths of all DOS and Windows executables and DOSBox configuration files
+/// discovered during scanning.
+@property (readonly, copy, nonatomic) NSArray<NSString*> *windowsExecutables;
+@property (readonly, copy, nonatomic) NSArray<NSString*> *DOSExecutables;
+@property (readonly, copy, nonatomic) NSArray<NSString*> *macOSApps;
+@property (readonly, copy, nonatomic) NSArray<NSString*> *DOSBoxConfigurations;
 
-//The path which the scanner recommends as the base path to import from.
-//This will usually be the same as the base path, but may point to a mounted
-//volume instead if the base path was an image.
+/// The path which the scanner recommends as the base path to import from.
+/// This will usually be the same as the base path, but may point to a mounted
+/// volume instead if the base path was an image.
 @property (readonly, copy, nonatomic) NSString *recommendedSourcePath;
 
-//The profile of the game at the base path, used for discovery of additional installers.
-//If left unspecified, this will be autodetected during scanning.
-@property (readonly, retain, nonatomic) BXGameProfile *detectedProfile;
+/// The profile of the game at the base path, used for discovery of additional installers.
+/// If left unspecified, this will be autodetected during scanning.
+@property (readonly, strong, nonatomic) BXGameProfile *detectedProfile;
 
-//Whether the game at the base path appears to be already installed.
+/// Whether the game at the base path appears to be already installed.
 @property (readonly, nonatomic, getter=isAlreadyInstalled) BOOL alreadyInstalled;
 
 @end

@@ -17,15 +17,15 @@
 
 @interface BXInstallerScan ()
 
-@property (retain, nonatomic) NSArray *windowsExecutables;
-@property (retain, nonatomic) NSArray *DOSExecutables;
-@property (retain, nonatomic) NSArray *DOSBoxConfigurations;
-@property (retain, nonatomic) NSArray *macOSApps;
-@property (retain, nonatomic) BXGameProfile *detectedProfile;
-@property (nonatomic, getter=isAlreadyInstalled) BOOL alreadyInstalled;
+@property (readwrite, copy, nonatomic) NSArray<NSString*> *windowsExecutables;
+@property (readwrite, copy, nonatomic) NSArray<NSString*> *DOSExecutables;
+@property (readwrite, copy, nonatomic) NSArray<NSString*> *DOSBoxConfigurations;
+@property (readwrite, copy, nonatomic) NSArray<NSString*> *macOSApps;
+@property (readwrite, strong, nonatomic) BXGameProfile *detectedProfile;
+@property (readwrite, nonatomic, getter=isAlreadyInstalled) BOOL alreadyInstalled;
 
-//Helper methods for adding executables to their appropriate match arrays,
-//a la addMatchingPath:
+/// Helper methods for adding executables to their appropriate match arrays,
+/// a la addMatchingPath:
 - (void) addWindowsExecutable: (NSString *)relativePath;
 - (void) addDOSExecutable: (NSString *)relativePath;
 - (void) addMacOSApp: (NSString *)relativePath;
@@ -34,12 +34,6 @@
 @end
 
 @implementation BXInstallerScan
-@synthesize windowsExecutables      = _windowsExecutables;
-@synthesize DOSExecutables          = _DOSExecutables;
-@synthesize DOSBoxConfigurations    = _DOSBoxConfigurations;
-@synthesize macOSApps               = _macOSApps;
-@synthesize alreadyInstalled        = _alreadyInstalled;
-@synthesize detectedProfile         = _detectedProfile;
 
 - (id) init
 {
@@ -51,16 +45,6 @@
         self.DOSBoxConfigurations   = [NSMutableArray arrayWithCapacity: 2];
     }
     return self;
-}
-
-- (void) dealloc
-{
-    self.windowsExecutables = nil;
-    self.DOSExecutables = nil;
-    self.macOSApps = nil;
-    self.detectedProfile = nil;
-    
-    [super dealloc];
 }
 
 //Overridden to gather additional data besides just matching installers.
@@ -239,10 +223,8 @@
             //Bump the preferred installer up to the first entry in the list of installers.
             if (preferredInstallerPath)
             {
-                [preferredInstallerPath retain];
                 [_matchingPaths removeObject: preferredInstallerPath];
                 [_matchingPaths insertObject: preferredInstallerPath atIndex: 0];
-                [preferredInstallerPath autorelease];
             }
             
             [self didChangeValueForKey: @"matchingPaths"];

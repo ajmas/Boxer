@@ -13,81 +13,68 @@
 #import "ADBHIDEvent.h"
 #import "BXOutputBinding.h"
 
+NS_ASSUME_NONNULL_BEGIN
+
 #pragma mark - Protocols
 
 @protocol BXHIDInputBinding <NSObject>
 
-//Returns an autoreleased instance of the class.
-+ (id) binding;
+/// Returns an autoreleased instance of the class.
++ (instancetype) binding;
 
-//Handles the specified HID event and passes it on to any output bindings.
+/// Handles the specified HID event and passes it on to any output bindings.
 - (void) processEvent: (ADBHIDEvent *)event;
 
 @end
 
 
 @interface BXHIDButtonBinding : NSObject <BXHIDInputBinding>
-{
-    id <BXOutputBinding> _outputBinding;
-}
 
-//This binding will be sent 1.0 when the joystick button is pressed, and 0.0 when released.
-@property (retain, nonatomic) id <BXOutputBinding> outputBinding;
+/// This binding will be sent 1.0 when the joystick button is pressed, and 0.0 when released.
+@property (strong, nonatomic) id <BXOutputBinding> outputBinding;
 
-+ (id) bindingWithOutputBinding: (id <BXOutputBinding>)outputBinding;
++ (instancetype) bindingWithOutputBinding: (id <BXOutputBinding>)outputBinding;
 
 @end
 
 
 @interface BXHIDAxisBinding : NSObject <BXHIDInputBinding>
-{
-    id <BXOutputBinding> _positiveBinding;
-    id <BXOutputBinding> _negativeBinding;
-    
-    BOOL _inverted;
-    float _deadzone;
-    BOOL _unidirectional;
-}
 
-//This binding will be sent the absolute axis value when the axis is positive,
-//and 0.0 when the axis is centered or negative.
-@property (retain, nonatomic) id <BXOutputBinding> positiveBinding;
+/// This binding will be sent the absolute axis value when the axis is positive,
+/// and 0.0 when the axis is centered or negative.
+@property (strong, nonatomic, nullable) id <BXOutputBinding> positiveBinding;
 
-//This binding will be sent the absolute axis value when the axis is negative,
-//and 0.0 when the axis is centered or positive.
-@property (retain, nonatomic) id <BXOutputBinding> negativeBinding;
+/// This binding will be sent the absolute axis value when the axis is negative,
+/// and 0.0 when the axis is centered or positive.
+@property (strong, nonatomic, nullable) id <BXOutputBinding> negativeBinding;
 
-//If YES, axis input will be flipped (meaning the negative binding will be triggered
-//when the axis is positive, and vice-versa).
+/// If <code>YES</code>, axis input will be flipped (meaning the negative binding will be triggered
+/// when the axis is positive, and vice-versa).
 @property (assign, nonatomic, getter=isInverted) BOOL inverted;
 
-//The deadzone below which all values will be snapped to 0.
+/// The deadzone below which all values will be snapped to 0.
 @property (assign, nonatomic) float deadzone;
 
-//Whether this is a trigger-style axis with only one direction of travel.
-//If YES, the full -1.0->1.0 input range will be mapped to 0.0->1.0 before inverting.
+/// Whether this is a trigger-style axis with only one direction of travel.
+/// If YES, the full -1.0->1.0 input range will be mapped to 0.0->1.0 before inverting.
 @property (assign, nonatomic, getter=isUnidirectional) BOOL unidirectional;
 
-+ (id) bindingWithPositiveBinding: (id <BXOutputBinding>)positiveBinding
-                  negativeBinding: (id <BXOutputBinding>)negativeBinding;
++ (instancetype) bindingWithPositiveBinding: (nullable id <BXOutputBinding>)positiveBinding
+                            negativeBinding: (nullable id <BXOutputBinding>)negativeBinding;
 
 @end
 
 
 @interface BXHIDPOVSwitchBinding : NSObject <BXHIDInputBinding>
-{
-    NSMutableDictionary *_outputBindings;
-    ADBHIDPOVSwitchDirection _previousDirection;
-}
 
-//Creates a new binding from interleaved pairs of bindings and directions, followed by a nil sentinel.
-+ (id) bindingWithOutputBindingsAndDirections: (id <BXOutputBinding>)binding, ... NS_REQUIRES_NIL_TERMINATION;
+/// Creates a new binding from interleaved pairs of bindings and directions, followed by a \c nil sentinel.
++ (instancetype) bindingWithOutputBindingsAndDirections: (id <BXOutputBinding>)binding, ... NS_REQUIRES_NIL_TERMINATION;
 
-//Set/get the binding for a particular cardinal POV direction.
-//This binding will be sent 1.0 when the POV is pressed in that direction,
-//and 0.0 when the POV is released or switches to another direction.
-//If a direction is not explicitly bound, then the bindings for the
-//two directions on either side will be triggered simultaneously instead.
+/// Set/get the binding for a particular cardinal POV direction.
+/// This binding will be sent 1.0 when the POV is pressed in that direction,
+/// and 0.0 when the POV is released or switches to another direction.
+/// If a direction is not explicitly bound, then the bindings for the
+/// two directions on either side will be triggered simultaneously instead.
 - (id <BXOutputBinding>) bindingForDirection: (ADBHIDPOVSwitchDirection)direction;
 - (void) setBinding: (id <BXOutputBinding>)binding forDirection: (ADBHIDPOVSwitchDirection) direction;
 
@@ -426,3 +413,5 @@
 @end
 
 */
+
+NS_ASSUME_NONNULL_END

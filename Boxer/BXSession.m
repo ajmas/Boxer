@@ -216,11 +216,11 @@ NSString * const BXGameImportedNotificationType     = @"BXGameImported";
 		self.drives = [NSMutableDictionary dictionaryWithCapacity: 10];
 		self.executableURLs = [NSMutableDictionary dictionaryWithCapacity: 10];
 		
-		self.emulator = [[[BXEmulator alloc] init] autorelease];
+		self.emulator = [[BXEmulator alloc] init];
 		self.gameSettings = defaults;
 		
-		self.importQueue = [[[NSOperationQueue alloc] init] autorelease];
-		self.scanQueue = [[[NSOperationQueue alloc] init] autorelease];
+		self.importQueue = [[NSOperationQueue alloc] init];
+		self.scanQueue = [[NSOperationQueue alloc] init];
 	}
 	return self;
 }
@@ -283,8 +283,6 @@ NSString * const BXGameImportedNotificationType     = @"BXGameImported";
     
     self.temporaryFolderURL = nil;
     self.MT32MessagesReceived = nil;
-    
-	[super dealloc];
 }
 
 - (BOOL) readFromURL: (NSURL *)absoluteURL
@@ -311,10 +309,25 @@ NSString * const BXGameImportedNotificationType     = @"BXGameImported";
         //Check if the user opened the gamebox itself or a specific file/folder inside the gamebox.
         BOOL hasCustomTarget = ![self.targetURL isEqual: gameboxURL];
         
-        //Check if we are flagged to show the launch panel at startup for this game (instead of looking for a target program.)
-        BOOL startWithLaunchPanel = [[self.gameSettings objectForKey: BXGameboxSettingsShowLaunchPanelKey] boolValue];
-        BOOL alwaysStartWithLaunchPanel = [[self.gameSettings objectForKey: BXGameboxSettingsAlwaysShowLaunchPanelKey] boolValue];
-        if (alwaysStartWithLaunchPanel) startWithLaunchPanel = YES;
+        //Check if we are flagged to show the launch panel at startup for this game,
+        //instead of looking for a target program.
+        BOOL startWithLaunchPanel;
+        if (self.allowsLauncherPanel)
+        {
+            BOOL alwaysStartWithLaunchPanel = [self.gameSettings[BXGameboxSettingsAlwaysShowLaunchPanelKey] boolValue];
+            if (alwaysStartWithLaunchPanel)
+            {
+                startWithLaunchPanel = YES;
+            }
+            else
+            {
+                startWithLaunchPanel = [self.gameSettings[BXGameboxSettingsShowLaunchPanelKey] boolValue];
+            }
+        }
+        else
+        {
+            startWithLaunchPanel = NO;
+        }
         
 		//If the user opened the gamebox itself instead of a specific file inside it,
         //and we're not flagged to show the launch panel in this situation, then try
@@ -381,8 +394,7 @@ NSString * const BXGameImportedNotificationType     = @"BXGameImported";
 	{
         self.gamebox.undoDelegate = nil;
         
-		[_gamebox release];
-		_gamebox = [gamebox retain];
+		_gamebox = gamebox;
 		
 		if (self.gamebox)
 		{
@@ -496,8 +508,7 @@ NSString * const BXGameImportedNotificationType     = @"BXGameImported";
 {
     if (![self.gameProfile isEqual: profile])
     {
-        [_gameProfile release];
-        _gameProfile = [profile retain];
+        _gameProfile = profile;
         
         //Save the profile into our game settings so that we can retrieve it quicker later
         if (self.gameProfile && [self _shouldPersistGameProfile: self.gameProfile])
@@ -530,8 +541,7 @@ NSString * const BXGameImportedNotificationType     = @"BXGameImported";
 			[self _deregisterForFilesystemNotifications];
 		}
 		
-		[_emulator release];
-		_emulator = [newEmulator retain];
+		_emulator = newEmulator;
 		
 		if (self.emulator)
 		{	
@@ -562,21 +572,12 @@ NSString * const BXGameImportedNotificationType     = @"BXGameImported";
 - (void) makeWindowControllers
 {
 	BXDOSWindowController *controller;
-	if (isRunningOnLionOrAbove())
-	{
-		controller = [[BXDOSWindowControllerLion alloc] initWithWindowNibName: @"DOSWindow"];
-	}
-	else
-	{
-		controller = [[BXDOSWindowController alloc] initWithWindowNibName: @"DOSWindow"];
-	}
+	controller = [[BXDOSWindowControllerLion alloc] initWithWindowNibName: @"DOSWindow"];
 	
 	[self addWindowController: controller];
 	self.DOSWindowController = controller;
 	
 	controller.shouldCloseDocument = YES;
-	
-	[controller release];
 }
 
 - (void) removeWindowController: (NSWindowController *)windowController
@@ -592,13 +593,14 @@ NSString * const BXGameImportedNotificationType     = @"BXGameImported";
 {
     if (controller != self.DOSWindowController)
     {
+		[self willChangeValueForKey:@"DOSWindowController"];
+		
         if (self.DOSWindowController)
         {
             [self.DOSWindowController removeObserver: self forKeyPath: @"currentPanel"];
         }
         
-        [_DOSWindowController release];
-        _DOSWindowController = [controller retain];
+        _DOSWindowController = controller;
         
         if (controller)
         {
@@ -607,6 +609,8 @@ NSString * const BXGameImportedNotificationType     = @"BXGameImported";
                             options: 0
                             context: NULL];
         }
+		
+		[self didChangeValueForKey:@"DOSWindowController"];
     }
 }
 
@@ -669,7 +673,9 @@ NSString * const BXGameImportedNotificationType     = @"BXGameImported";
     [self close];
     
     if (reopenURL)
-        [(BXBaseAppController *)[NSApp delegate] openDocumentWithContentsOfURL: reopenURL display: YES error: NULL];
+        [(BXBaseAppController *)[NSApp delegate] openDocumentWithContentsOfURL: reopenURL display: YES completionHandler:^(NSDocument * _Nullable document, BOOL documentWasAlreadyOpen, NSError * _Nullable error) {
+            //do nothing
+        }];
     else
         [(BXBaseAppController *)[NSApp delegate] openUntitledDocumentAndDisplay: YES error: NULL];
 }
@@ -705,7 +711,8 @@ NSString * const BXGameImportedNotificationType     = @"BXGameImported";
 	//Define an invocation for the callback, which has the signature:
 	//- (void)document:(NSDocument *)document shouldClose:(BOOL)shouldClose contextInfo:(void *)contextInfo;
     NSInvocation *callback = [NSInvocation invocationWithTarget: delegate selector: shouldCloseSelector];
-	[callback setArgument: &self atIndex: 2];
+    __unsafe_unretained BXSession *unSelf = self;
+	[callback setArgument: &unSelf atIndex: 2];
 	[callback setArgument: &contextInfo atIndex: 4];
 	
 	BOOL hasActiveImports = self.isImportingDrives;
@@ -728,10 +735,10 @@ NSString * const BXGameImportedNotificationType     = @"BXGameImported";
 		else
 			alert = [BXCloseAlert closeAlertWhileSessionIsEmulating: self];
 		
-		[alert beginSheetModalForWindow: self.windowForSheet
-						  modalDelegate: self
-						 didEndSelector: @selector(_closeAlertDidEnd:returnCode:contextInfo:)
-							contextInfo: [callback retain]];
+        [alert beginSheetModalForWindow: self.windowForSheet
+                      completionHandler: ^(NSModalResponse returnCode) {
+                          [self _closeAlertDidEnd:alert returnCode:returnCode contextInfo:callback];
+                      }];
 	}
 	else
 	{
@@ -743,22 +750,19 @@ NSString * const BXGameImportedNotificationType     = @"BXGameImported";
 }
 
 - (void) _closeAlertDidEnd: (BXCloseAlert *)alert
-				returnCode: (int)returnCode
+				returnCode: (NSModalResponse)returnCode
 			   contextInfo: (NSInvocation *)callback
 {
-	if (alert.showsSuppressionButton && alert.suppressionButton.state == NSOnState)
+	if (alert.showsSuppressionButton && alert.suppressionButton.state == NSControlStateValueOn)
 		[[NSUserDefaults standardUserDefaults] setBool: YES forKey: @"suppressCloseAlert"];
 	
 	BOOL shouldClose = (returnCode == NSAlertFirstButtonReturn);
 	[callback setArgument: &shouldClose atIndex: 3];
 	[callback invoke];
-	
-	//Release the previously-retained callback
-	[callback release];
 }
 
 - (void) _windowsOnlyProgramCloseAlertDidEnd: (BXCloseAlert *)alert
-								  returnCode: (int)returnCode
+								  returnCode: (NSInteger)returnCode
 								 contextInfo: (void *)contextInfo
 {
 	if (returnCode == NSAlertFirstButtonReturn)
@@ -855,7 +859,7 @@ NSString * const BXGameImportedNotificationType     = @"BXGameImported";
                 if (drive.isHidden || drive.isVirtual || [self driveIsBundled: drive])
                     continue;
                 
-                NSData *driveInfo = [NSKeyedArchiver archivedDataWithRootObject: drive];
+                NSData *driveInfo = [NSKeyedArchiver archivedDataWithRootObject: drive requiringSecureCoding: YES error: NULL];
                 
                 [queuedDrives addObject: driveInfo];
             }
@@ -1027,7 +1031,7 @@ NSString * const BXGameImportedNotificationType     = @"BXGameImported";
     //Prevent access to the launcher panel if this is a standalone game bundle with only one launch option,
     //and it hasn't been overridden to always show the launch panel.
     //In such cases the launcher panel is unnecessary.
-    if ([(BXBaseAppController *)[NSApp delegate] isStandaloneGameBundle])
+    if ([self _isStandaloneGameBundle])
     {
         BOOL alwaysStartWithLaunchPanel = [[self.gameSettings objectForKey: BXGameboxSettingsAlwaysShowLaunchPanelKey] boolValue];
         if (!alwaysStartWithLaunchPanel && self.gamebox.launchers.count == 1)
@@ -1052,7 +1056,7 @@ NSString * const BXGameImportedNotificationType     = @"BXGameImported";
         //a new one for it now and try to apply it to the gamebox.
         //IMPLEMENTATION NOTE: we don't do this if we're part of a standalone
         //game bundle, because then we'll be using the app's own icon instead.
-        if (!icon && ![(BXBaseAppController *)[NSApp delegate] isStandaloneGameBundle])
+        if (!icon && ![self _isStandaloneGameBundle])
         {
             BXReleaseMedium medium = self.gameProfile.releaseMedium;
             icon = [self.class bootlegCoverArtForGamebox: self.gamebox
@@ -1085,7 +1089,7 @@ NSString * const BXGameImportedNotificationType     = @"BXGameImported";
 }
 
 + (NSSet *) keyPathsForValuesAffectingHasGamebox        { return [NSSet setWithObject: @"gamebox"]; }
-+ (NSSet *) keyPathsForValuesAffectingRepresentedIcon	{ return [NSSet setWithObjects: @"gamebox", @"gamebox.coverArt", nil]; }
++ (NSSet *) keyPathsForValuesAffectingRepresentedIcon	{ return [NSSet setWithObject: @"gamebox"]; }
 + (NSSet *) keyPathsForValuesAffectingCurrentURL        { return [NSSet setWithObjects: @"launchedProgramURL", @"emulator.currentDirectoryURL", nil]; }
 
 - (NSArray *) recentPrograms
@@ -1154,7 +1158,7 @@ NSString * const BXGameImportedNotificationType     = @"BXGameImported";
 
 - (BOOL) emulatorShouldDisplayStartupMessages: (BXEmulator *)emulator
 {
-    if ([(BXBaseAppController *)[NSApp delegate] isStandaloneGameBundle])
+    if ([self _isStandaloneGameBundle])
         return NO;
     
     return YES;
@@ -1257,6 +1261,8 @@ NSString * const BXGameImportedNotificationType     = @"BXGameImported";
     
     //TWEAK: Sanitise the configurations folder of a standalone game app the first time the app is launched,
     //by deleting all unused conf files.
+    //Disabled: this is excessive and breaks code-signing.
+    /*
     if ([(BXStandaloneAppController *)[NSApp delegate] isStandaloneGameBundle] &&
         [(BXStandaloneAppController *)[NSApp delegate] bundledGameboxURL] != nil)
     {   
@@ -1280,21 +1286,22 @@ NSString * const BXGameImportedNotificationType     = @"BXGameImported";
         }
         [manager release];
     }
+     */
     
-    return [configURLs autorelease];
+    return configURLs;
 }
 
 - (void) runPreflightCommandsForEmulator: (BXEmulator *)theEmulator
 {
 	if (!_hasConfigured)
 	{
-        NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+        @autoreleasepool {
         
         if ([self _shouldAllowSkippingStartupProgram])
         {
             //If the Option key is held down during the startup process, skip the default program.
             CGEventFlags currentModifiers = CGEventSourceFlagsState(kCGEventSourceStateCombinedSessionState);
-            _userSkippedDefaultProgram = (currentModifiers & NSAlternateKeyMask) == NSAlternateKeyMask;
+            _userSkippedDefaultProgram = (currentModifiers & NSEventModifierFlagOption) == NSEventModifierFlagOption;
         }
         
 		[self _mountDrivesForSession];
@@ -1302,8 +1309,8 @@ NSString * const BXGameImportedNotificationType     = @"BXGameImported";
 		//Flag that we have completed our initial game configuration.
 		_hasConfigured = YES;
         
-        [pool drain];
-	}
+        }
+    }
 }
 
 - (void) runLaunchCommandsForEmulator: (BXEmulator *)theEmulator
@@ -1331,7 +1338,7 @@ NSString * const BXGameImportedNotificationType     = @"BXGameImported";
         if ([self _shouldAllowSkippingStartupProgram] && !_userSkippedDefaultProgram)
         {
             CGEventFlags currentModifiers = CGEventSourceFlagsState(kCGEventSourceStateCombinedSessionState);
-            _userSkippedDefaultProgram = (currentModifiers & NSAlternateKeyMask) == NSAlternateKeyMask;
+            _userSkippedDefaultProgram = (currentModifiers & NSEventModifierFlagOption) == NSEventModifierFlagOption;
         }
         
 		//If the Option key was held down, don't launch the gamebox's target;
@@ -1493,10 +1500,9 @@ NSString * const BXGameImportedNotificationType     = @"BXGameImported";
                     if ([programURL isEqual: self.targetURL])
                     {
                         BXCloseAlert *alert = [BXCloseAlert closeAlertAfterWindowsOnlyProgramExited: programURL.path];
-                        [alert beginSheetModalForWindow: self.windowForSheet
-                                          modalDelegate: self
-                                         didEndSelector: @selector(_windowsOnlyProgramCloseAlertDidEnd:returnCode:contextInfo:)
-                                            contextInfo: NULL];
+                        [alert beginSheetModalForWindow: self.windowForSheet completionHandler:^(NSModalResponse returnCode) {
+                            [self _windowsOnlyProgramCloseAlertDidEnd:alert returnCode:returnCode contextInfo:NULL];
+                        }];
                         
                     }
                     //Otherwise, just print out explanatory text at the DOS prompt.
@@ -1606,26 +1612,23 @@ NSString * const BXGameImportedNotificationType     = @"BXGameImported";
 	//NSWindow/NSDocument close flow.
 	
     NSEvent *event;
-    [requestedDate retain];
     
 	NSDate *untilDate = self.isSuspended ? [NSDate distantFuture] : requestedDate;
 	
-	while (!_isClosing && (event = [NSApp nextEventMatchingMask: NSAnyEventMask
+	while (!_isClosing && (event = [NSApp nextEventMatchingMask: NSEventMaskAny
                                                       untilDate: untilDate
                                                          inMode: NSDefaultRunLoopMode
                                                         dequeue: YES]))
-	{
-        NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
-        
+	@autoreleasepool {
         //Listen for key-up events for our fast-forward key and handle them ourselves.
         //Swallow all key-down events while this is happening.
         //IMPLEMENTATION NOTE: this is essentially a standard Cocoa event-listening loop
         //turned inside out, so that the emulation will keep running 'around' our listening.
         if (_waitingForFastForwardRelease)
         {
-            if (event.type == NSKeyUp)
+            if (event.type == NSEventTypeKeyUp)
                 [self releaseFastForward: self];
-            else if (event.type == NSKeyDown)
+            else if (event.type == NSEventTypeKeyDown)
                 event = nil;
         }
         
@@ -1638,21 +1641,48 @@ NSString * const BXGameImportedNotificationType     = @"BXGameImported";
         //will be after the first batch of events has been processed,
         //if requestedDate was nil or in the past.)
 		untilDate = self.isSuspended ? [NSDate distantFuture] : requestedDate;
-        
-        [pool drain];
 	}
-    
-    [requestedDate release];
+}
+
+#pragma mark - Synchronizing emulation state
+
+//Dispatch KVC notifications on the main thread
+- (void) willChangeValueForKey: (NSString *)key
+{
+	if (![NSThread isMainThread])
+		[self performSelectorOnMainThread: _cmd withObject: key waitUntilDone: NO];
+	else
+		[super willChangeValueForKey: key];
+}
+
+- (void) didChangeValueForKey: (NSString *)key
+{
+	if (![NSThread isMainThread])
+		[self performSelectorOnMainThread: _cmd withObject: key waitUntilDone: NO];
+	else
+		[super didChangeValueForKey: key];
 }
 
 #pragma mark -
 #pragma mark Behavioural modifiers
 
+- (BOOL)_isStandaloneGameBundle
+{
+	if (!NSThread.isMainThread) {
+		__block BOOL isStandalone = NO;
+		dispatch_sync(dispatch_get_main_queue(), ^{
+			isStandalone = [(BXBaseAppController *)[NSApp delegate] isStandaloneGameBundle];
+		});
+		return isStandalone;
+	}
+	return [(BXBaseAppController *)[NSApp delegate] isStandaloneGameBundle];
+}
+
 - (BOOL) _shouldAllowSkippingStartupProgram
 {
     //For standalone game apps, only allow the user to skip the startup program
     //if there is more than one launch option to display on the launch panel.
-    if ([(BXBaseAppController *)[NSApp delegate] isStandaloneGameBundle])
+    if ([self _isStandaloneGameBundle])
     {
         return self.allowsLauncherPanel;
     }
@@ -1663,7 +1693,7 @@ NSString * const BXGameImportedNotificationType     = @"BXGameImported";
 {
     //If this is a standalone game app, assume it has everything it needs
     //and ignore external volumes.
-    if ([(BXBaseAppController *)[NSApp delegate] isStandaloneGameBundle])
+    if ([self _isStandaloneGameBundle])
         return NO;
     else
         return YES;
@@ -1678,7 +1708,7 @@ NSString * const BXGameImportedNotificationType     = @"BXGameImported";
 {
     //Don't bother persisting drives for standalone game apps:
     //they should already include everything they need.
-    if ([(BXBaseAppController *)[NSApp delegate] isStandaloneGameBundle])
+    if ([self _isStandaloneGameBundle])
         return NO;
     else
         return YES;
@@ -1688,7 +1718,7 @@ NSString * const BXGameImportedNotificationType     = @"BXGameImported";
 {
     //For standalone game apps, only bother recording the previous program
     //if the gamebox has more than one launch option to choose from.
-    if ([(BXBaseAppController *)[NSApp delegate] isStandaloneGameBundle])
+    if ([self _isStandaloneGameBundle])
     {
         BOOL hasMultipleLaunchers = (self.gamebox.launchers.count > 1);
         return hasMultipleLaunchers;
@@ -1705,7 +1735,7 @@ NSString * const BXGameImportedNotificationType     = @"BXGameImported";
     //Standalone-specific behaviour:
     //- if the game has launchers, then always return to the launcher panel;
     //- otherwise, exit the application altogether.
-    if ([(BXBaseAppController *)[NSApp delegate] isStandaloneGameBundle])
+    if ([self _isStandaloneGameBundle])
     {
         if (self.allowsLauncherPanel)
             return BXSessionShowLauncherOnCompletion;
@@ -1952,7 +1982,7 @@ NSString * const BXGameImportedNotificationType     = @"BXGameImported";
     
     for (NSData *driveInfo in previousDrives)
     {
-        BXDrive *drive = [NSKeyedUnarchiver unarchiveObjectWithData: driveInfo];
+        BXDrive *drive = [NSKeyedUnarchiver unarchivedObjectOfClass:[BXDrive class] fromData:driveInfo error:NULL];
         
         //Skip drives that couldn't be decoded (which will happen if the drive's location
         //can no longer be resolved.)
@@ -2173,7 +2203,7 @@ NSString * const BXGameImportedNotificationType     = @"BXGameImported";
             //inside -emulatorDidBeginRunLoop:, which only processes when
             //there's any events in the queue. We post a dummy event to ensure
             //that the loop ticks over and recognises the pause state.
-            NSEvent *dummyEvent = [NSEvent otherEventWithType: NSApplicationDefined
+            NSEvent *dummyEvent = [NSEvent otherEventWithType: NSEventTypeApplicationDefined
                                                      location: NSZeroPoint
                                                 modifierFlags: 0
                                                     timestamp: CFAbsoluteTimeGetCurrent()
@@ -2329,7 +2359,7 @@ NSString * const BXGameImportedNotificationType     = @"BXGameImported";
             
             IOReturn success = IOPMAssertionCreateWithName(kIOPMAssertionTypeNoDisplaySleep, 
                                                            kIOPMAssertionLevelOn,
-                                                           (CFStringRef)reason,
+                                                           (__bridge CFStringRef)reason,
                                                            &_displaySleepAssertionID);
             if (success != kIOReturnSuccess)
             {

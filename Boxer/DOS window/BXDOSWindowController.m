@@ -19,7 +19,6 @@
 #import "BXVideoFrame.h"
 #import "BXVideoHandler.h"
 #import "BXInputView.h"
-#import "BXGLRenderingView.h"
 #import "YRKSpinningProgressIndicator.h"
 #import "NSView+ADBDrawingHelpers.h"
 
@@ -34,6 +33,8 @@
 #import "NSWindow+ADBWindowDimensions.h"
 #import "ADBGeometry.h"
 
+#import "BXShaderParametersWindowController.h"
+
 
 #pragma mark - Constants
 
@@ -41,28 +42,18 @@
 NSString * const BXDOSWindowFullscreenSizeFormat = @"Fullscreen size for %@";
 
 @implementation BXDOSWindowController
+{
+	NSSize _renderingViewSizeBeforeFullScreen;
+	BOOL _resizingProgrammatically;
+	BOOL _windowIsClosing;
+	
+	NSSize _currentScaledSize;
+	NSSize _currentScaledResolution;
+}
+
 
 #pragma mark -
 #pragma mark Accessors
-
-@synthesize renderingView = _renderingView;
-@synthesize inputView = _inputView;
-@synthesize currentPanel = _currentPanel;
-@synthesize statusBar = _statusBar;
-@synthesize programPanel = _programPanel;
-@synthesize launchPanel = _launchPanel;
-@synthesize panelWrapper = _panelWrapper;
-@synthesize programPanelController = _programPanelController;
-@synthesize launchPanelController = _launchPanelController;
-@synthesize inputController = _inputController;
-@synthesize statusBarController = _statusBarController;
-@synthesize autosaveNameBeforeFullScreen = _autosaveNameBeforeFullScreen;
-@synthesize aspectCorrected = _aspectCorrected;
-@synthesize loadingPanel = _loadingPanel;
-@synthesize loadingSpinner = _loadingSpinner;
-@synthesize documentationButton = _documentationButton;
-@synthesize maxFullscreenViewportSize = _maxFullscreenViewportSize;
-@synthesize renderingStyle = _renderingStyle;
 
 - (void) setDocument: (BXSession *)document
 {	
@@ -74,6 +65,7 @@ NSString * const BXDOSWindowFullscreenSizeFormat = @"Fullscreen size for %@";
 		self.programPanelController.representedObject = nil;
     	self.inputController.representedObject = nil;
         self.launchPanelController.representedObject = nil;
+        [self.shaderParametersController unbind:@"parameterGroups"];
     }
 
 	[super setDocument: document];
@@ -83,6 +75,10 @@ NSString * const BXDOSWindowFullscreenSizeFormat = @"Fullscreen size for %@";
 		self.programPanelController.representedObject = document;
     	self.inputController.representedObject = document;
         self.launchPanelController.representedObject = document;
+        [self.shaderParametersController bind:@"groups"
+                                     toObject:self.renderingView
+                                  withKeyPath:@"parameterGroups"
+                                      options:nil];
     }
 }
 
@@ -92,25 +88,6 @@ NSString * const BXDOSWindowFullscreenSizeFormat = @"Fullscreen size for %@";
 - (void) dealloc
 {	
     [self _removeObservers];
-    
-    self.programPanelController = nil;
-    self.inputController = nil;
-    self.statusBarController = nil;
-    self.launchPanelController = nil;
-    self.panelWrapper = nil;
-    
-    self.inputView = nil;
-    self.renderingView = nil;
-    
-    self.programPanel = nil;
-    self.statusBar = nil;
-    self.launchPanel = nil;
-    self.loadingPanel = nil;
-    self.loadingSpinner = nil;
-    
-    self.autosaveNameBeforeFullScreen = nil;
-    
-	[super dealloc];
 }
 
 - (void) _addObservers
@@ -139,6 +116,11 @@ NSString * const BXDOSWindowFullscreenSizeFormat = @"Fullscreen size for %@";
    withKeyPath: @"herculesTintMode"
        options: nil];
     
+     [self bind: @"CGACompositeMode"
+       toObject: defaults
+    withKeyPath: @"CGACompositeMode"
+        options: nil];
+
     [self.renderingView bind: @"maxViewportSize"
                     toObject: self
                  withKeyPath: @"maxViewportSizeUIBinding"
@@ -153,6 +135,8 @@ NSString * const BXDOSWindowFullscreenSizeFormat = @"Fullscreen size for %@";
     
     [self unbind: @"aspectCorrected"];
     [self unbind: @"renderingStyle"];
+    [self unbind: @"herculesTintMode"];
+    [self unbind: @"CGACompositeMode"];
     [self.renderingView unbind: @"maxViewportSize"];
 }
 
@@ -160,7 +144,7 @@ NSString * const BXDOSWindowFullscreenSizeFormat = @"Fullscreen size for %@";
 - (void) windowDidLoad
 {
 	//Register for drag-drop file operations (used for mounting folders and such)
-    NSArray *dragTypes = [NSArray arrayWithObjects: NSFilenamesPboardType, NSStringPboardType, nil];
+    NSArray *dragTypes = [NSArray arrayWithObjects: NSPasteboardTypeFileURL, NSPasteboardTypeString, nil];
 	[self.window registerForDraggedTypes: dragTypes];
 	
     //The launch panel controller is responsible for loading its own view, which we add to the hierarchy ourselves.
@@ -238,7 +222,6 @@ NSString * const BXDOSWindowFullscreenSizeFormat = @"Fullscreen size for %@";
             menuRep.title = toolbarItem.label;
             toolbarItem.view.menu = nil;
             toolbarItem.menuFormRepresentation = menuRep;
-            [menuRep release];
         }
         //Otherwise, synthesize a menu representation from the target-action of the toolbar item itself.
         else if (toolbarItem.action)
@@ -248,7 +231,6 @@ NSString * const BXDOSWindowFullscreenSizeFormat = @"Fullscreen size for %@";
             menuRep.action = toolbarItem.action;
             menuRep.title = toolbarItem.label;
             toolbarItem.menuFormRepresentation = menuRep;
-            [menuRep release];
         }
     }
     
@@ -469,6 +451,11 @@ NSString * const BXDOSWindowFullscreenSizeFormat = @"Fullscreen size for %@";
 #pragma mark -
 #pragma mark UI actions
 
+- (IBAction) toggleShaderParametersWindow: (id)sender
+{
+    [self.shaderParametersController showWindow:self];
+}
+
 - (IBAction) toggleRenderingStyle: (id <NSValidatedUserInterfaceItem>)sender
 {
 	BXRenderingStyle style = (BXRenderingStyle)sender.tag;
@@ -481,6 +468,13 @@ NSString * const BXDOSWindowFullscreenSizeFormat = @"Fullscreen size for %@";
 	BXHerculesTintMode tint = (BXHerculesTintMode)sender.tag;
 	[[NSUserDefaults standardUserDefaults] setInteger: tint
                                                forKey: @"herculesTintMode"];
+}
+
+- (IBAction) toggleCGACompositeMode: (id <NSValidatedUserInterfaceItem>)sender
+{
+    BXCGACompositeMode compMode = (BXCGACompositeMode)sender.tag;
+    [[NSUserDefaults standardUserDefaults] setInteger: compMode
+                                               forKey: @"CGACompositeMode"];
 }
 
 + (NSSize) _nextFullscreenSizeIntervalForSize: (NSSize)currentSize
@@ -700,7 +694,12 @@ NSString * const BXDOSWindowFullscreenSizeFormat = @"Fullscreen size for %@";
 {
     if (self.renderingStyle != style)
     {
+        [self willChangeValueForKey:@"renderingStyle"];
+        
         _renderingStyle = style;
+        
+        [self didChangeValueForKey:@"renderingStyle"];
+        
         BXSession *session = (BXSession *)self.document;
         BXVideoHandler *videoHandler = session.emulator.videoHandler;
         
@@ -744,6 +743,20 @@ NSString * const BXDOSWindowFullscreenSizeFormat = @"Fullscreen size for %@";
     BXSession *session = (BXSession *)self.document;
     BXVideoHandler *videoHandler = session.emulator.videoHandler;
     return videoHandler.herculesTint;
+}
+
+- (void) setCGACompositeMode: (BXCGACompositeMode)tint
+{
+    BXSession *session = (BXSession *)self.document;
+    BXVideoHandler *videoHandler = session.emulator.videoHandler;
+    videoHandler.CGAComposite = tint;
+}
+
+- (BXCGACompositeMode) CGACompositeMode
+{
+    BXSession *session = (BXSession *)self.document;
+    BXVideoHandler *videoHandler = session.emulator.videoHandler;
+    return videoHandler.CGAComposite;
 }
 
 - (IBAction) toggleStatusBarShown: (id)sender
@@ -916,11 +929,11 @@ NSString * const BXDOSWindowFullscreenSizeFormat = @"Fullscreen size for %@";
 		BXRenderingStyle renderingStyle = (BXRenderingStyle)theItem.tag;
 		if (renderingStyle == self.renderingStyle)
         {
-            theItem.state = NSOnState;
+            theItem.state = NSControlStateValueOn;
         }
         else
         {
-            theItem.state = NSOffState;
+            theItem.state = NSControlStateValueOff;
         }
 		return YES;
 	}
@@ -932,11 +945,11 @@ NSString * const BXDOSWindowFullscreenSizeFormat = @"Fullscreen size for %@";
             BXHerculesTintMode tint = (BXHerculesTintMode)theItem.tag;
             if (tint == self.herculesTintMode)
             {
-                theItem.state = NSOnState;
+                theItem.state = NSControlStateValueOn;
             }
             else
             {
-                theItem.state = NSOffState;
+                theItem.state = NSControlStateValueOff;
             }
             return YES;
         }
@@ -946,6 +959,27 @@ NSString * const BXDOSWindowFullscreenSizeFormat = @"Fullscreen size for %@";
         }
 	}
 	
+    else if (theAction == @selector(toggleCGACompositeMode:))
+    {
+        if (session.emulator.videoHandler.isInCGAMode)
+        {
+            BXCGACompositeMode tint = (BXCGACompositeMode)theItem.tag;
+            if (tint == self.CGACompositeMode)
+            {
+                theItem.state = NSControlStateValueOn;
+            }
+            else
+            {
+                theItem.state = NSControlStateValueOff;
+            }
+            return YES;
+        }
+        else
+        {
+            return NO;
+        }
+    }
+
     else if (theAction == @selector(toggleLaunchPanel:))
 	{
 		if (self.DOSViewShown)
@@ -1052,11 +1086,11 @@ NSString * const BXDOSWindowFullscreenSizeFormat = @"Fullscreen size for %@";
         
         //Slide horizontally between the launcher panel and the DOS view.
         //TWEAK: disabled for now because the lurching slide animation was making me carsick.
-        if (NO && ((self.currentPanel == BXDOSWindowDOSView && newPanel == BXDOSWindowLaunchPanel) ||
+        if (/* DISABLES CODE */ (NO) && ((self.currentPanel == BXDOSWindowDOSView && newPanel == BXDOSWindowLaunchPanel) ||
             (self.currentPanel == BXDOSWindowLaunchPanel && newPanel == BXDOSWindowDOSView)))
         {
             //Disable window flushes to prevent partial redraws while we're setting up the views.
-            [self.window disableFlushWindow];
+            [NSAnimationContext beginGrouping];
             
             //We reveal the launcher by sliding the parent view along horizontally:
             //So we resize the wrapper to accommodate both views side-by-side.
@@ -1095,7 +1129,7 @@ NSString * const BXDOSWindowFullscreenSizeFormat = @"Fullscreen size for %@";
             self.launchPanel.hidden = NO;
             self.inputView.hidden = NO;
             
-            [self.window enableFlushWindow];
+            [NSAnimationContext endGrouping];
             [wrapperView display];
             
     
@@ -1120,18 +1154,16 @@ NSString * const BXDOSWindowFullscreenSizeFormat = @"Fullscreen size for %@";
             if (involvesRenderingView && [self.renderingView respondsToSelector: @selector(viewAnimationDidEnd:)])
                 [self.renderingView viewAnimationDidEnd: animation];
             
-            [animation release];
-            
             //Once we're done sliding, restore the frames to what they were.
-            [self.window disableFlushWindow];
-            
+            [NSAnimationContext beginGrouping];
+
             self.launchPanel.frame = originalBounds;
             self.inputView.frame = originalBounds;
             
             wrapperView.frame = originalFrame;
             wrapperView.autoresizesSubviews = YES;
             
-            [self.window enableFlushWindow];
+            [NSAnimationContext endGrouping];
         }
         //For all other transitions, crossfade the current panel and the new panel.
         else
@@ -1172,8 +1204,6 @@ NSString * const BXDOSWindowFullscreenSizeFormat = @"Fullscreen size for %@";
             
             if (involvesRenderingView && [self.renderingView respondsToSelector: @selector(viewAnimationDidEnd:)])
                 [self.renderingView viewAnimationDidEnd: animation];
-            
-            [animation release];
         }
         
         [[NSNotificationCenter defaultCenter] postNotificationName: BXDidFinishInterruptionNotification object: self];

@@ -13,66 +13,46 @@
 
 NSString * const BXGenericProfileIdentifier = @"net.washboardabs.generic";
 
-//Directories larger than this size (in bytes) will be treated as CD-era games by eraOfGameAtPath:
-const NSUInteger BXDisketteGameSizeThreshold = 30 * 1024 * 1024;
+/// Directories larger than this size (in bytes) will be treated as CD-era games by \c eraOfGameAtPath:
+static const NSUInteger BXDisketteGameSizeThreshold = 30 * 1024 * 1024;
 
-//Directories with any files older than this will be treated as 3.5 diskette-era games by eraOfGameAtPath:
-NSString * const BX35DisketteGameDateThreshold = @"1994-01-01 00:00:00 +0000";
+/// Directories with any files older than this will be treated as 3.5 diskette-era games by \c eraOfGameAtPath:
+static NSString * const BX35DisketteGameDateThreshold = @"1994-01-01 00:00:00 +0000";
 
-//Directories with any files older than this will be treated as 5.25 diskette-era games by eraOfGameAtPath:
-NSString * const BX525DisketteGameDateThreshold = @"1988-01-01 00:00:00 +0000";
+/// Directories with any files older than this will be treated as 5.25 diskette-era games by \c eraOfGameAtPath:
+static NSString * const BX525DisketteGameDateThreshold = @"1988-01-01 00:00:00 +0000";
 
-//File timestamps older than this will be ignored as invalid.
-NSString * const BXInvalidGameDateThreshold = @"1981-01-01 00:00:00 +0000";
+/// File timestamps older than this will be ignored as invalid.
+static NSString * const BXInvalidGameDateThreshold = @"1981-01-01 00:00:00 +0000";
 
 
 
 //Internal methods which should not be called outside BXGameProfile.
 @interface BXGameProfile ()
 
-@property (retain, nonatomic) NSArray *installerPatterns;
-@property (retain, nonatomic) NSArray *ignoredInstallerPatterns;
-@property (retain, nonatomic) NSDictionary *driveLabelMappings;
+@property (strong, nonatomic) NSArray *installerPatterns;
+@property (strong, nonatomic) NSArray *ignoredInstallerPatterns;
+@property (strong, nonatomic) NSDictionary *driveLabelMappings;
 
-//Loads, caches and returns the contents of GameProfiles.plist to avoid multiple hits to the filesystem.
-+ (NSDictionary *) _gameProfileData;
+/// Loads, caches and returns the contents of GameProfiles.plist to avoid multiple hits to the filesystem.
++ (NSDictionary<NSString*,id> *) _gameProfileData;
 
-//Generates, caches and returns a dictionary of identifier -> profile lookups.
-//Used by profileWithIdentifier:
-+ (NSDictionary *) _identifierIndex;
+/// Generates, caches and returns a dictionary of identifier -> profile lookups.
+/// Used by \c profileWithIdentifier:
++ (NSDictionary<NSString*,NSDictionary<NSString*,id>*> *) _identifierIndex;
 
-//Generates, caches and returns an array of lookup tables in order of priority.
-//Used by detectedProfileForPath: to perform detection in multiple passes of the file hierarchy.
-+ (NSArray *) _lookupTables;
+/// Generates, caches and returns an array of lookup tables in order of priority.
+/// Used by \c detectedProfileForPath: to perform detection in multiple passes of the file hierarchy.
++ (NSArray<NSDictionary*> *) _lookupTables;
 
-//Generates and returns a lookup table of filename->profile mappings for the specified set of profiles.
-//Used by _lookupTables.
-+ (NSDictionary *) _lookupTableForProfiles: (NSArray *)profiles;
+/// Generates and returns a lookup table of filename->profile mappings for the specified set of profiles.
+/// Used by \c _lookupTables.
++ (NSDictionary *) _lookupTableForProfiles: (NSArray<NSDictionary*> *)profiles;
 
 @end
 
 
 @implementation BXGameProfile
-@synthesize priority = _priority;
-@synthesize gameName = _gameName;
-@synthesize configurations = _configurations;
-@synthesize identifier = _identifier;
-@synthesize profileDescription = _profileDescription;
-@synthesize sourceDriveType = _sourceDriveType;
-@synthesize releaseMedium = _coverArtMedium;
-@synthesize requiredDiskSpace = _requiredDiskSpace;
-@synthesize shouldMountHelperDrivesDuringImport = _shouldMountHelperDrivesDuringImport;
-@synthesize shouldMountTempDrive = _shouldMountTempDrive;
-@synthesize requiresCDROM = _requiresCDROM;
-
-@synthesize installerPatterns = _installerPatterns;
-@synthesize ignoredInstallerPatterns = _ignoredInstallerPatterns;
-@synthesize driveLabelMappings = _driveLabelMappings;
-
-@synthesize shouldImportMountCommands = _shouldImportMountCommands;
-@synthesize shouldImportLaunchCommands = _shouldImportLaunchCommands;
-@synthesize shouldImportSettings = _shouldImportSettings;
-@synthesize preferredInstallationFolderPath = _preferredInstallationFolderPath;
 
 + (BXReleaseMedium) mediumOfGameAtURL: (NSURL *)baseURL
 {
@@ -87,10 +67,20 @@ NSString * const BXInvalidGameDateThreshold = @"1981-01-01 00:00:00 +0000";
                                       includingPropertiesForKeys: propertyKeys
                                                          options: NSDirectoryEnumerationSkipsHiddenFiles
                                                     errorHandler: NULL];
-	
-	NSDate *cutoffDate525       = [NSDate dateWithString: BX525DisketteGameDateThreshold];
-	NSDate *cutoffDate35        = [NSDate dateWithString: BX35DisketteGameDateThreshold];
-	NSDate *cutoffDateInvalid	= [NSDate dateWithString: BXInvalidGameDateThreshold];
+    
+    static NSDate *cutoffDate525;
+    static NSDate *cutoffDate35;
+    static NSDate *cutoffDateInvalid;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        NSDateFormatter *formatter = [[NSDateFormatter alloc] init];
+        formatter.dateFormat = @"yyyy-MM-dd HH:mm:ss ZZZ";
+        formatter.locale = [NSLocale localeWithLocaleIdentifier:@"en_US_POSIX"]; //Just in case other locales mess with the formatting
+        formatter.calendar = [NSCalendar calendarWithIdentifier:NSCalendarIdentifierGregorian]; //Just in case the default calendar is different.
+        cutoffDate525 = [formatter dateFromString:BX525DisketteGameDateThreshold];
+        cutoffDate35 = [formatter dateFromString:BX35DisketteGameDateThreshold];
+        cutoffDateInvalid = [formatter dateFromString:BXInvalidGameDateThreshold];
+    });
 	unsigned long long pathSize = 0;
 	
 	for (NSURL *URL in enumerator)
@@ -143,19 +133,19 @@ NSString * const BXInvalidGameDateThreshold = @"1981-01-01 00:00:00 +0000";
 
 + (id) genericProfile
 {
-    return [[[self alloc] init] autorelease];
+    return [[self alloc] init];
 }
 
 + (id) profileWithIdentifier: (NSString *)identifier
 {
     if ([identifier isEqualToString: BXGenericProfileIdentifier])
     {
-        return [[[self alloc] init] autorelease];
+        return [[self alloc] init];
     }
     else
     {
         NSDictionary *profileData = [[self _identifierIndex] objectForKey: identifier];
-        if (profileData) return [[[self alloc] initWithDictionary: profileData] autorelease];
+        if (profileData) return [[self alloc] initWithDictionary: profileData];
         else return nil;
     }
 }
@@ -182,13 +172,13 @@ NSString * const BXInvalidGameDateThreshold = @"1981-01-01 00:00:00 +0000";
 			//First check for an exact filename match
 			NSString *fileName	= path.lastPathComponent.lowercaseString;
 			if ((matchingProfile = [lookups objectForKey: fileName]))
-				return [[[self alloc] initWithDictionary: matchingProfile] autorelease];
+				return [[self alloc] initWithDictionary: matchingProfile];
 			
 			//Next, check if the base filename (sans extension) matches anything
 			//TODO: eliminate this branch, and just use explicit filenames in the profile telltales.
 			NSString *baseName	= [fileName.stringByDeletingPathExtension stringByAppendingString: @".*"];
 			if ((matchingProfile = [lookups objectForKey: baseName]))
-				return [[[self alloc] initWithDictionary: matchingProfile] autorelease];
+				return [[self alloc] initWithDictionary: matchingProfile];
 		}
 	}
 	
@@ -220,7 +210,7 @@ NSString * const BXInvalidGameDateThreshold = @"1981-01-01 00:00:00 +0000";
             BXGameProfile *profile = [[self alloc] initWithDictionary: matchingProfile];
             profile.priority *= priorityMultiplier;
             
-            return [profile autorelease];
+            return profile;
         }
     }
     return nil;
@@ -335,21 +325,6 @@ NSString * const BXInvalidGameDateThreshold = @"1981-01-01 00:00:00 +0000";
 		self.driveLabelMappings	= [profileDict objectForKey: @"BXProfileDriveLabels"];
 	}
 	return self;
-}
-
-- (void) dealloc
-{
-    self.identifier = nil;
-    self.gameName = nil;
-    self.configurations = nil;
-    self.profileDescription = nil;
-	
-    self.driveLabelMappings = nil;
-    self.installerPatterns = nil;
-    self.ignoredInstallerPatterns = nil;
-    self.preferredInstallationFolderPath = nil;
-	
-	[super dealloc];
 }
 
 - (NSString *) description
@@ -470,7 +445,7 @@ NSString * const BXInvalidGameDateThreshold = @"1981-01-01 00:00:00 +0000";
             [lookups setObject: profile forKey: telltale];
         }
 	}
-	return [lookups autorelease];
+	return lookups;
 }
 
 @end

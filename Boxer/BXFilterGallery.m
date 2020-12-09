@@ -15,7 +15,7 @@
 
 - (void) drawRect: (NSRect)dirtyRect
 {
-	NSImage *wallpaper	= [NSImage imageNamed: @"GalleryBkg.jpg"];
+	NSImage *wallpaper	= [NSImage imageNamed: @"GalleryBkg"];
 	NSColor *pattern	= [NSColor colorWithPatternImage: wallpaper];
 	
 	NSSize patternSize	= wallpaper.size;
@@ -51,7 +51,6 @@
 @end
 
 @implementation BXFilterPortrait
-@synthesize illumination = _illumination;
 
 + (id)defaultAnimationForKey: (NSString *)key
 {
@@ -140,7 +139,7 @@
 	
 	[title addAttributes: self.titleAttributes range: textRange];
 	
-	return [title autorelease];
+	return title;
 }
 
 - (NSRect) titleRectForBounds: (NSRect)theRect
@@ -179,7 +178,7 @@
 	
 	[spotlight drawInRect: frame
 				 fromRect: NSZeroRect
-				operation: NSCompositePlusLighter
+				operation: NSCompositingOperationPlusLighter
 				 fraction: alpha
            respectFlipped: YES
                     hints: nil];
@@ -215,10 +214,10 @@
 		
 		[shadedImage lockFocus];
 			[shade set];
-			NSRectFillUsingOperation(bounds, NSCompositeSourceAtop);
+			NSRectFillUsingOperation(bounds, NSCompositingOperationSourceAtop);
 		[shadedImage unlockFocus];
 		
-		image = [shadedImage autorelease];
+		image = shadedImage;
 	}
 	
 	//While we're here, let's override the image positioning with our own

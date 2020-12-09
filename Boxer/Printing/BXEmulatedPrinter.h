@@ -8,8 +8,10 @@
 //BXEmulatedPrinter emulates a color dot-matrix printer compatible with the ESC/P command set.
 //Adapted from Gulikoza's Megabuild printer patch.
 
+
 #import <Foundation/Foundation.h>
 
+NS_ASSUME_NONNULL_BEGIN
 
 #pragma mark -
 #pragma mark Constants
@@ -24,32 +26,32 @@ typedef NS_OPTIONS(NSUInteger, BXESCPLineStyle) {
     BXESCPLineStyleDoubleBroken = BXESCPLineStyleDouble | BXESCPLineStyleBroken,
 };
 
-typedef enum {
+typedef NS_ENUM(NSInteger, BXEmulatedPrinterPort) {
     BXPrinterPortLPT1 = 1,
     BXPrinterPortLPT2 = 2,
     BXPrinterPortLPT3 = 3
-} BXEmulatedPrinterPort;
+};
 
-typedef enum {
+typedef NS_ENUM(uint8_t, BXESCPQuality) {
     BXESCPQualityDraft = 1,
     BXESCPQualityLQ = 2,
-} BXESCPQuality;
+};
 
-typedef enum {
-    BXNoMSBControl = -1,
-    BXMSB0 = 0,
-    BXMSB1 = 1,
-} BXESCPMSBControl;
+typedef NS_ENUM(int8_t, BXESCPMSBControl) {
+    BXNoMSBControl NS_SWIFT_NAME(none) = -1,
+    BXMSB0 NS_SWIFT_NAME(msb0) = 0,
+    BXMSB1 NS_SWIFT_NAME(msb1) = 1,
+};
 
-typedef enum {
-    BXFontPitch10CPI = 10,
-    BXFontPitch12CPI = 12,
-    BXFontPitch15CPI = 15,
+typedef NS_ENUM(uint8_t, BXESCPFontPitch) {
+    BXFontPitch10CPI NS_SWIFT_NAME(pitch10CPI) = 10,
+    BXFontPitch12CPI NS_SWIFT_NAME(pitch12CPI) = 12,
+    BXFontPitch15CPI NS_SWIFT_NAME(pitch15CPI) = 15,
     
-    BXFontPitchDefault = BXFontPitch10CPI
-} BXESCPFontPitch;
+    BXFontPitchDefault NS_SWIFT_NAME(pitchDefault) = BXFontPitch10CPI
+};
 
-typedef enum {
+typedef NS_ENUM(uint8_t, BXESCPTypeface) {
     BXESCPTypefaceRoman = 0,
     BXESCPTypefaceSansSerif,
     BXESCPTypefaceCourier,
@@ -66,9 +68,9 @@ typedef enum {
     BXESCPTypefaceSVJittra = 31,
     
     BXESCPTypefaceDefault = BXESCPTypefaceRoman,
-} BXESCPTypeface;
+};
 
-typedef enum {
+typedef NS_ENUM(uint8_t, BXESCPColor) {
     BXESCPColorBlack = 0,
     BXESCPColorMagenta,
     BXESCPColorCyan,
@@ -76,17 +78,17 @@ typedef enum {
     BXESCPColorYellow,
     BXESCPColorRed,
     BXESCPColorGreen,
-} BXESCPColor;
+};
 
-typedef enum {
+typedef NS_ENUM(uint8_t, BXESCPCharTable) {
     BXESCPCharTable0,
     BXESCPCharTable1,
     BXESCPCharTable2,
     BXESCPCharTable3,
     BXESCPCharTableMax
-} BXESCPCharTable;
+};
 
-typedef enum {
+typedef NS_ENUM(uint8_t, BXESCPCharset) {
     BXESCPCharsetUSA,
     BXESCPCharsetFrance,
     BXESCPCharsetGermany,
@@ -103,31 +105,31 @@ typedef enum {
     BXESCPCharsetKorea,
     
     BXESCPCharsetLegal = 64
-} BXESCPCharset;
+};
 
-//The base font size in points for fixed and multipoint fonts.
+/// The base font size in points for fixed and multipoint fonts.
 #define BXESCPBaseFontSize 10.5
 
-//The relative scale of subscript/superscript characters in relation to regular characters.
+/// The relative scale of subscript/superscript characters in relation to regular characters.
 #define BXESCPSubscriptScale 0.75
 
-//The minimum font size a subscript/superscript character can be.
+/// The minimum font size a subscript/superscript character can be.
 #define BXESCPSubscriptMinFontSize 8.0
 
-//The default character width of 10 characters per inch
+/// The default character width of 10 characters per inch
 #define BXESCPCPIDefault 10.0
 
-//By default, lengths parameters to ESC/P commands are specified in units of 1/60th of an inch
+/// By default, lengths parameters to ESC/P commands are specified in units of 1/60th of an inch
 #define BXESCPUnitSizeDefault 60.0
 
-//The Default line height of 1/6th of an inch, i.e. 12pt
-#define BXESCPLineSpacingDefault 1 / 6.0
+/// The Default line height of 1/6th of an inch, i.e. 12pt
+#define BXESCPLineSpacingDefault (1 / 6.0)
 
-//The text baseline is positioned this many inches below the current vertical head position.
+/// The text baseline is positioned this many inches below the current vertical head position.
 #define BXESCPBaselineOffset (20 / 180.0)
 
-//Passed to characterAdvance to reset the character advance back
-//to the autocalculated width of a character in the current pitch.
+/// Passed to characterAdvance to reset the character advance back
+/// to the autocalculated width of a character in the current pitch.
 #define BXCharacterAdvanceAuto -1
 
 #define BXEmulatedPrinterMaxVerticalTabs 16
@@ -139,9 +141,12 @@ typedef enum {
 
 @protocol BXEmulatedPrinterDelegate;
 @class BXPrintSession;
+
+/// \c BXEmulatedPrinter emulates a color dot-matrix printer compatible with the ESC/P command set.
+/// Adapted from Gulikoza's Megabuild printer patch.
 @interface BXEmulatedPrinter : NSObject
 {
-    __unsafe_unretained id <BXEmulatedPrinterDelegate> _delegate;
+    __weak id <BXEmulatedPrinterDelegate> _delegate;
     BOOL _initialized;
     BXEmulatedPrinterPort _port;
     
@@ -196,24 +201,24 @@ typedef enum {
     double _verticalTabPositions[BXEmulatedPrinterMaxVerticalTabs];
     NSUInteger _numVerticalTabs;
     
-    NSSize _pageSize;           //The size of the current page in inches.
-    NSSize _defaultPageSize;    //The printer's default page size in inches.
-    NSPoint _headPosition;      //The current position of the printing head in inches.
+    NSSize _pageSize;           //!< The size of the current page in inches.
+    NSSize _defaultPageSize;    //!< The printer's default page size in inches.
+    NSPoint _headPosition;      //!< The current position of the printing head in inches.
     
-    double _topMargin, _bottomMargin, _rightMargin, _leftMargin;	// Margins of the page (in inches)
-	double _lineSpacing;											// Height of one line (in inches)
-    double _effectivePitch;     //The effective width of a single character in the current pitch.
-    double _characterAdvance;   //How far to advance the print head after each character. Unused in proportional mode.
-    double _letterSpacing;      //Extra spacing between each printed character (in inches)
+    double _topMargin, _bottomMargin, _rightMargin, _leftMargin;	//!< Margins of the page (in inches)
+	double _lineSpacing;											//!< Height of one line (in inches)
+    double _effectivePitch;     //!< The effective width of a single character in the current pitch.
+    double _characterAdvance;   //!< How far to advance the print head after each character. Unused in proportional mode.
+    double _letterSpacing;      //!< Extra spacing between each printed character (in inches)
     
     BOOL _multipointEnabled;
-    double _multipointFontSize;     //The vertical font size in points
-    double _multipointFontPitch;    //The horizontal font pitch in characters per inch
+    double _multipointFontSize;     //!< The vertical font size in points
+    double _multipointFontPitch;    //!< The horizontal font pitch in characters per inch
     
-    double _unitSize; //The size of unit to use when interpreting certain commands.
+    double _unitSize; //!< The size of unit to use when interpreting certain commands.
     
-    //The current ASCII-to-unicode mapping
-    uint16_t _charMap[256];
+    /// The current ASCII-to-unicode mapping
+    unichar _charMap[256];
     
     uint16_t _charTables[4];
     BXESCPCharTable _activeCharTable;
@@ -263,9 +268,11 @@ typedef enum {
 @property (assign, nonatomic) BXESCPTypeface fontTypeface;
 @property (assign, nonatomic) BXESCPFontPitch fontPitch;
 
-//Enables multipoint mode, allowing the use of an arbitrary pitch and font size.
+/// Enables multipoint mode, allowing the use of an arbitrary pitch and font size.
 @property (assign, nonatomic) BOOL multipointEnabled;
+/// The horizontal font pitch in characters per inch
 @property (assign, nonatomic) double multipointFontPitch;
+/// The vertical font size in points
 @property (assign, nonatomic) double multipointFontSize;
 
 @property (assign, nonatomic) BXESCPCharTable activeCharTable;
@@ -275,93 +282,94 @@ typedef enum {
 #pragma mark -
 #pragma mark Status properties
 
-//The parallel port to which this printer is attached. Defaults to BXPrinterPortLPT1.
-//This is for tracking purposes only and has no effect on the printer's behaviour.
+/// The parallel port to which this printer is attached. Defaults to BXPrinterPortLPT1.
+/// This is for tracking purposes only and has no effect on the printer's behaviour.
 @property (assign, nonatomic) BXEmulatedPrinterPort port;
 
-//Whether the printer is currently busy and cannot respond to more data.
-//Used by the parallel connection.
+/// Whether the printer is currently busy and cannot respond to more data.
+/// Used by the parallel connection.
 @property (assign, nonatomic, getter=isBusy) BOOL busy;
 
-//Whether the printer will automatically linefeed when inserting a CR character.
-//Set by the parallel connection.
+/// Whether the printer will automatically linefeed when inserting a CR character.
+/// Set by the parallel connection.
 @property (assign, nonatomic) BOOL autoFeed;
 
-//The delegate to whom we will send BXEmulatedPrinterDelegate messages.
-@property (assign, nonatomic) id <BXEmulatedPrinterDelegate> delegate;
+/// The delegate to whom we will send BXEmulatedPrinterDelegate messages.
+@property (weak, nonatomic, nullable) id <BXEmulatedPrinterDelegate> delegate;
 
-//The current print session that the printer is working on.
-//Will be nil before the printer has received anything to print.
-@property (readonly, retain, nonatomic) BXPrintSession *currentSession;
+/// The current print session that the printer is working on.
+/// Will be nil before the printer has received anything to print.
+@property (readonly, strong, nonatomic, nullable) BXPrintSession *currentSession;
 
-//The standard page size in inches. Defaults to US Letter (8.5 x 11").
+/// The standard page size in inches. Defaults to US Letter (8.5 x 11").
 @property (assign, nonatomic) NSSize defaultPageSize;
 
-//The size of the current page in inches. This may differ from defaultPageSize
-//if the DOS session has configured a different size itself.
+/// The size of the current page in inches. This may differ from \c defaultPageSize
+/// if the DOS session has configured a different size itself.
 @property (assign, nonatomic) NSSize pageSize;
 
-//Get/set the current page margins in inches. Note that the bottom and right margins
-//are measured as absolute distances from the top and left edges respectively.
+/// Get/set the current page margins in inches. Note that the bottom and right margins
+/// are measured as absolute distances from the top and left edges respectively.
 @property (assign, nonatomic) double leftMargin;
 @property (assign, nonatomic) double rightMargin;
 @property (assign, nonatomic) double topMargin;
 @property (assign, nonatomic) double bottomMargin;
 
-//The position of the print head in inches.
+/// The position of the print head in inches.
 @property (readonly, nonatomic) NSPoint headPosition;
 
-//The horizontal distance the head will advance when printing a character in the current pitch.
-//Setting a value other than BXCharacterAdvanceAuto will override the calculated character advance.
-//Unused when in proportional mode, in which case the actual width of the character is used.
-//Changing most font properties will reset the character advance.
+/// The horizontal distance the head will advance when printing a character in the current pitch.
+///
+/// Setting a value other than \c BXCharacterAdvanceAuto will override the calculated character advance.
+/// Unused when in proportional mode, in which case the actual width of the character is used.
+/// Changing most font properties will reset the character advance.
 @property (assign, nonatomic) double characterAdvance;
 
 
 #pragma mark -
 #pragma mark Geometry methods
 
-//Convert a coordinate in page inches into a coordinate in Quartz points.
-//This will flip the coordinate system to place the origin at the bottom left.
+/// Convert a coordinate in page inches into a coordinate in Quartz points.
+/// This will flip the coordinate system to place the origin at the bottom left.
 - (NSPoint) convertPointFromPage: (NSPoint)pagePoint;
 
-//Convert a point in user space into a coordinate in page inches.
-//This will flip the coordinate system to place the origin at the top left.
+/// Convert a point in user space into a coordinate in page inches.
+/// This will flip the coordinate system to place the origin at the top left.
 - (NSPoint) convertPointToPage: (NSPoint)userSpacePoint;
 
 
 #pragma mark -
 #pragma mark Control methods
 
-//Resets the printer, restoring all settings to their defaults.
+/// Resets the printer, restoring all settings to their defaults.
 - (void) reset;
 
-//Resets the printer and also clears the ack, so that the next
-//call to -acknowledge will return NO. Imitates switching the
-//printer off and back on again.
+/// Resets the printer and also clears the ack, so that the next
+/// call to \c -acknowledge will return NO. Imitates switching the
+/// printer off and back on again.
 - (void) resetHard;
 
-//Called by the upstream context to mark the end of a multi-page
-//print session and deliver what the printer has produced so far.
+/// Called by the upstream context to mark the end of a multi-page
+/// print session and deliver what the printer has produced so far.
 - (void) finishPrintSession;
 
-//Called by the upstream context to discard the current print session
-//and start over with a new page.
+/// Called by the upstream context to discard the current print session
+/// and start over with a new page.
 - (void) cancelPrintSession;
 
 
 #pragma mark -
 #pragma mark Parallel port methods
 
-//Pings the printer to acknowledge that the latest byte of data has been received.
-//Returns YES when called the first time after data has been received,
-//or NO subsequent times (or if no data has been sent since the printer was last reset.)
+/// Pings the printer to acknowledge that the latest byte of data has been received.
+/// Returns \c YES when called the first time after data has been received,
+/// or \c NO subsequent times (or if no data has been sent since the printer was last reset.)
 - (BOOL) acknowledge;
 
-//Called by the parallel port subsystem to feed each byte of data to the printer.
+/// Called by the parallel port subsystem to feed each byte of data to the printer.
 - (void) handleDataByte: (uint8_t)byte;
 
-//Called by the parallel port subsystem to set/retrieve the bits on the printer's parallel port.
+/// Called by the parallel port subsystem to set/retrieve the bits on the printer's parallel port.
 @property (readonly, nonatomic) uint8_t statusRegister;
 @property (assign, nonatomic) uint8_t controlRegister;
 @property (assign, nonatomic) uint8_t dataRegister;
@@ -372,35 +380,39 @@ typedef enum {
 #pragma mark -
 #pragma mark Delegate protocol declaration
 
+/// Boxer virtual printer delegate.
 @protocol BXEmulatedPrinterDelegate <NSObject>
 
 @optional
 
-//Called when the printer is first activated or is reset.
-//At this point all printer settings (font, page size etc.) will be reset to their defaults
-//and can be modified by the delegate if desired.
+/// Called when the printer is first activated or is reset.
+/// At this point all printer settings (font, page size etc.) will be reset to their defaults
+/// and can be modified by the delegate if desired.
 - (void) printerDidInitialize: (BXEmulatedPrinter *)printer;
 
-//Called when the printer begins a new print session.
+/// Called when the printer begins a new print session.
 - (void) printer: (BXEmulatedPrinter *)printer willBeginSession: (BXPrintSession *)session;
 
-//Called when the printer finishes the specified session.
+/// Called when the printer finishes the specified session.
 - (void) printer: (BXEmulatedPrinter *)printer didFinishSession: (BXPrintSession *)session;
 
-//Called when the specified session has been cancelled and discarded.
+/// Called when the specified session has been cancelled and discarded.
 - (void) printer: (BXEmulatedPrinter *)printer didCancelSession: (BXPrintSession *)session;
 
-//Called when the printer begins a new page in the specified session.
+/// Called when the printer begins a new page in the specified session.
 - (void) printer: (BXEmulatedPrinter *)printer didStartPageInSession: (BXPrintSession *)session;
 
-//Called every time the printer prints characters or graphics to the current page in the specified session.
+/// Called every time the printer prints characters or graphics to the current page in the specified session.
 - (void) printer: (BXEmulatedPrinter *)printer didPrintToPageInSession: (BXPrintSession *)session;
 
-//Called when the printer finishes printing the current page in the specified session.
+/// Called when the printer finishes printing the current page in the specified session.
 - (void) printer: (BXEmulatedPrinter *)printer didFinishPageInSession: (BXPrintSession *)session;
 
-//Called when the printer moves the print head to the specified X and Y position on the current page.
+/// Called when the printer moves the print head to the specified X position on the current page.
 - (void) printer: (BXEmulatedPrinter *)printer didMoveHeadToX: (CGFloat)xOffset;
+/// Called when the printer moves the print head to the specified Y position on the current page.
 - (void) printer: (BXEmulatedPrinter *)printer didMoveHeadToY: (CGFloat)yOffset;
 
 @end
+
+NS_ASSUME_NONNULL_END

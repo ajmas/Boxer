@@ -25,14 +25,15 @@
  */
 
 
-//ADBPathEnumerator is an NSDirectoryEnumerator wrapper with a bunch of convenience methods
-//for filtering out unwanted files.
-
 #import <AppKit/AppKit.h>
 
-@interface ADBPathEnumerator : NSEnumerator
+NS_ASSUME_NONNULL_BEGIN
+
+/// @c ADBPathEnumerator is an @c NSDirectoryEnumerator wrapper with a bunch of convenience methods
+/// for filtering out unwanted files.
+@interface ADBPathEnumerator : NSEnumerator<NSString*>
 {
-	NSDirectoryEnumerator *_enumerator;
+	NSDirectoryEnumerator<NSString*> *_enumerator;
 	BOOL _skipHiddenFiles;
 	BOOL _skipSubdirectories;
 	BOOL _skipPackageContents;
@@ -50,49 +51,51 @@
 #pragma mark -
 #pragma mark Properties
 
-//The enumerator we use internally for iterating the directory contents.
-@property (readonly, retain, nonatomic) NSDirectoryEnumerator *enumerator;
+/// The enumerator we use internally for iterating the directory contents.
+@property (readonly, strong, nonatomic, nullable) NSDirectoryEnumerator<NSString*> *enumerator;
 
-//The base path to iterate. Should not be modified during iteration.
-@property (copy, nonatomic) NSString *basePath;
+/// The base path to iterate. Should not be modified during iteration.
+@property (copy, nonatomic, nullable) NSString *basePath;
 
-//The full path of the last file returned by nextObject.
-@property (readonly, copy, nonatomic) NSString *currentPath;
+/// The full path of the last file returned by nextObject.
+@property (readonly, copy, nonatomic, nullable) NSString *currentPath;
 
-//The path of the last file returned by nextObject, relative to basePath.
-@property (readonly, copy, nonatomic) NSString *relativePath;
+/// The path of the last file returned by nextObject, relative to basePath.
+@property (readonly, copy, nonatomic, nullable) NSString *relativePath;
 
-//Whether nextObject should ignore hidden files. Is YES by default.
+/// Whether nextObject should ignore hidden files. Is @c YES by default.
 @property (assign, nonatomic) BOOL skipHiddenFiles;
 
-//Whether nextObject should only enumerate the base path, skipping all subdirectories. Is NO by default.
+/// Whether nextObject should only enumerate the base path, skipping all subdirectories. Is @c NO by default.
 @property (assign, nonatomic) BOOL skipSubdirectories;
 
-//Whether nextObject should skip over files located in packages (the packages themselves will still be returned.) Is NO by default.
+/// Whether nextObject should skip over files located in packages (the packages themselves will still be returned.) Is @c NO by default.
 @property (assign, nonatomic) BOOL skipPackageContents;
 
-//What UTI filetypes nextObject will return. If nil, files of any type will be returned.
-@property (copy, nonatomic) NSSet *fileTypes;
+/// What UTI filetypes nextObject will return. If nil, files of any type will be returned.
+@property (copy, nonatomic, nullable) NSSet<NSString*> *fileTypes;
 
-//If specified, only files whose paths match this predicate will be returned.
-@property (copy, nonatomic) NSPredicate *predicate;
+/// If specified, only files whose paths match this predicate will be returned.
+@property (copy, nonatomic, nullable) NSPredicate *predicate;
 
 
-//Passthroughs for NSDirectoryEnumerator methods.
-@property (readonly, nonatomic) NSDictionary *fileAttributes;
-@property (readonly, nonatomic) NSDictionary *directoryAttributes;
+/// Passthroughs for @c NSDirectoryEnumerator methods.
+@property (copy, readonly, nonatomic, nullable) NSDictionary<NSFileAttributeKey, id> *fileAttributes;
+@property (copy, readonly, nonatomic, nullable) NSDictionary<NSFileAttributeKey, id> *directoryAttributes;
 
 
 #pragma mark -
 #pragma mark Methods
 
-//Return a new autoreleased enumerator for the specified file path.
-+ (id) enumeratorAtPath: (NSString *)filePath;
+/// Return a new autoreleased enumerator for the specified file path.
++ (instancetype) enumeratorAtPath: (NSString *)filePath NS_SWIFT_UNAVAILABLE("");
 
-//Initialise a new emulator for the specified file path.
-- (id) initWithPath: (NSString *)filePath;
+/// Initialise a new emulator for the specified file path.
+- (instancetype) initWithPath: (NSString *)filePath;
 
-//Passthroughs for NSDirectoryEnumerator methods.
+/// Passthroughs for @c NSDirectoryEnumerator methods.
 - (void) skipDescendants;
 
 @end
+
+NS_ASSUME_NONNULL_END

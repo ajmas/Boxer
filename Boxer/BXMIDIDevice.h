@@ -5,60 +5,64 @@
  online at [http://www.gnu.org/licenses/gpl-2.0.txt].
  */
 
-//The BXMIDIDevice protocol defines an interface for emulated (and not-so-emulated)
-//MIDI devices, to which BXEmulator can send MIDI output.
 
 #import <Foundation/Foundation.h>
 #import "BXMIDIConstants.h"
 
+NS_ASSUME_NONNULL_BEGIN
+
 #pragma mark -
 #pragma mark Protocol declaration
 
+/// The \c BXMIDIDevice protocol defines an interface for emulated (and not-so-emulated)
+/// MIDI devices, to which BXEmulator can send MIDI output.
 @protocol BXMIDIDevice <NSObject>
 
 #pragma mark -
 #pragma mark Properties
 
-//The master volume of the MIDI device from 0.0 to 1.0, independent of the volume
-//of individual channels. MIDI devices are not expected to support fine-grained
-//volume control, but at the very least should mute themselves when their volume
-//is set to 0.
-- (float) volume;
-- (void) setVolume: (float)volume;
+/// The master volume of the MIDI device from \c 0.0 to \c 1.0, independent of the volume
+/// of individual channels. MIDI devices are not expected to support fine-grained
+/// volume control, but at the very least should mute themselves when their volume
+/// is set to 0.
+@property (nonatomic, readwrite) float volume;
 
-//Returns whether this device can play back MT-32 music properly.
-- (BOOL) supportsMT32Music;
+/// Returns whether this device can play back MT-32 music properly.
+@property (readonly) BOOL supportsMT32Music;
 
-//Returns whether this device can play back General MIDI music properly.
-- (BOOL) supportsGeneralMIDIMusic;
+/// Returns whether this device can play back General MIDI music properly.
+@property (readonly) BOOL supportsGeneralMIDIMusic;
 
-//Returns whether this device is still processing events.
-//If YES, further messages should not be sent until dateWhenReady.
-- (BOOL) isProcessing;
+/// Returns whether this device is still processing events.
+/// If <code>YES</code>, further messages should not be sent until <code>dateWhenReady</code>.
+@property (readonly, getter=isProcessing) BOOL processing;
 
-//The date at which this device will next be able to receive events.
-//Sending events before this may result in skipped or truncated messages.
-- (NSDate *) dateWhenReady;
+/// The date at which this device will next be able to receive events.
+/// Sending events before this may result in skipped or truncated messages.
+@property (copy, readonly, nonatomic) NSDate *dateWhenReady;
 
 
 #pragma mark -
 #pragma mark Instance methods
 
-//Handle a standard MIDI message, which will be between 1 and 3
-//bytes long depending on the type of message.
+/// Handle a standard MIDI message, which will be between 1 and 3
+/// bytes long depending on the type of message.
 - (void) handleMessage: (NSData *)message;
 
-//Handle a System Exclusive message of arbitrary length.
+/// Handle a System Exclusive message of arbitrary length.
 - (void) handleSysex: (NSData *)message;
 
-//Pause/resume MIDI playback.
+/// Pause MIDI playback.
 - (void) pause;
+/// Resume MIDI playback.
 - (void) resume;
 
-//Close down the connection and free up all resources.
-//Should be called by dealloc, but may be called sooner manually.
-//After this has been called, the MIDI device is expected to be
-//in an unusable state.
+/// Close down the connection and free up all resources.
+/// Should be called by dealloc, but may be called sooner manually.
+/// After this has been called, the MIDI device is expected to be
+/// in an unusable state.
 - (void) close;
 
 @end
+
+NS_ASSUME_NONNULL_END

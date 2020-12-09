@@ -35,16 +35,27 @@
 #import "ADBOperation.h"
 #import "ADBEnumerationHelpers.h"
 
+
+NS_ASSUME_NONNULL_BEGIN
+
 //Keys included in update notifications
 
-//Contains the object most recently enumerated (whether it was considered a match or not.)
+/// Contains the object most recently enumerated (whether it was considered a match or not.)
 extern NSString * const ADBScanLatestScannedObjectKey;
 
-//Contains the object that was most recently matched.
-//Will be NSNull if no matches have been found.
+/// Contains the object that was most recently matched.
+/// Will be @c NSNull if no matches have been found.
 extern NSString * const ADBScanLatestMatchKey;
 
-
+/// \c ADBScanOperation is a generic operation that asynchronously traverses an enumerator
+/// to generate an array of filtered objects, using a user-supplied block which can filter
+/// and/or convert the objects being enumerated.
+///
+/// It sends out notifications when enumerating and matching, and can be cancelled midstream
+/// by the block itself, by reaching a maximum number of matches, or through the standard
+/// \c NSOperation API.
+///
+/// This class is intended for applications like asynchronous filesystem scanning.
 @interface ADBScanOperation : ADBOperation
 {
     id <NSFastEnumeration> _enumerator;
@@ -55,35 +66,37 @@ extern NSString * const ADBScanLatestMatchKey;
 
 #pragma mark - Public properties
 
-//The enumerator which this scan will traverse.
-@property (retain) id <NSFastEnumeration> enumerator;
+/// The enumerator which this scan will traverse.
+@property (strong) id <NSFastEnumeration> enumerator;
 
-//The callback block this scan will call with each object returned by the enumerator,
-//to determine whether it is a match or not.
+/// The callback block this scan will call with each object returned by the enumerator,
+/// to determine whether it is a match or not.
 @property (copy) ADBScanCallback matchCallback;
 
-//An array of all objects that were matched in this search.
-//This property is KVO observable, and will send out notifications
-//on the operation's own thread as new objects are added.
-@property (retain) NSMutableArray *matches;
+/// An array of all objects that were matched in this search.
+/// This property is KVO observable, and will send out notifications
+/// on the operation's own thread as new objects are added.
+@property (strong) NSMutableArray *matches;
 
-//Optional: the maximum number of matches to find. If greater than 0,
-//enumeration will stop after this many matches are found. Defaults to 0.
+/// Optional: the maximum number of matches to find. If greater than 0,
+/// enumeration will stop after this many matches are found. Defaults to 0.
 @property (assign) NSUInteger maxMatches;
 
 #pragma mark - Constructors
 
-+ (id) scanWithEnumerator: (id <NSFastEnumeration>)enumerator
-               usingBlock: (ADBScanCallback)matchCallback;
++ (instancetype) scanWithEnumerator: (id <NSFastEnumeration>)enumerator
+                         usingBlock: (ADBScanCallback)matchCallback;
 
-- (id) initWithEnumerator: (id <NSFastEnumeration>)enumerator
-               usingBlock: (ADBScanCallback)matchCallback;
+- (instancetype) initWithEnumerator: (id <NSFastEnumeration>)enumerator
+                         usingBlock: (ADBScanCallback)matchCallback;
 
 
 #pragma mark - Subclassable methods
 
-//Adds the specified object to the matches.
-//This can be overridden in subclasses to perform further processing.
+/// Adds the specified object to the matches.
+/// This can be overridden in subclasses to perform further processing.
 - (void) addMatch: (id)match;
 
 @end
+
+NS_ASSUME_NONNULL_END

@@ -19,21 +19,12 @@
 @end
 
 @implementation BXGamesFolderPanelController
-@synthesize sampleGamesToggle = _sampleGamesToggle;
-@synthesize useShelfAppearanceToggle = _useShelfAppearanceToggle;
 
 + (id) controller
 {
 	static BXGamesFolderPanelController *singleton = nil;
 	if (!singleton) singleton = [[self alloc] initWithNibName: @"GamesFolderPanelOptions" bundle: nil];
 	return singleton;
-}
-
-- (void) dealloc
-{
-    self.sampleGamesToggle = nil;
-    self.useShelfAppearanceToggle = nil;
-	[super dealloc];
 }
 
 - (void) showGamesFolderPanelForWindow: (NSWindow *)window
@@ -71,7 +62,7 @@
 	self.useShelfAppearanceToggle.state = [(BXAppController *)[NSApp delegate] appliesShelfAppearanceToGamesFolder];
 	
     void (^completionHandler)(NSInteger result) = ^(NSInteger result) {
-        if (result == NSFileHandlingPanelOKButton)
+        if (result == NSModalResponseOK)
         {
             NSError *folderError = nil;
             BOOL assigned = [self chooseGamesFolderURL: openPanel.URL error: &folderError];

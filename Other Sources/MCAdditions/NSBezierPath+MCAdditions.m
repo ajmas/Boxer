@@ -7,16 +7,9 @@
 
 #import "NSBezierPath+MCAdditions.h"
 
-// remove/comment out this line of you don't want to use undocumented functions
-#define MCBEZIER_USE_PRIVATE_FUNCTION
-
-#ifdef MCBEZIER_USE_PRIVATE_FUNCTION
-extern CGPathRef CGContextCopyPath(CGContextRef context);
-#endif
-
 static void CGPathCallback(void *info, const CGPathElement *element)
 {
-	NSBezierPath *path = (NSBezierPath *)info;
+	NSBezierPath *path = (__bridge NSBezierPath *)info;
 	CGPoint *points = element->points;
 	
 	switch (element->type) {
@@ -75,21 +68,21 @@ static void CGPathCallback(void *info, const CGPathElement *element)
 	NSInteger i;
 	for (i = 0; i < elementCount; i++) {
 		switch ([self elementAtIndex:i associatedPoints:controlPoints]) {
-			case NSMoveToBezierPathElement:
+			case NSBezierPathElementMoveTo:
 				CGPathMoveToPoint(thePath, &CGAffineTransformIdentity, 
 								  controlPoints[0].x, controlPoints[0].y);
 				break;
-			case NSLineToBezierPathElement:
+			case NSBezierPathElementLineTo:
 				CGPathAddLineToPoint(thePath, &CGAffineTransformIdentity, 
 									 controlPoints[0].x, controlPoints[0].y);
 				break;
-			case NSCurveToBezierPathElement:
+			case NSBezierPathElementCurveTo:
 				CGPathAddCurveToPoint(thePath, &CGAffineTransformIdentity, 
 									  controlPoints[0].x, controlPoints[0].y,
 									  controlPoints[1].x, controlPoints[1].y,
 									  controlPoints[2].x, controlPoints[2].y);
 				break;
-			case NSClosePathBezierPathElement:
+			case NSBezierPathElementClosePath:
 				CGPathCloseSubpath(thePath);
 				break;
 			default:
@@ -102,11 +95,9 @@ static void CGPathCallback(void *info, const CGPathElement *element)
 
 - (NSBezierPath *)pathWithStrokeWidth:(CGFloat)strokeWidth
 {
-#ifdef MCBEZIER_USE_PRIVATE_FUNCTION
 	NSBezierPath *path = [self copy];
-	CGContextRef context = [[NSGraphicsContext currentContext] graphicsPort];
+	CGContextRef context = [[NSGraphicsContext currentContext] CGContext];
 	CGPathRef pathRef = [path createCGPath];
-	[path release];
 	
 	CGContextSaveGState(context);
 		
@@ -124,9 +115,6 @@ static void CGPathCallback(void *info, const CGPathElement *element)
 	CFRelease(strokedPathRef);
 	
 	return strokedPath;
-#else
-	return nil;
-#endif//MCBEZIER_USE_PRIVATE_FUNCTION
 }
 
 - (void)fillWithInnerShadow:(NSShadow *)innerShadow
@@ -183,9 +171,6 @@ static void CGPathCallback(void *info, const CGPathElement *element)
 	[path fill];
 	
 	[NSGraphicsContext restoreGraphicsState];
-	
-	[path release];
-	[blurShadow release];
 }
 
 // Credit for the next two methods goes to Matt Gemmell
@@ -198,7 +183,7 @@ static void CGPathCallback(void *info, const CGPathElement *element)
 - (void)strokeInsideWithinRect:(NSRect)clipRect
 {
     NSGraphicsContext *thisContext = [NSGraphicsContext currentContext];
-    float lineWidth = [self lineWidth];
+    CGFloat lineWidth = [self lineWidth];
     
     /* Save the current graphics context. */
     [thisContext saveGraphicsState];

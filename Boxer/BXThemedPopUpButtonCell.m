@@ -148,8 +148,6 @@
     
     [super drawTitle: formattedTitle withFrame: titleFrame inView: controlView];
     
-    [formattedTitle release];
-    
     return titleFrame;
 }
 
@@ -192,7 +190,7 @@
     
     [image drawInRect: imageRect
              fromRect: NSZeroRect
-            operation: NSCompositeSourceAtop
+            operation: NSCompositingOperationSourceAtop
              fraction: imageAlpha
        respectFlipped: YES
                 hints: nil];
@@ -208,21 +206,21 @@
     
     switch ([self controlSize])
     {		
-		case NSSmallControlSize:
+		case NSControlSizeSmall:
 			arrowSize = NSMakeSize(5, 4);
             arrowPosition.x -= 9.5f;
             bottomOffset = 3;
             topOffset = -3;
 			break;
 			
-		case NSMiniControlSize:
+		case NSControlSizeMini:
 			arrowSize = NSMakeSize(4, 3);
             arrowPosition.x -= 7.5f;
             bottomOffset = 2;
             topOffset = -2;
 			break;
             
-        case NSRegularControlSize:
+        case NSControlSizeRegular:
         default:
 			arrowSize = NSMakeSize(5, 4);
             arrowPosition.x -= 11.5f;
@@ -258,9 +256,8 @@
     [bottomArrow closePath];
     
     [topArrow appendBezierPath: bottomArrow];
-    [bottomArrow release];
     
-    return [topArrow autorelease]; 
+    return topArrow; 
 }
 
 - (NSBezierPath *) pullDownArrowForFrame: (NSRect)frame
@@ -272,17 +269,17 @@
     
     switch ([self controlSize])
     {
-		case NSSmallControlSize:
+		case NSControlSizeSmall:
 			arrowSize = NSMakeSize(7, 5);
             arrowPosition.x -= 9.5f;
 			break;
 			
-		case NSMiniControlSize:
+		case NSControlSizeMini:
 			arrowSize = NSMakeSize(5, 3);
             arrowPosition.x -= 7.5f;
 			break;
             
-        case NSRegularControlSize:
+        case NSControlSizeRegular:
         default:
 			arrowSize = NSMakeSize(7, 5);
             arrowPosition.x -= 11.5f;
@@ -302,7 +299,7 @@
     [arrow appendBezierPathWithPoints: points count: 3];
     [arrow closePath];
     
-    return [arrow autorelease];
+    return arrow;
 }
 
 - (void) drawArrowsWithFrame: (NSRect)frame inView: (NSView *)controlView

@@ -5,9 +5,9 @@
  online at [http://www.gnu.org/licenses/gpl-2.0.txt].
  */
 
+
 #import "BXBaseAppController.h"
 #import "BXKeyboardEventTap.h"
-
 
 /// Extensions for handling system hotkey events and displaying a startup warning if hotkeys cannot be captured.
 @interface BXBaseAppController (BXHotKeys) <BXKeyboardEventTapDelegate>
@@ -51,11 +51,11 @@
 
 /// Whether this OS X version uses global accessibility controls (10.8 and below) or per-app accessibility controls
 /// (10.9 and above.) This is used for varying the accessibility instructions we give to the user to enable our hotkey capture.
-+ (BOOL) hasPerAppAccessibilityControls;
+@property (readonly, class) BOOL hasPerAppAccessibilityControls;
 
 /// The localized name of the System Preferences pane that contains the accessibility controls for the current OS X version.
 /// Intended for use in UIs explaining to the user where to find the relevant controls.
-+ (NSString *) localizedSystemAccessibilityPreferencesName;
+@property (readonly, class, copy) NSString *localizedSystemAccessibilityPreferencesName;
 
 /// If Boxer is prevented from installing its keyboard event tap, this will displays an alert
 /// asking the user to give Boxer permission to do so with a button to open the appropriate System Preferences pane.
@@ -66,9 +66,8 @@
 - (IBAction) showSystemAccessibilityControls: (id)sender;
 
 /// Constructs and returns a hotkey warning that will be displayed if the application cannot capture hotkeys.
-/// Used by @c showHotkeyWarningIfUnavailable:.
+/// Used by @c showHotkeyWarningIfUnavailable:
 - (NSAlert *) hotkeyWarningAlert;
-
 
 
 @end

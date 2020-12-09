@@ -8,7 +8,7 @@
 #import "BXEmulatorPrivate.h"
 #import "NSObject+ADBPerformExtensions.h"
 
-#import <SDL/SDL.h>
+#import <SDL2/SDL.h>
 #import "cpu.h"
 #import "control.h"
 #import "shell.h"
@@ -83,7 +83,10 @@ void CPU_Core_Dynrec_Cache_Init(bool enable_cache);
 @implementation BXEmulator
 @synthesize processName = _processName;
 @synthesize lastProcess = _lastProcess;
-@synthesize runningProcesses = _runningProcesses;
+- (NSArray<NSDictionary<NSString *,id> *> *)runningProcesses
+{
+    return [[[NSArray alloc] initWithArray:_runningProcesses copyItems:YES] autorelease];
+}
 @synthesize delegate = _delegate;
 @synthesize videoHandler = _videoHandler;
 @synthesize mouse = _mouse;
@@ -199,6 +202,8 @@ static BOOL _hasStartedEmulator = NO;
 {
     [self.printer unbind: @"delegate"];
     
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wnonnull"
     self.processName = nil;
     self.lastProcess = nil;
     self.activeMIDIDevice = nil;
@@ -211,12 +216,13 @@ static BOOL _hasStartedEmulator = NO;
     self.videoHandler = nil;
     self.keyBuffer = nil;
     
-    [_runningProcesses release], _runningProcesses = nil;
-	[_driveCache release], _driveCache = nil;
-	[_commandQueue release], _commandQueue = nil;
-    [_pendingSysexMessages release], _pendingSysexMessages = nil;
+    [_runningProcesses release]; _runningProcesses = nil;
+    [_driveCache release]; _driveCache = nil;
+    [_commandQueue release]; _commandQueue = nil;
+    [_pendingSysexMessages release]; _pendingSysexMessages = nil;
 	
 	[super dealloc];
+#pragma clang diagnostic pop
 }
 
 
@@ -272,7 +278,7 @@ static BOOL _hasStartedEmulator = NO;
         
             //Tells DOSBox to close the current shell at the end of the commandline input loop
             DOS_Shell *shell = self._currentShell;
-            if (shell) shell->exit = YES;
+            if (shell) shell->exit_flag = YES;
         }
 
         self.cancelled = YES;
@@ -457,10 +463,7 @@ static BOOL _hasStartedEmulator = NO;
 	}
 }
 
-- (BOOL) isTurboSpeed
-{
-    return ticksLocked;
-}
+@synthesize turboSpeed=ticksLocked;
 
 - (void) setTurboSpeed: (BOOL)turboSpeed
 {
@@ -749,6 +752,67 @@ static BOOL _hasStartedEmulator = NO;
 	return YES;
 }
 
+#pragma mark -
+#pragma mark Audio setter methods
+
+
+- (void) setMasterVolume: (float)volume
+{
+    volume = MAX(0.0f, volume);
+    volume = MIN(volume, 1.0f);
+    
+    if (self.masterVolume != volume)
+    {
+        _masterVolume = volume;
+        [self _syncVolume];
+    }
+}
+
+- (void) setRequestedMIDIDeviceDescription: (NSDictionary *)newDescription
+{
+    if (![_requestedMIDIDeviceDescription isEqual: newDescription])
+    {
+        [_requestedMIDIDeviceDescription release];
+        _requestedMIDIDeviceDescription = [newDescription retain];
+
+        //Enable MT-32 autodetection if the description doesn't have a specific music type in mind.
+        BXMIDIMusicType musicType = BXMIDIMusicType([[newDescription objectForKey: BXMIDIMusicTypeKey] integerValue]);
+        self.autodetectsMT32 = (musicType == BXMIDIMusicAutodetect);
+    }
+}
+
+- (void) setActiveMIDIDevice: (id<BXMIDIDevice>)device
+{
+    if (device != self.activeMIDIDevice)
+    {
+        [_activeMIDIDevice release];
+        _activeMIDIDevice = [device retain];
+
+        //If the device supports mixing, create a DOSBox mixer channel for it.
+        if ([device conformsToProtocol: @protocol(BXAudioSource)])
+        {
+            [self _addMIDIMixerChannelWithSampleRate: [(id <BXAudioSource>)device sampleRate]];
+        }
+        //Otherwise, disable and remove any existing mixer channel.
+        else
+        {
+            [self _removeMIDIMixerChannel];
+        }
+        
+#ifdef BOXER_DEBUG
+        //When debugging, display an LCD message so that we know MT-32 mode has kicked in
+        if (device.supportsMT32Music)
+            [self sendMT32LCDMessage: @"BOXER:::MT-32 Active"];
+#endif
+    }
+}
+
+- (void) setDelegate: (id <BXEmulatorDelegate, BXEmulatorFileSystemDelegate, BXEmulatorAudioDelegate, BXEmulatedPrinterDelegate>)delegate
+{
+    _delegate = delegate;
+    self.printer.delegate = delegate;
+}
+
 @end
 
 
@@ -926,7 +990,7 @@ static BOOL _hasStartedEmulator = NO;
 - (void) _startDOSBox
 {
 	//Initialize the SDL modules that DOSBox will need.
-	NSAssert1(!SDL_Init(SDL_INIT_AUDIO|SDL_INIT_TIMER|SDL_INIT_CDROM|SDL_INIT_NOPARACHUTE),
+	NSAssert1(!SDL_Init(SDL_INIT_AUDIO),
 			  @"SDL failed to initialize with the following error: %s", SDL_GetError());
 	
 	try
@@ -935,6 +999,8 @@ static BOOL _hasStartedEmulator = NO;
         //before it starts will stay alive until it finishes. To mitigate this we wrap the
         //emulator startup sequence in an autorelease block, so that at least those objects
         //will get released before we begin emulating in earnest.
+        //DON'T PUT THIS IN AN AUTORELEASEPOOL BRACKET: It causes Boxer to crash.
+        //This also means this file can't be programmed to use ARC.
         NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
         
             //Create a new configuration instance and feed it an empty set of parameters.
@@ -951,7 +1017,7 @@ static BOOL _hasStartedEmulator = NO;
             NSArray *configURLs = [self.delegate configurationURLsForEmulator: self];
             for (NSURL *configURL in configURLs)
             {
-                const char *encodedConfigPath = configURL.path.fileSystemRepresentation;
+                const char *encodedConfigPath = configURL.fileSystemRepresentation;
                 control->ParseConfigFile(encodedConfigPath);
             }
 
@@ -1002,11 +1068,6 @@ static BOOL _hasStartedEmulator = NO;
 
 @implementation BXEmulator (BXParallelInternals)
 
-- (void) setDelegate: (id <BXEmulatorDelegate, BXEmulatorFileSystemDelegate, BXEmulatorAudioDelegate, BXEmulatedPrinterDelegate>)delegate
-{
-    _delegate = delegate;
-    self.printer.delegate = delegate;
-}
 - (void) _didRequestPrinterOnLPTPort: (NSUInteger)portNumber
 {
     if (!self.printer)

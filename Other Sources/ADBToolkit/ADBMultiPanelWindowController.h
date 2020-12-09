@@ -24,16 +24,18 @@
  *	POSSIBILITY OF SUCH DAMAGE.
  */
 
-//ADBMultiPanelWindowController is an NSWindowController subclass for managing windows that display
-//one out of a set of different panels. This class provides methods for changing the current panel
-//and animating transitions from one panel to another (resizing the window and crossfading views).
-
-//This is a more flexible and less structured alternative to ADBTabbedWindowController, written back
-//when I was allergic to NSTabView. This provides better animation control (with better crossfades),
-//but for tab-based or toolbar-based windows, NSTabbedWindowController is still the better choice.
 
 #import <Cocoa/Cocoa.h>
 
+NS_ASSUME_NONNULL_BEGIN
+
+/// @c ADBMultiPanelWindowController is an @c NSWindowController subclass for managing windows that display
+/// one out of a set of different panels. This class provides methods for changing the current panel
+/// and animating transitions from one panel to another (resizing the window and crossfading views).
+///
+/// This is a more flexible and less structured alternative to ADBTabbedWindowController, written back
+/// when I was allergic to NSTabView. This provides better animation control (with better crossfades),
+/// but for tab-based or toolbar-based windows, @c NSTabbedWindowController is still the better choice.
 @interface ADBMultiPanelWindowController : NSWindowController
 {
     NSView *_panelContainer;
@@ -42,26 +44,28 @@
 #pragma mark -
 #pragma mark Properties
 
-//The currently-displayed panel.
-@property (assign, nonatomic) NSView *currentPanel;
+/// The currently-displayed panel.
+@property (weak, nonatomic, nullable) NSView *currentPanel;
 
-//The view into which the current panel will be added.
-@property (retain, nonatomic) IBOutlet NSView *panelContainer;
+/// The view into which the current panel will be added.
+@property (strong, nonatomic) IBOutlet NSView *panelContainer;
 
 #pragma mark -
 #pragma mark Animation methods
 
-//Returns an animation that will fade out oldPanel to reveal newPanel.
-//Suited for panels with an opaque background.
+/// Returns an animation that will fade out oldPanel to reveal newPanel.
+/// Suited for panels with an opaque background.
 - (NSViewAnimation *) fadeOutPanel: (NSView *)oldPanel overPanel: (NSView *)newPanel;
 
-//Returns an animation that instantly hides oldPanel then fades in newPanel.
-//Suited for panels with a transparent background.
+/// Returns an animation that instantly hides oldPanel then fades in newPanel.
+/// Suited for panels with a transparent background.
 - (NSViewAnimation *) hidePanel: (NSView *)oldPanel andFadeInPanel: (NSView *)newPanel;
 
-//Returns the NSAnimation which will perform the transition from one panel to the other.
-//Intended to be overridden by subclasses to define their own animations.
-//Defaults to returning hidePanel:andFadeInPanel: with a duration of 0.25.
+/// Returns the @c NSAnimation which will perform the transition from one panel to the other.
+/// Intended to be overridden by subclasses to define their own animations.
+/// Defaults to returning @c hidePanel:andFadeInPanel: with a duration of 0.25.
 - (NSViewAnimation *) transitionFromPanel: (NSView *)oldPanel toPanel: (NSView *)newPanel;
 
 @end
+
+NS_ASSUME_NONNULL_END

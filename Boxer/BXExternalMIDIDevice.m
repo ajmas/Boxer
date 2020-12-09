@@ -33,10 +33,12 @@
 #pragma mark Implementation
 
 @implementation BXExternalMIDIDevice
-@synthesize dateWhenReady = _dateWhenReady;
-@synthesize destination = _destination;
-@synthesize volume = _volume;
-@synthesize requestedVolume = _requestedVolume;
+{
+	MIDIPortRef _port;
+	MIDIClientRef _client;
+	
+	NSTimer *_volumeSyncTimer;
+}
 
 #pragma mark -
 #pragma mark Class helper methods
@@ -56,7 +58,7 @@
 #pragma mark -
 #pragma mark Initialization and cleanup
 
-- (id <BXMIDIDevice>) init
+- (instancetype) init
 {
     if ((self = [super init]))
     {
@@ -70,23 +72,22 @@
 }
 
 
-- (id <BXMIDIDevice>) initWithDestination: (MIDIEndpointRef)destination
-                                    error: (NSError **)outError
+- (instancetype) initWithDestination: (MIDIEndpointRef)destination
+                               error: (NSError **)outError
 {
     if ((self = [self init]))
     {
         BOOL succeeded = [self _connectToDestination: destination error: outError];
         if (!succeeded)
         {
-            [self release];
-            self = nil;
+            return nil;
         }
     }
     return self;
 }
 
 
-- (id <BXMIDIDevice>) initWithDestinationAtIndex: (ItemCount)destIndex
+- (instancetype) initWithDestinationAtIndex: (ItemCount)destIndex
                                            error: (NSError **)outError
 {
     if ((self = [self init]))
@@ -95,15 +96,14 @@
                                                       error: outError];
         if (!succeeded)
         {
-            [self release];
-            self = nil;
+            return nil;
         }
     }
     return self;
 }
 
-- (id <BXMIDIDevice>) initWithDestinationAtUniqueID: (MIDIUniqueID)uniqueID
-                                              error: (NSError **)outError
+- (instancetype) initWithDestinationAtUniqueID: (MIDIUniqueID)uniqueID
+                                         error: (NSError **)outError
 {
     if ((self = [self init]))
     {
@@ -111,7 +111,6 @@
                                                          error: outError];
         if (!succeeded)
         {
-            [self release];
             self = nil;
         }
     }
@@ -122,10 +121,6 @@
 - (void) dealloc
 {
     [self close];
-    
-    self.dateWhenReady = nil;
-    
-    [super dealloc];
 }
 
 - (void) close

@@ -39,8 +39,6 @@
                                                                                                     count: 3];
         
         [NSValueTransformer setValueTransformer: mouseSensitivity forName: @"BXMouseSensitivitySlider"];
-        
-        [mouseSensitivity release];
     }
 }
 
@@ -107,7 +105,6 @@
 	[self loadWindow];
 	
 	[self.window fadeInWithDuration: 0.2];
-	//[[self window] applyGaussianBlurWithRadius: BXInspectorPanelBlurRadius];
 	
 	_isTemporarilyHidden = NO;
 }

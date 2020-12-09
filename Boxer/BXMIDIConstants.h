@@ -11,8 +11,8 @@
 #define BXSysexStart 0xF0
 #define BXSysexEnd 0xF7
 
-//MIDI messages use 7 bits, but must be sent via byte arrays.
-//This mask clears the 8th and higher bits of the byte.
+/// MIDI messages use 7 bits, but must be sent via byte arrays.
+/// This mask clears the 8th and higher bits of the byte.
 #define BXMIDIBitmask 0x7F
 
 
@@ -57,9 +57,9 @@
 #define BXRolandSysexRequest 0x11
 #define BXRolandSysexSend 0x12
 
-#define BXRolandSysexSendMinLength BXRolandSysexHeaderLength + BXRolandSysexAddressLength + BXRolandSysexTailLength
+#define BXRolandSysexSendMinLength (BXRolandSysexHeaderLength + BXRolandSysexAddressLength + BXRolandSysexTailLength)
 
-#define BXRolandSysexRequestLength BXRolandSysexSendMinLength + BXRolandSysexRequestSizeLength
+#define BXRolandSysexRequestLength (BXRolandSysexSendMinLength + BXRolandSysexRequestSizeLength)
 
 #pragma mark -
 #pragma mark MT-32-specific sysex message parameters

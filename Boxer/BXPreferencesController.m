@@ -60,22 +60,6 @@ enum {
 
 @implementation BXPreferencesController
 
-@synthesize gamesFolderSelector = _gamesFolderSelector;
-@synthesize currentGamesFolderItem = _currentGamesFolderItem;
-
-@synthesize filterGallery = _filterGallery;
-
-@synthesize MT32ROMDropzone = _MT32ROMDropzone;
-@synthesize missingMT32ROMHelp = _missingMT32ROMHelp;
-@synthesize realMT32Help = _realMT32Help;
-@synthesize MT32ROMOptions = _MT32ROMOptions;
-
-@synthesize hotkeyCaptureToggle = _hotkeyCaptureToggle;
-@synthesize hotkeyCaptureDescription = _hotkeyCaptureDescription;
-@synthesize hotkeyCaptureExtraHelp = _hotkeyCaptureExtraHelp;
-@synthesize hotkeyCapturePermissionsButton = _hotkeyCapturePermissionsButton;
-
-
 #pragma mark - Initialization and deallocation
 
 + (BXPreferencesController *) controller
@@ -139,7 +123,7 @@ enum {
     
     //Set up the audio preferences panel as a drag target for file drops.
     NSView *audioPrefsView = [self.tabView tabViewItemAtIndex: BXAudioPreferencesPanelIndex].view;
-	[audioPrefsView registerForDraggedTypes: [NSArray arrayWithObject: NSFilenamesPboardType]];
+	[audioPrefsView registerForDraggedTypes: [NSArray arrayWithObject: NSPasteboardTypeFileURL]];
 	
     
 	//Select the tab that the user had open last time.
@@ -172,23 +156,6 @@ enum {
     [appController removeObserver: self forKeyPath: @"needsRestartForHotkeyCapture"];
     
 	[self.currentGamesFolderItem unbind: @"attributedTitle"];
-	
-    self.gamesFolderSelector = nil;
-    self.currentGamesFolderItem = nil;
-    
-    self.missingMT32ROMHelp = nil;
-    self.realMT32Help = nil;
-    self.MT32ROMOptions = nil;
-    self.MT32ROMDropzone = nil;
-    
-    self.filterGallery = nil;
-    
-    self.hotkeyCaptureToggle = nil;
-    self.hotkeyCaptureDescription = nil;
-    self.hotkeyCaptureExtraHelp = nil;
-    self.hotkeyCapturePermissionsButton = nil;
-    
-	[super dealloc];
 }
 
 
@@ -413,7 +380,7 @@ enum {
     
     [openPanel beginSheetModalForWindow: self.window
                       completionHandler: ^(NSInteger result) {
-                          if (result == NSFileHandlingPanelOKButton)
+                          if (result == NSModalResponseOK)
                           {
                               [self handleROMImportFromURLs: openPanel.URLs];
                           }
@@ -461,7 +428,7 @@ enum {
 
 - (IBAction) toggleShelfAppearance: (NSButton *)sender
 {
-	BOOL flag = (sender.state == NSOnState);
+	BOOL flag = (sender.state == NSControlStateValueOn);
 	
 	//This will already have been set by the button's own binding,
 	//but it doesn't hurt to do it explicitly here
@@ -516,7 +483,7 @@ enum {
 
 - (void) syncKeyboardInstructions
 {
-    CGFloat extraHelpSize = [NSFont systemFontSizeForControlSize: NSSmallControlSize];
+    CGFloat extraHelpSize = [NSFont systemFontSizeForControlSize: NSControlSizeSmall];
     if ([(BXBaseAppController *)[NSApp delegate] needsRestartForHotkeyCapture])
     {
         self.hotkeyCaptureToggle.enabled = NO;

@@ -26,20 +26,23 @@
 
 #import <AppKit/AppKit.h>
 
-//The ADBSaveImages category adds convenience methods for saving an NSImage directly to a file.
+NS_ASSUME_NONNULL_BEGIN
 
+/// The @c ADBSaveImages category adds convenience methods for saving an NSImage directly to a file.
 @interface NSImage (ADBSaveImages)
 
-//Convenience method to save an image to the specified path with the specified filetype.
-//Returns YES if file was saved successfully, or NO and populates outError if there was an error.
+/// Convenience method to save an image to the specified path with the specified filetype.
+/// Returns YES if file was saved successfully, or NO and populates outError if there was an error.
 - (BOOL) saveToURL: (NSURL *)URL
           withType: (NSBitmapImageFileType)type
-        properties: (NSDictionary *)properties
+        properties: (NSDictionary<NSBitmapImageRepPropertyKey, id> *)properties
              error: (out NSError **)outError;
 
-//Creates a .ICNS-format at the specified location. Returns YES on success, or NO and populates
-//outError if there was an error (including that a file at the specified destination already exists.)
+/// Creates a .ICNS-format at the specified location. Returns @c YES on success, or @c NO and populates
+/// @c outError if there was an error (including that a file at the specified destination already exists.)
 - (BOOL) saveAsIconToURL: (NSURL *)URL
                    error: (out NSError **)outError;
 
 @end
+
+NS_ASSUME_NONNULL_END

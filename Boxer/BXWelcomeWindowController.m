@@ -33,7 +33,6 @@
 
 
 @implementation BXWelcomeWindowController
-@synthesize recentDocumentsButton, importGameButton, openPromptButton, showGamesFolderButton;
 
 #pragma mark -
 #pragma mark Initialization and deallocation
@@ -44,7 +43,6 @@
     {
         BXImageSizeTransformer *welcomeButtonImageSize = [[BXImageSizeTransformer alloc] initWithSize: NSMakeSize(128, 128)];
         [NSValueTransformer setValueTransformer: welcomeButtonImageSize forName: @"BXWelcomeButtonImageSize"];
-        [welcomeButtonImageSize release];
     }
 }
 
@@ -61,7 +59,7 @@
 - (void) windowDidLoad
 {	
 	//Set up drag-drop events for the buttons
-	NSArray *types = [NSArray arrayWithObject: NSFilenamesPboardType];
+	NSArray *types = [NSArray arrayWithObject: NSPasteboardTypeFileURL];
 	[self.importGameButton registerForDraggedTypes: types];
 	[self.openPromptButton registerForDraggedTypes: types];
 }
@@ -90,14 +88,7 @@
 
 - (void) showWindowWithTransition: (id)sender
 {
-#ifdef USE_PRIVATE_APIS
-	[self.window revealWithTransition: CGSFlip
-                            direction: CGSDown
-                             duration: 0.4
-                         blockingMode: NSAnimationNonblocking];
-#else
     [self.window fadeInWithDuration: 0.4];
-#endif
     
 	[self showWindow: sender];
 }
@@ -110,7 +101,9 @@
 {
 	NSURL *url = sender.representedObject;
 	
-	[(BXBaseAppController *)[NSApp delegate] openDocumentWithContentsOfURL: url display: YES error: NULL];
+	[(BXBaseAppController *)[NSApp delegate] openDocumentWithContentsOfURL: url display: YES completionHandler: ^(NSDocument * _Nullable document, BOOL documentWasAlreadyOpen, NSError * _Nullable error) {
+		//do nothing
+	}];
 }
 
 #pragma mark -
@@ -138,8 +131,7 @@
 	
 	//Then, repopulate it with the new recent documents
 	for (NSURL *url in documents)
-	{
-		NSAutoreleasePool *pool	= [[NSAutoreleasePool alloc] init];
+	@autoreleasepool {
 		NSMenuItem *item		= [[NSMenuItem alloc] init];
 		
         item.representedObject = url;
@@ -156,10 +148,6 @@
         item.title = title;
 		
 		[menu insertItem: item atIndex: insertionPoint++];
-		
-        [icon release];
-		[item release];
-		[pool drain];
 	}
     
 	//Finish off the list with a separator
@@ -193,7 +181,9 @@
 	{
 		[(BXBaseAppController *)[NSApp delegate] openDocumentWithContentsOfURL: URL
                                                                        display: YES
-                                                                         error: NULL];
+															 completionHandler: ^(NSDocument * _Nullable document, BOOL documentWasAlreadyOpen, NSError * _Nullable error) {
+																 //do nothing
+															 }];
 	}
 }
 

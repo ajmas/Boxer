@@ -1,8 +1,9 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="9059" systemVersion="15B42" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none">
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="15705" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES">
     <dependencies>
-        <deployment version="1080" identifier="macosx"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="9059"/>
+        <deployment identifier="macosx"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="15705"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <objects>
         <customObject id="-2" userLabel="File's Owner" customClass="NSApplication">
@@ -11,10 +12,9 @@
             </connections>
         </customObject>
         <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
-        <customObject id="-3" userLabel="Application"/>
+        <customObject id="-3" userLabel="Application" customClass="NSObject"/>
         <customObject id="401" userLabel="Boxer App Controller" customClass="BXStandaloneAppController">
             <connections>
-                <outlet property="joypadController" destination="2158" id="2159"/>
                 <outlet property="joystickController" destination="2130" id="2131"/>
             </connections>
         </customObject>
@@ -81,6 +81,11 @@
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
                                     <action selector="performRestartAtLaunchPanel:" target="-1" id="2523"/>
+                                    <binding destination="2207" name="hidden" keyPath="selection.allowsLauncherPanel" id="2529">
+                                        <dictionary key="options">
+                                            <string key="NSValueTransformerName">NSNegateBoolean</string>
+                                        </dictionary>
+                                    </binding>
                                 </connections>
                             </menuItem>
                             <menuItem isSeparatorItem="YES" id="2521">
@@ -389,15 +394,46 @@
                                     </items>
                                 </menu>
                             </menuItem>
+                            <menuItem title="Hercules Tint" id="kgV-Qg-8sc">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <menu key="submenu" title="Hercules Tint" id="M3t-HD-L40">
+                                    <items>
+                                        <menuItem title="White" id="Aew-9d-wIC">
+                                            <modifierMask key="keyEquivalentModifierMask"/>
+                                            <connections>
+                                                <action selector="toggleHerculesTintMode:" target="-1" id="ajA-oT-Coy"/>
+                                            </connections>
+                                        </menuItem>
+                                        <menuItem title="Amber" tag="1" id="nH0-jG-tjN">
+                                            <modifierMask key="keyEquivalentModifierMask"/>
+                                            <connections>
+                                                <action selector="toggleHerculesTintMode:" target="-1" id="00A-rh-LD2"/>
+                                            </connections>
+                                        </menuItem>
+                                        <menuItem title="Green" tag="2" id="6Lk-uS-LVK">
+                                            <modifierMask key="keyEquivalentModifierMask"/>
+                                            <connections>
+                                                <action selector="toggleHerculesTintMode:" target="-1" id="mve-Tg-g0x"/>
+                                            </connections>
+                                        </menuItem>
+                                    </items>
+                                </menu>
+                            </menuItem>
                             <menuItem title="Use 4:3 Aspect Ratio" id="1612">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
+                                    <binding destination="1841" name="value" keyPath="values.aspectCorrected" id="1852"/>
                                     <binding destination="1841" name="hidden" keyPath="values.showAspectCorrectionToggle" id="2526">
                                         <dictionary key="options">
                                             <string key="NSValueTransformerName">NSNegateBoolean</string>
                                         </dictionary>
                                     </binding>
-                                    <binding destination="1841" name="value" keyPath="values.aspectCorrected" id="1852"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Shader Properties…" id="whc-Iq-mgy">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="toggleShaderParametersWindow:" target="-1" id="oQ7-vU-Nry"/>
                                 </connections>
                             </menuItem>
                             <menuItem isSeparatorItem="YES" id="2187"/>
@@ -700,6 +736,7 @@
                     </connections>
                 </menuItem>
             </items>
+            <point key="canvasLocation" x="139" y="154"/>
         </menu>
         <userDefaultsController representsSharedInstance="YES" id="1841"/>
         <objectController objectClassName="BXSession" editable="NO" id="2207" userLabel="Session mediator">
@@ -708,24 +745,21 @@
             </connections>
         </objectController>
         <customObject id="2130" customClass="BXJoystickController"/>
-        <customObject id="2158" customClass="BXJoypadController"/>
         <customView id="2200">
             <rect key="frame" x="0.0" y="0.0" width="204" height="20"/>
             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
             <subviews>
-                <slider verticalHuggingPriority="750" id="2201">
+                <slider verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="2201">
                     <rect key="frame" x="22" y="-1" width="152" height="21"/>
                     <autoresizingMask key="autoresizingMask" widthSizable="YES" flexibleMinY="YES"/>
-                    <animations/>
                     <sliderCell key="cell" continuous="YES" state="on" alignment="left" maxValue="1" doubleValue="1" tickMarkPosition="above" sliderType="linear" id="2202"/>
                     <connections>
                         <binding destination="401" name="value" keyPath="effectiveVolume" id="2229"/>
                     </connections>
                 </slider>
-                <button verticalHuggingPriority="750" id="2230">
+                <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="2230">
                     <rect key="frame" x="3" y="1" width="19" height="17"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                    <animations/>
                     <buttonCell key="cell" type="recessed" bezelStyle="recessed" image="Volume0PercentCroppedTemplate" imagePosition="only" alignment="center" controlSize="small" state="on" borderStyle="border" inset="2" id="2233">
                         <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                         <font key="font" metaFont="systemBold" size="12"/>
@@ -734,10 +768,9 @@
                         <action selector="minimizeVolume:" target="-1" id="2237"/>
                     </connections>
                 </button>
-                <button verticalHuggingPriority="750" id="2231">
+                <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="2231">
                     <rect key="frame" x="174" y="0.0" width="27" height="17"/>
                     <autoresizingMask key="autoresizingMask" flexibleMinX="YES" flexibleMinY="YES"/>
-                    <animations/>
                     <buttonCell key="cell" type="recessed" bezelStyle="recessed" image="Volume100PercentTemplate" imagePosition="only" alignment="center" controlSize="small" state="on" borderStyle="border" inset="2" id="2232">
                         <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                         <font key="font" metaFont="systemBold" size="12"/>
@@ -747,7 +780,6 @@
                     </connections>
                 </button>
             </subviews>
-            <animations/>
         </customView>
     </objects>
     <resources>

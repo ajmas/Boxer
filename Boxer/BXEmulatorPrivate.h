@@ -30,6 +30,8 @@
 #include <execinfo.h>
 
 
+NS_ASSUME_NONNULL_BEGIN
+
 #pragma mark - Private constants and type definitions
 
 class DOS_Shell;
@@ -80,17 +82,17 @@ extern NSString * const shellProcessPath;
 //Such errors are handled by BXEmulator and should never reach outside classes.
 
 /// Error domain for internal DOSBox errors.
-extern NSString * const BXDOSBoxErrorDomain;
+extern NSErrorDomain const BXDOSBoxErrorDomain;
 
 /// Error domain for internal DOSBox error codes returned when unmounting a DOSBox drive.
-extern NSString * const BXDOSBoxUnmountErrorDomain;
+extern NSErrorDomain const BXDOSBoxUnmountErrorDomain;
 
 /// Error domain for internal DOSBox error codes returned when mounting a DOSBox drive.
-extern NSString * const BXDOSBoxMountErrorDomain;
+extern NSErrorDomain const BXDOSBoxMountErrorDomain;
 
 
-//BXDOSBoxUnmountErrorDomain constants
-enum {
+/// BXDOSBoxUnmountErrorDomain constants
+typedef NS_ERROR_ENUM(BXDOSBoxUnmountErrorDomain, BXDOSBoxUnmountErrors) {
     /// Unmounting failed for an unknown reason.
     BXDOSBoxUnmountUnknownError             = -1,
     
@@ -105,8 +107,8 @@ enum {
 };
 
 
-//BXDOSBoxMountErrorDomain constants
-enum {
+/// BXDOSBoxMountErrorDomain constants
+typedef NS_ERROR_ENUM(BXDOSBoxMountErrorDomain, BXDOSBoxMountErrors) {
     /// Mounting failed for an unknown reason.
     BXDOSBoxMountUnknownError               = -1,
     
@@ -142,8 +144,8 @@ enum {
 @property (readwrite, getter=isCancelled) BOOL cancelled;
 @property (readwrite, getter=isInitialized) BOOL initialized;
 @property (readwrite, getter=isPaused) BOOL paused;
-@property (readwrite, copy) NSString *processName;
-@property (readwrite, copy) NSDictionary *lastProcess;
+@property (readwrite, copy, nullable) NSString *processName;
+@property (readwrite, copy) NSDictionary<NSString*,id> *lastProcess;
 
 @property (readwrite, retain) BXVideoHandler *videoHandler;
 @property (readwrite, retain) BXEmulatedKeyboard *keyboard;
@@ -159,6 +161,9 @@ enum {
 @end
 
 
+/// BXEmulatorPrivate declares the internal interface that should only be seen by
+/// BXEmulator and its C++-aware helpers. It uses C++-specific symbols and cannot be
+/// included from any C or Obj-C implementation file.
 @interface BXEmulator (BXEmulatorInternals)
 
 /// Called at emulator startup and replicates DOSBox's original startup process.
@@ -180,18 +185,18 @@ enum {
 /// Called at the start of each iteration of DOSBox's run loop.
 /// @param contextInfo[out]  Populated with a retained reference to the @c NSAutoreleasePool
 /// for the current iteration of the run loop.
-- (void) _runLoopWillStartWithContextInfo: (out void **)contextInfo;
+- (void) _runLoopWillStartWithContextInfo: (out void *_Nullable*_Nullable)contextInfo;
 
 /// Called at the end of each iteration of DOSBox's run loop.
 /// @param contextInfo  The contextInfo that was provided by @c _runLoopWillStartWithContextInfo:
 ///                     (in practice, the @c NSAutoreleasePool for the current iteration of the run loop.)
-- (void) _runLoopDidFinishWithContextInfo: (void *)contextInfo;
+- (void) _runLoopDidFinishWithContextInfo: (void *_Nullable)contextInfo;
 
 /// Convenience method for sending a notification to both the default notification center and to a selector
 /// on the emulator's delegate. The object of the notification will be the @c BXEmulator instance.
 - (void) _postNotificationName: (NSString *)name
 			  delegateSelector: (SEL)selector
-					  userInfo: (NSDictionary *)userInfo;
+					  userInfo: (nullable NSDictionary *)userInfo;
 
 /// Called by DOSBox whenever it changes states that we care about but that don't have more specific callbacks for.
 /// This resyncs the emulator's cached notions of the DOSBox state and posts notifications properties that have changed.
@@ -222,7 +227,7 @@ enum {
 
 /// @param drive The Boxer drive instance to look up.
 /// @return The DOSBox drive that corresponds to the specified Boxer drive, or @c NULL if no matching drive was found.
-- (DOS_Drive *)_DOSBoxDriveMatchingDrive: (BXDrive *)drive;
+- (nullable DOS_Drive *)_DOSBoxDriveMatchingDrive: (BXDrive *)drive;
 
 
 #pragma mark - Adding and removing DOSBox drives
@@ -255,7 +260,7 @@ enum {
 /// @param driveIndex       The index of the drive for which to generate a Boxer drive instance.
 /// @return A Boxer drive instance based on the DOS drive at the specified index.
 /// @see _driveMatchingDOSBoxDrive:
-- (BXDrive *)_driveFromDOSBoxDriveAtIndex: (NSUInteger)driveIndex;
+- (nullable BXDrive *)_driveFromDOSBoxDriveAtIndex: (NSUInteger)driveIndex;
 
 /// Returns the Boxer drive type for the DOSBox drive at the specified index.
 - (BXDriveType) _typeOfDOSBoxDrive: (DOS_Drive *)drive;
@@ -264,24 +269,24 @@ enum {
 /// @param imagePath        The local filesystem path to the image to mount for the drive.
 /// @param outError[out]    If drive creation fails, this will be populated with an error giving the reason for failure.
 /// @return A new DOSBox drive instance, or NULL if drive creation failed.
-- (DOS_Drive *) _floppyDriveFromImageAtPath: (NSString *)imagePath
-                                      error: (NSError **)outError;
+- (nullable DOS_Drive *) _floppyDriveFromImageAtPath: (NSString *)imagePath
+                                               error: (NSError **)outError;
 
 /// Creates a new DOSBox hard drive instance from a disk image. This must then be mounted by @c -_addDOSBoxDrive:atIndex:.
 /// @param imagePath        The local filesystem path to the image to mount for the drive.
 /// @param outError[out]    If drive creation fails, this will be populated with an error giving the reason for failure.
 /// @return A new DOSBox drive instance, or NULL if drive creation failed.
-- (DOS_Drive *) _hardDriveFromImageAtPath: (NSString *)imagePath
-                                    error: (NSError **)outError;
+- (nullable DOS_Drive *) _hardDriveFromImageAtPath: (NSString *)imagePath
+                                             error: (NSError **)outError;
 
 /// Creates a new DOSBox CDROM drive instance from a disk image. This must then be mounted by @c -_addDOSBoxDrive:atIndex:.
 /// @param imagePath        The local filesystem path to the image to mount for the drive.
 /// @param driveIndex       The index at which the new drive will be located. Required for MSCDEX.
 /// @param outError[out]    If drive creation fails, this will be populated with an error giving the reason for failure.
 /// @return A new DOSBox drive instance, or NULL if drive creation failed.
-- (DOS_Drive *) _CDROMDriveFromImageAtPath:	(NSString *)imagePath
-                                  forIndex: (NSUInteger)driveIndex
-                                     error: (NSError **)outError;
+- (nullable DOS_Drive *) _CDROMDriveFromImageAtPath: (NSString *)imagePath
+                                           forIndex: (NSUInteger)driveIndex
+                                              error: (NSError **)outError;
 
 /// Creates a new DOSBox CDROM drive instance from a local folder. This must then be mounted by @c -_addDOSBoxDrive:atIndex:.
 /// @param path             The local filesystem path to the folder to use as the mount point for the drive.
@@ -290,10 +295,10 @@ enum {
 ///                         If @c NO, the drive will not provide CD audio.
 /// @param outError[out]    If drive creation fails, this will be populated with an error giving the reason for failure.
 /// @return A new DOSBox drive instance, or NULL if drive creation failed.
-- (DOS_Drive *) _CDROMDriveFromPath: (NSString *)path
-                           forIndex: (NSUInteger)driveIndex
-                          withAudio: (BOOL)useCDAudio
-                              error: (NSError **)outError;
+- (nullable DOS_Drive *) _CDROMDriveFromPath: (NSString *)path
+                                    forIndex: (NSUInteger)driveIndex
+                                   withAudio: (BOOL)useCDAudio
+                                       error: (NSError **)outError;
 
 /// Creates a new DOSBox hard drive instance from a local folder. This must then be mounted by @c -_addDOSBoxDrive:atIndex:.
 /// @param path             The local filesystem path to the folder to use as the mount point for the drive.
@@ -382,8 +387,8 @@ enum {
 /// @param dosboxDrive  The drive relative to which the DOS path should be resolved.
 /// @return The local filesystem location corresponding to the specified DOS path on the specified drive.
 /// Returns @c nil if no local filesystem URL could be determined (e.g. if the drive is a disk image or DOSBox-internal drive.)
-- (NSURL *) _filesystemURLForDOSPath: (const char *)dosPath
-                       onDOSBoxDrive: (DOS_Drive *)dosboxDrive;
+- (nullable NSURL *) _filesystemURLForDOSPath: (const char *)dosPath
+                                onDOSBoxDrive: (DOS_Drive *)dosboxDrive;
 
 /// Resolves a DOS path on a particular drive to a logical URL.
 /// @note Used internally by many methods; the public API version of this is @c -logicalURLForDOSPath:.
@@ -391,8 +396,8 @@ enum {
 /// @param dosboxDrive  The drive relative to which the DOS path should be resolved.
 /// @return the logical location corresponding to the specified DOS path on the specified drive.
 /// Returns nil if there is no corresponding logical location (This will be the case if the drive is a DOSBox-internal drive.)
-- (NSURL *) _logicalURLForDOSPath: (const char *)dosPath
-                    onDOSBoxDrive: (DOS_Drive *)dosboxDrive;
+- (nullable NSURL *) _logicalURLForDOSPath: (const char *)dosPath
+                             onDOSBoxDrive: (DOS_Drive *)dosboxDrive;
 
 /// Opens a local file handle for DOSBox to record captured output to, in write-only mode.
 /// DOSBox is expected to close the file when done.
@@ -400,8 +405,8 @@ enum {
 /// @param typeDescription      A string describing the type of data to be captured.
 /// @param fileExtension        The suggested file extension to use for that data.
 /// @return An open file handle for DOSBox to record into, or @c nil if capturing is not permitted.
-- (FILE *) _openFileForCaptureOfType: (const char *)typeDescription
-                           extension: (const char *)fileExtension;
+- (nullable FILE *) _openFileForCaptureOfType: (const char *)typeDescription
+                                    extension: (const char *)fileExtension;
 
 
 /// Attempts to open a file on the local filesystem.
@@ -410,9 +415,9 @@ enum {
 /// @param mode         The read-write mode in which the file should be opened. This corresponds to the @c mode parameter
 ///                     used by the POSIX @c file() function.
 /// @return a POSIX file handle for the open file. Returns @c NULL if the file could not be opened.
-- (FILE *) _openFileAtLocalPath: (const char *)localPath
-                  onDOSBoxDrive: (DOS_Drive *)dosboxDrive
-                         inMode: (const char *)mode;
+- (nullable FILE *) _openFileAtLocalPath: (const char *)localPath
+                           onDOSBoxDrive: (DOS_Drive *)dosboxDrive
+                                  inMode: (const char *)mode;
 
 /// Attempts to delete a file on the local filesystem.
 /// @param localPath    The POSIX path to the file on the local filesystem which should be removed.
@@ -520,9 +525,8 @@ enum {
 
 /// Called by DOSBox when processing input at the commandline to allow it to rewrite or interrupt the specified command input.
 /// @return @c YES if Boxer has modified or discarded any of the parameters provided by reference, or @c NO otherwise.
-//TODO Currently Boxer never modifies commandline input, and only uses this method for interrupting and discarding commandline
-//input when it has pending commands it wants to execute. This calling convention is a leftover and could be greatly simplified.
-- (BOOL) _handleCommandInput: (inout NSString **)inOutCommand
+//TODO: Currently Boxer never modifies commandline input, and only uses this method for interrupting and discarding commandline input when it has pending commands it wants to execute. This calling convention is a leftover and could be greatly simplified.
+- (BOOL) _handleCommandInput: (inout NSString *_Nullable*_Nullable)inOutCommand
               cursorPosition: (NSUInteger *)cursorPosition
               executeCommand: (BOOL *)execute;
 
@@ -530,7 +534,7 @@ enum {
 - (BOOL) _executeNextPendingCommand;
 
 /// Whether to display the startup preamble for the specified shell.
-/// Passes the decision on to the delegate by calling @c -emulatorShouldDisplayStartupMessages:.
+/// Passes the decision on to the delegate by calling @c -emulatorShouldDisplayStartupMessages:
 - (BOOL) _shouldDisplayStartupMessagesForShell: (DOS_Shell *)shell;
 
 /// Called by DOSBox whenever control returns to the DOS prompt: this includes when a program exits but also when a new shell
@@ -662,15 +666,15 @@ enum {
 
 #pragma mark - Exception handling
 
-//Thrown by boxer_die. Encapsulates as much data as we can about the stack at the moment of creation.
-//Caught and converted into a BXEmulatorException by BXEmulator _startDOSBox.
+/// Thrown by boxer_die. Encapsulates as much data as we can about the stack at the moment of creation.
+/// Caught and converted into a BXEmulatorException by BXEmulator _startDOSBox.
 struct boxer_emulatorException: public std::exception {
     char errorReason[1024];
     char fileName[256];
     char functionName[256];
     int lineNumber;
-    void *backtraceAddresses[20];
-    char **backtraceSymbols;
+    void *_Nullable backtraceAddresses[20];
+    char *_Nullable*_Nullable backtraceSymbols;
     int backtraceSize;
     
     boxer_emulatorException(const char *reason,
@@ -697,14 +701,12 @@ struct boxer_emulatorException: public std::exception {
 
 
 @interface BXEmulatorException: NSException
-{
-    NSArray *_BXCallStackReturnAddresses;
-    NSArray *_BXCallStackSymbols;
-}
 
-@property (copy) NSArray *callStackReturnAddresses;
-@property (copy) NSArray *callStackSymbols;
+@property (copy) NSArray<NSNumber*> *callStackReturnAddresses;
+@property (copy) NSArray<NSString*> *callStackSymbols;
 
-+ (id) exceptionWithName: (NSString *)name originalException: (boxer_emulatorException *)info;
++ (instancetype) exceptionWithName: (NSString *)name originalException: (boxer_emulatorException *)info;
 
 @end
+
+NS_ASSUME_NONNULL_END

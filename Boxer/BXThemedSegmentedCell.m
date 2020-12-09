@@ -107,7 +107,7 @@
 			[bezel appendBezierPathWithRect: insetFrame];
 			break;
 	}
-    return [bezel autorelease];
+    return bezel;
 }
 
 - (NSBezierPath *) bezelForSegment: (NSInteger)segment inFrame: (NSRect)frame
@@ -146,7 +146,7 @@
 			break;
 	}
     
-    return [bezel autorelease];
+    return bezel;
 }
 
 - (void) drawWithFrame: (NSRect)frame
@@ -306,7 +306,7 @@
             
             [image drawInRect: imageRect
                      fromRect: NSZeroRect
-                    operation: NSCompositeSourceAtop
+                    operation: NSCompositingOperationSourceAtop
                      fraction: imageAlpha
                respectFlipped: YES
                         hints: nil];
@@ -355,8 +355,6 @@
         croppedRect.origin.y = labelRect.origin.y;
         
         [label drawInRect: croppedRect withAttributes: labelAttrs];
-        
-        [labelAttrs release];
     }
 }
 

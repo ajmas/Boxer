@@ -5,14 +5,19 @@
  online at [http://www.gnu.org/licenses/gpl-2.0.txt].
  */
 
-//BXEmulatedMT32Delegate defines delegate notification callbacks 
-//to handle information coming from the MT-32.
 
 #import <Foundation/Foundation.h>
 
+NS_ASSUME_NONNULL_BEGIN
+
 @class BXEmulatedMT32;
+
+/// \c BXEmulatedMT32Delegate defines delegate notification callbacks 
+/// to handle information coming from the MT-32.
 @protocol BXEmulatedMT32Delegate <NSObject>
 
 - (void) emulatedMT32: (BXEmulatedMT32 *)MT32 didDisplayMessage: (NSString *)message;
 
 @end
+
+NS_ASSUME_NONNULL_END

@@ -24,32 +24,35 @@
  *	POSSIBILITY OF SUCH DAMAGE.
  */
 
-//ADBBinCueImage is an ADBISOImage subclass for handling the minor format variations
-//from CDRWin BIN/CUE binary images, as well as processing their accompanying cue sheets.
-
 
 #import "ADBISOImage.h"
 
+NS_ASSUME_NONNULL_BEGIN
+
+/// @c ADBBinCueImage is an @c ADBISOImage subclass for handling the minor format variations
+/// from CDRWin BIN/CUE binary images, as well as processing their accompanying cue sheets.
 @interface ADBBinCueImage : ADBISOImage
     
 #pragma mark -
 #pragma mark Helper class methods
     
-//Returns an array of the track files specified in the specified CUE,
-//as absolute OS X filesystem URLs resolved relative to the CUE's location.
-+ (NSArray *) resourceURLsInCueAtURL: (NSURL *)cueURL error: (out NSError **)outError;
+/// Returns an array of the track files specified in the specified CUE,
+/// as absolute OS X filesystem URLs resolved relative to the CUE's location.
++ (nullable NSArray<NSURL*> *) resourceURLsInCueAtURL: (NSURL *)cueURL error: (out NSError **)outError;
 
-//Returns the location of the binary image for the specified CUE file,
-//as an absolute OS X filesystem URL resolved relative to the CUE's location.
-//Returns nil if the binary image path could not be determined.
-+ (NSURL *) dataImageURLInCueAtURL: (NSURL *)cueURL error: (out NSError **)outError;
+/// Returns the location of the binary image for the specified CUE file,
+/// as an absolute OS X filesystem URL resolved relative to the CUE's location.
+/// Returns @c nil if the binary image path could not be determined.
++ (nullable NSURL *) dataImageURLInCueAtURL: (NSURL *)cueURL error: (out NSError **)outError;
 
-//Given a string representing the contents of a cue file, returns the raw paths in the exact
-//form they are written.
-+ (NSArray *) rawPathsInCueContents: (NSString *)cueContents;
+/// Given a string representing the contents of a cue file, returns the raw paths in the exact
+/// form they are written.
++ (NSArray<NSString*> *) rawPathsInCueContents: (NSString *)cueContents;
 
-//Returns YES if the specified path contains a parseable cue file, NO otherwise.
-//Populates outError if there is a problem accessing the file.
-+ (BOOL) isCueAtURL: (NSURL *)cueURL error: (out NSError **)outError;
+/// Returns @c YES if the specified path contains a parseable cue file, @c NO otherwise.
+/// Populates @c outError if there is a problem accessing the file.
++ (BOOL) isCueAtURL: (NSURL *)cueURL error: (out NSError **)outError NS_SWIFT_NOTHROW NS_REFINED_FOR_SWIFT;
 
 @end
+
+NS_ASSUME_NONNULL_END

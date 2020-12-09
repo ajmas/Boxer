@@ -57,11 +57,6 @@
         [NSValueTransformer setValueTransformer: speedBanding forName: @"BXSpeedSliderTransformer"];
         [NSValueTransformer setValueTransformer: invertFramerate forName: @"BXFrameRateSliderTransformer"];
         [NSValueTransformer setValueTransformer: screenshotDater forName: @"BXCaptureDateTransformer"];
-        
-        [speedBanding release];
-        [invertFramerate release];
-        [screenshotDater release];
-        [screenshotDateFormatter release];
     }
 }
 
@@ -311,7 +306,7 @@
     NSEvent *currentEvent = [NSApp currentEvent];
     
     //If the toggle was triggered by a key event, then trigger the fast-forward until the key is released.
-    if (currentEvent.type == NSKeyDown)
+    if (currentEvent.type == NSEventTypeKeyDown)
     {
         [self fastForward: sender];
         
@@ -320,11 +315,11 @@
             //Keep fast-forwarding until the user lifts the key. Once we receive the key-up,
             //then discard all the repeated key-down events that occurred before the key-up:
             //otherwise, the action will trigger again and again for each repeat.
-            NSEvent *keyUp = [NSApp nextEventMatchingMask: NSKeyUpMask
+            NSEvent *keyUp = [NSApp nextEventMatchingMask: NSEventMaskKeyUp
                                                 untilDate: [NSDate distantFuture]
                                                    inMode: NSEventTrackingRunLoopMode
                                                   dequeue: NO];
-            [NSApp discardEventsMatchingMask: NSKeyDownMask beforeEvent: keyUp];
+            [NSApp discardEventsMatchingMask: NSEventMaskKeyDown beforeEvent: keyUp];
             [self releaseFastForward: sender];
         }
         else
@@ -403,7 +398,7 @@
 //Snap fixed speed to even increments, unless the Option key is held down
 - (BOOL) validateSliderSpeed: (NSNumber **)ioValue error: (NSError **)outError
 {
-	if (!([NSApp currentEvent].modifierFlags & NSAlternateKeyMask))
+	if (!([NSApp currentEvent].modifierFlags & NSEventModifierFlagOption))
 	{
 		NSInteger speed			= [*ioValue integerValue]; 
 		NSInteger snappedSpeed	= [self.class snappedSpeed: speed];
@@ -490,9 +485,8 @@
                                                                      attributes: driveTitleAttrs];
     
     [title appendAttributedString: driveTitle];
-    [driveTitle release];
     
-    return [title autorelease];
+    return title;
 }
 
 - (BOOL) validateMenuItem: (NSMenuItem *)theItem
@@ -518,19 +512,19 @@
     
     else if (theAction == @selector(pause:))
     {
-        theItem.state = (self.isPaused) ? NSOnState : NSOffState;
+        theItem.state = (self.isPaused) ? NSControlStateValueOn : NSControlStateValueOff;
         return self.isEmulating && isShowingDOSView;
     }
     
     else if (theAction == @selector(fastForward:))
     {
-        theItem.state = (self.emulator.isTurboSpeed) ? NSOnState : NSOffState;
+        theItem.state = (self.emulator.isTurboSpeed) ? NSControlStateValueOn : NSControlStateValueOff;
         return self.isEmulating && isShowingDOSView;
     }
     
     else if (theAction == @selector(resume:))
     {
-        theItem.state = (!self.emulator.isTurboSpeed && !self.isPaused) ? NSOnState : NSOffState;
+        theItem.state = (!self.emulator.isTurboSpeed && !self.isPaused) ? NSControlStateValueOn : NSControlStateValueOff;
         return self.isEmulating && isShowingDOSView;
     }
     
@@ -665,17 +659,17 @@
     {
         NSPasteboard *pboard = [NSPasteboard generalPasteboard];
 
-        NSArray *acceptedPasteTypes = @[NSFilenamesPboardType, NSStringPboardType];
+        NSArray *acceptedPasteTypes = @[NSPasteboardTypeFileURL, NSPasteboardTypeString];
         NSString *bestType = [pboard availableTypeFromArray: acceptedPasteTypes];
         NSString *pastedString;
         
         if (!bestType) return;
-        if ([bestType isEqualToString: NSFilenamesPboardType])
+        if ([bestType isEqualToString: NSPasteboardTypeFileURL])
         {
-            NSArray *filePaths = [pboard propertyListForType: NSFilenamesPboardType];
-            pastedString = filePaths.lastObject;
+            NSArray<NSURL*> *filePaths = [pboard readObjectsForClasses:@[[NSURL class]] options:@{NSPasteboardURLReadingFileURLsOnlyKey: @YES}];
+            pastedString = filePaths.lastObject.path;
         }
-        else pastedString = [pboard stringForType: NSStringPboardType];
+        else pastedString = [pboard stringForType: NSPasteboardTypeString];
         
         //Unpause when pasting strings
         [self resume: self];
@@ -686,17 +680,17 @@
 
 - (BOOL) canPasteFromPasteboard: (NSPasteboard *)pboard 
 {
-	NSArray *acceptedPasteTypes = @[NSFilenamesPboardType, NSStringPboardType];
+	NSArray *acceptedPasteTypes = @[NSPasteboardTypeFileURL, NSPasteboardTypeString];
 	NSString *bestType = [pboard availableTypeFromArray: acceptedPasteTypes];
 	NSString *pastedString;
 	
 	if (!bestType) return NO;
-	if ([bestType isEqualToString: NSFilenamesPboardType])
+	if ([bestType isEqualToString: NSPasteboardTypeFileURL])
 	{
-		NSArray *filePaths = [pboard propertyListForType: NSFilenamesPboardType];
-		pastedString = filePaths.lastObject;
+        NSArray<NSURL*> *filePaths = [pboard readObjectsForClasses:@[[NSURL class]] options:@{NSPasteboardURLReadingFileURLsOnlyKey: @YES}];
+		pastedString = filePaths.lastObject.path;
 	}
-	else pastedString = [pboard stringForType: NSStringPboardType];
+	else pastedString = [pboard stringForType: NSPasteboardTypeString];
 	return [self.emulator canAcceptPastedString: pastedString];
 }
 
@@ -752,13 +746,13 @@
     {
         NSURL *destinationURL = [self URLForCaptureOfType: @"Screenshot" fileExtension: @"png"];
         BOOL saved = [screenshot saveToURL: destinationURL
-                                  withType: NSPNGFileType
-                                properties: nil
+                                  withType: NSBitmapImageFileTypePNG
+                                properties: @{}
                                      error: NULL];
         
         if (saved)
         {
-            [destinationURL setResourceValue: @(YES) forKey: NSURLHasHiddenExtensionKey error: NULL];
+            [destinationURL setResourceValue: @YES forKey: NSURLHasHiddenExtensionKey error: NULL];
             
             [(BXBaseAppController *)[NSApp delegate] playUISoundWithName: @"Snapshot" atVolume: 1.0f];
             [[BXBezelController controller] showScreenshotBezel];
@@ -801,11 +795,13 @@
         else
             confirmation = [BXCloseAlert restartAlertWhileSessionIsEmulating: self];
         
-        NSDictionary *restartOptions = @{@"showLaunchPanel": @(showLaunchPanel)};
         [confirmation beginSheetModalForWindow: self.windowForSheet
-                                 modalDelegate: self
-                                didEndSelector: @selector(_restartConfirmationDidEnd:returnCode:contextInfo:)
-                                   contextInfo: (void *)[restartOptions retain]];
+                             completionHandler: ^(NSModalResponse returnCode) {
+                                 if (returnCode == NSAlertFirstButtonReturn)
+                                 {
+                                     [self restartShowingLaunchPanel: showLaunchPanel];
+                                 }
+                             }];
     }
     //If we're already at the DOS prompt then go ahead and restart already.
     else
@@ -813,21 +809,6 @@
         [self restartShowingLaunchPanel: showLaunchPanel];
     }    
 }
-
-- (void) _restartConfirmationDidEnd: (NSAlert *)alert
-                         returnCode: (NSInteger)returnCode
-                        contextInfo: (void *)contextInfo
-{
-    NSDictionary *restartOptions = (NSDictionary *)contextInfo;
-    if (returnCode == NSAlertFirstButtonReturn)
-    {
-        BOOL showLaunchPanel = [[restartOptions objectForKey: @"showLaunchPanel"] boolValue];
-        [self restartShowingLaunchPanel: showLaunchPanel];
-    }
-    //Retained back when we called beginSheetModalForWindow
-    [restartOptions release];
-}
-
 
 - (IBAction) revertShadowedChanges: (id)sender
 {
@@ -877,11 +858,9 @@
         [confirmation adoptIconFromWindow: self.windowForSheet];
         
         [confirmation beginSheetModalForWindow: self.windowForSheet
-                                 modalDelegate: self
-                                didEndSelector: @selector(_revertConfirmationDidEnd:returnCode:contextInfo:)
-                                   contextInfo: NULL];
-        
-        [confirmation release];
+                             completionHandler:^(NSModalResponse returnCode) {
+                                 [self _revertConfirmationDidEnd:confirmation returnCode:returnCode contextInfo:NULL];
+                             }];
     }
 }
 
@@ -912,11 +891,9 @@
         [confirmation adoptIconFromWindow: self.windowForSheet];
         
         [confirmation beginSheetModalForWindow: self.windowForSheet
-                                 modalDelegate: self
-                                didEndSelector: @selector(_mergeConfirmationDidEnd:returnCode:contextInfo:)
-                                   contextInfo: NULL];
-        
-        [confirmation release];
+                             completionHandler: ^(NSModalResponse returnCode) {
+                                 [self _mergeConfirmationDidEnd:confirmation returnCode:returnCode contextInfo:NULL];
+                             }];
     }
 }
 
@@ -1011,7 +988,7 @@
     panel.allowsMultipleSelection = NO;
     
     [panel beginSheetModalForWindow: self.windowForSheet completionHandler: ^(NSInteger result) {
-        if (result == NSFileHandlingPanelOKButton)
+        if (result == NSModalResponseOK)
         {
             NSURL *sourceURL = panel.URL;
             NSError *importError = nil;
@@ -1070,7 +1047,7 @@
     panel.canSelectHiddenExtension = NO;
     
     [panel beginSheetModalForWindow: self.windowForSheet completionHandler: ^(NSInteger result) {
-        if (result == NSFileHandlingPanelOKButton)
+        if (result == NSModalResponseOK)
         {
             NSError *exportError = nil;
             NSURL *destinationURL = panel.URL;

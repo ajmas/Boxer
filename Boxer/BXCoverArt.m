@@ -12,38 +12,36 @@
 #import "ADBAppKitVersionHelpers.h"
 
 @implementation BXCoverArt
-@synthesize sourceImage;
-
 
 //We give gameboxes a fairly strong shadow to lift them out from light backgrounds
 + (NSShadow *) dropShadowForSize: (NSSize)iconSize
 {
 	if (iconSize.height < 32) return nil;
 	
-	CGFloat blurRadius	= MAX(1.0f, iconSize.height / 32);
-	CGFloat offset		= MAX(1.0f, iconSize.height / 128);
+	CGFloat blurRadius	= MAX(1.0, iconSize.height / 32);
+	CGFloat offset		= MAX(1.0, iconSize.height / 128);
 	
     return [NSShadow shadowWithBlurRadius: blurRadius
                                    offset: NSMakeSize(0, -offset)
-                                    color: [NSColor colorWithCalibratedWhite: 0 alpha: 0.85f]];
+                                    color: [NSColor colorWithCalibratedWhite: 0 alpha: 0.85]];
 }
 
 //We give gameboxes a soft white glow around the inside edge so that they show up well against dark backgrounds
 + (NSShadow *) innerGlowForSize: (NSSize)iconSize
 {
 	if (iconSize.height < 64) return nil;
-	CGFloat blurRadius = MAX(1.0f, iconSize.height / 64);
+	CGFloat blurRadius = MAX(1.0, iconSize.height / 64);
 	
     return [NSShadow shadowWithBlurRadius: blurRadius
                                    offset: NSZeroSize
-                                    color: [NSColor colorWithCalibratedWhite: 1 alpha: 0.33f]];
+                                    color: [NSColor colorWithCalibratedWhite: 1 alpha: 0.33]];
 }
 
 + (NSImage *) shineForSize: (NSSize)iconSize
 { 
 	NSImage *shine = [[NSImage imageNamed: @"BoxArtShine"] copy];
 	[shine setSize: iconSize];
-	return [shine autorelease];
+	return shine;
 }
 
 - (id) initWithSourceImage: (NSImage *)image
@@ -70,17 +68,6 @@
 	NSShadow *dropShadow	= [[self class] dropShadowForSize: iconSize];
 	NSShadow *innerGlow		= [[self class] innerGlowForSize: iconSize];
 	
-	//NOTE: drawInRect:fromRect:operation:fraction: misbehaves on 10.5 in that
-	//it caches what it draws and may use that for future draw operations
-	//instead of other, more suitable representations of that image.
-	//To work around this, we draw a copy of the image instead of the original.
-	//Fuck 10.5.
-	if (isRunningOnLeopard())
-	{
-		image = [[image copy] autorelease];
-		shine = [[shine copy] autorelease];
-	}
-	
 	//Allow enough room around the image for our drop shadow
 	NSSize availableSize	= NSMakeSize(
 		iconSize.width	- [dropShadow shadowBlurRadius] * 2,
@@ -104,7 +91,7 @@
 		[dropShadow set];
 		[image drawInRect: artFrame
 				 fromRect: NSZeroRect
-				operation: NSCompositeSourceOver
+				operation: NSCompositingOperationSourceOver
 				 fraction: 1.0f];
 	[NSGraphicsContext restoreGraphicsState];
 	
@@ -114,31 +101,36 @@
 	//Draw our pretty box shine into the box's region
 	[shine drawInRect: artFrame
 			 fromRect: artFrame
-			operation: NSCompositeSourceOver
-			 fraction: 0.25f];
+			operation: NSCompositingOperationSourceOver
+			 fraction: 0.25];
 	
 	//Finally, outline the box
-	[[NSColor colorWithCalibratedWhite: 0.0f alpha: 0.33f] set];
-	[NSBezierPath setDefaultLineWidth: 1.0f];
-	[NSBezierPath strokeRect: NSInsetRect(artFrame, -0.5f, -0.5f)];
+	[[NSColor colorWithCalibratedWhite: 0.0 alpha: 0.33] set];
+	[NSBezierPath setDefaultLineWidth: 1.0];
+	[NSBezierPath strokeRect: NSInsetRect(artFrame, -0.5, -0.5)];
 	
 	[[NSGraphicsContext currentContext] setImageInterpolation: oldInterpolation];
 }
 
 - (NSImageRep *) representationForSize: (NSSize)iconSize
+{
+	return [self representationForSize: iconSize scale: 1];
+}
+
+- (NSImageRep *) representationForSize: (NSSize)iconSize scale: (CGFloat)scale
 {	
 	NSRect frame = NSMakeRect(0, 0, iconSize.width, iconSize.height);
 
 	//Create a new empty canvas to draw into
-	NSImage *canvas = [[NSImage alloc] initWithSize: iconSize];
+	NSBitmapImageRep *rep = [[NSBitmapImageRep alloc] initWithBitmapDataPlanes:NULL pixelsWide:iconSize.width * scale pixelsHigh:iconSize.height * scale bitsPerSample:8 samplesPerPixel:4 hasAlpha:YES isPlanar:NO colorSpaceName:NSCalibratedRGBColorSpace bytesPerRow:0 bitsPerPixel:32];
 	
-	[canvas lockFocus];
+	rep.size = iconSize;
+	[NSGraphicsContext saveGraphicsState];
+	NSGraphicsContext.currentContext = [NSGraphicsContext graphicsContextWithBitmapImageRep:rep];
 		[self drawInRect: frame];
-		NSBitmapImageRep *rep = [[NSBitmapImageRep alloc] initWithFocusedViewRect: frame];
-	[canvas unlockFocus];
-	[canvas release];
+	[NSGraphicsContext restoreGraphicsState];
 	
-	return [rep autorelease];
+	return rep;
 }
 
 - (NSImage *) coverArt
@@ -153,17 +145,21 @@
 	if ([[self class] imageHasTransparency: image]) return image;
 	
 	NSImage *coverArt = [[NSImage alloc] init];
+	[coverArt addRepresentation: [self representationForSize: NSMakeSize(512, 512) scale: 2]];
 	[coverArt addRepresentation: [self representationForSize: NSMakeSize(512, 512)]];
+	[coverArt addRepresentation: [self representationForSize: NSMakeSize(256, 256) scale: 2]];
 	[coverArt addRepresentation: [self representationForSize: NSMakeSize(256, 256)]];
+	[coverArt addRepresentation: [self representationForSize: NSMakeSize(128, 128) scale: 2]];
 	[coverArt addRepresentation: [self representationForSize: NSMakeSize(128, 128)]];
+	[coverArt addRepresentation: [self representationForSize: NSMakeSize(32, 32) scale: 2]];
 	[coverArt addRepresentation: [self representationForSize: NSMakeSize(32, 32)]];
 	
-	return [coverArt autorelease];
+	return coverArt;
 }
 
 + (NSImage *) coverArtWithImage: (NSImage *)image
 {
-	id generator = [[[self alloc] initWithSourceImage: image] autorelease];
+	id generator = [[self alloc] initWithSourceImage: image];
 	return [generator coverArt];
 }
 
@@ -179,10 +175,10 @@
 		//Test 5 pixels in an X pattern: each corner and right in the center of the image.
 		NSPoint testPoints[5] = {
 			NSMakePoint(0,						0),
-			NSMakePoint(imageSize.width - 1.0f,	0),
-			NSMakePoint(0,						imageSize.height - 1.0f),
-			NSMakePoint(imageSize.width - 1.0f,	imageSize.height - 1.0f),
-			NSMakePoint(imageSize.width * 0.5f,	imageSize.height * 0.5f)
+			NSMakePoint(imageSize.width - 1.0,	0),
+			NSMakePoint(0,						imageSize.height - 1.0),
+			NSMakePoint(imageSize.width - 1.0,	imageSize.height - 1.0),
+			NSMakePoint(imageSize.width * 0.5,	imageSize.height * 0.5)
 		};
 		NSInteger i;
 						

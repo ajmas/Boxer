@@ -10,6 +10,8 @@
 
 #import <Cocoa/Cocoa.h>
 
+NS_ASSUME_NONNULL_BEGIN
+
 #pragma mark -
 #pragma mark Constants
 
@@ -20,114 +22,88 @@ typedef NS_ENUM(NSInteger, BXBezelPriority) {
 };
 
 //XIB view flags for indicating different view roles within a bezel
-enum {
-    BXBezelMessage          = 7,    //Message imparted by the bezel
-    BXBezelIcon             = 1,    //Decorative icon for the bezel
-    BXBezelLevel            = 2,    //Level indicator
-    BXBezelLevelStatus      = 3,    //Label describing the status indicated in the level indicator
+NS_ENUM(NSInteger) {
+    BXBezelMessage          = 7,    //!< Message imparted by the bezel
+    BXBezelIcon             = 1,    //!< Decorative icon for the bezel
+    BXBezelLevel            = 2,    //!< Level indicator
+    BXBezelLevelStatus      = 3,    //!< Label describing the status indicated in the level indicator
     
-    BXBezelDriveAction      = 4,    //Label describing what's happening to the drive
-    BXBezelDriveTitle       = 5,    //Display title of the drive
+    BXBezelDriveAction      = 4,    //!< Label describing what's happening to the drive
+    BXBezelDriveTitle       = 5,    //!< Display title of the drive
     
-    BXBezelDriveFromIcon    = 1,    //The icon of the drive we are switching from
-    BXBezelDriveToIcon      = 6     //The icon of the drive we are switching to
+    BXBezelDriveFromIcon    = 1,    //!< The icon of the drive we are switching from
+    BXBezelDriveToIcon      = 6     //!< The icon of the drive we are switching to
 };
 
 @class BXDrive;
 @class BXGamebox;
+/// BXBezelController is a singleton that manages a translucent notification bezel.
 @interface BXBezelController : NSWindowController
-{
-    NSView *_driveAddedBezel;
-    NSView *_driveSwappedBezel;
-    NSView *_driveRemovedBezel;
-    NSView *_driveImportedBezel;
-    NSView *_fullscreenBezel;
-    NSView *_joystickIgnoredBezel;
-    NSView *_CPUSpeedBezel;
-    NSView *_throttleBezel;
-    NSView *_volumeBezel;
-    NSView *_pauseBezel;
-    NSView *_playBezel;
-    NSView *_fastForwardBezel;
-    NSView *_screenshotBezel;
-    NSView *_MT32MessageBezel;
-    NSView *_MT32MissingBezel;
-    NSView *_numpadActiveBezel;
-    NSView *_numpadInactiveBezel;
-    NSView *_numlockActiveBezel;
-    NSView *_numlockInactiveBezel;
-    
-    NSView *_mouseLockedBezel;
-    
-    BXBezelPriority _currentPriority;
-    
-    BOOL _hasShownFullscreenBezel;
-}
 
 #pragma mark -
 #pragma mark Properties
 
-//The bezel view used for drive inserted/ejected/imported notifications.
-@property (assign, nonatomic) IBOutlet NSView *driveAddedBezel;
-@property (assign, nonatomic) IBOutlet NSView *driveSwappedBezel;
-@property (assign, nonatomic) IBOutlet NSView *driveRemovedBezel;
-@property (assign, nonatomic) IBOutlet NSView *driveImportedBezel;
+/// The bezel view used for drive inserted/ejected/imported notifications.
+@property (strong, nonatomic, null_unspecified) IBOutlet NSView *driveAddedBezel;
+@property (strong, nonatomic, null_unspecified) IBOutlet NSView *driveSwappedBezel;
+@property (strong, nonatomic, null_unspecified) IBOutlet NSView *driveRemovedBezel;
+@property (strong, nonatomic, null_unspecified) IBOutlet NSView *driveImportedBezel;
 
-//The bezel used for fullscreen toggle notifications.
-@property (assign, nonatomic) IBOutlet NSView *fullscreenBezel;
+/// The bezel used for fullscreen toggle notifications.
+@property (strong, nonatomic, null_unspecified) IBOutlet NSView *fullscreenBezel;
 
-//The bezel used for notifying the user that the joystick is being ignored.
-@property (assign, nonatomic) IBOutlet NSView *joystickIgnoredBezel;
+/// The bezel used for notifying the user that the joystick is being ignored.
+@property (strong, nonatomic, null_unspecified) IBOutlet NSView *joystickIgnoredBezel;
 
-//The bezel view used for CPU speed notifications.
-@property (assign, nonatomic) IBOutlet NSView *CPUSpeedBezel;
+/// The bezel view used for CPU speed notifications.
+@property (strong, nonatomic, null_unspecified) IBOutlet NSView *CPUSpeedBezel;
 
-//The bezel view used for flightstick throttle notifications.
-@property (assign, nonatomic) IBOutlet NSView *throttleBezel;
+/// The bezel view used for flightstick throttle notifications.
+@property (strong, nonatomic, null_unspecified) IBOutlet NSView *throttleBezel;
 
-//The bezel view used for volume notifications.
-@property (assign, nonatomic) IBOutlet NSView *volumeBezel;
+/// The bezel view used for volume notifications.
+@property (strong, nonatomic, null_unspecified) IBOutlet NSView *volumeBezel;
 
-//The bezel view used for MT-32 LCD messages.
-@property (assign, nonatomic) IBOutlet NSView *MT32MessageBezel;
-//The bezel view used for notifying the user that they need an MT-32 to hear proper music.
-@property (assign, nonatomic) IBOutlet NSView *MT32MissingBezel;
+/// The bezel view used for MT-32 LCD messages.
+@property (strong, nonatomic, null_unspecified) IBOutlet NSView *MT32MessageBezel;
+/// The bezel view used for notifying the user that they need an MT-32 to hear proper music.
+@property (strong, nonatomic, null_unspecified) IBOutlet NSView *MT32MissingBezel;
 
-//Screenshot bezel views.
-@property (assign, nonatomic) IBOutlet NSView *screenshotBezel;
+/// Screenshot bezel views.
+@property (strong, nonatomic, null_unspecified) IBOutlet NSView *screenshotBezel;
 
-//Pause/play/fast-forward bezel views.
-@property (assign, nonatomic) IBOutlet NSView *pauseBezel;
-@property (assign, nonatomic) IBOutlet NSView *playBezel;
-@property (assign, nonatomic) IBOutlet NSView *fastForwardBezel;
+/// Pause/play/fast-forward bezel views.
+@property (strong, nonatomic, null_unspecified) IBOutlet NSView *pauseBezel;
+@property (strong, nonatomic, null_unspecified) IBOutlet NSView *playBezel;
+@property (strong, nonatomic, null_unspecified) IBOutlet NSView *fastForwardBezel;
 
-//Numpad simulation bezels.
-@property (assign, nonatomic) IBOutlet NSView *numpadActiveBezel;
-@property (assign, nonatomic) IBOutlet NSView *numpadInactiveBezel;
+/// Numpad simulation bezels.
+@property (strong, nonatomic, null_unspecified) IBOutlet NSView *numpadActiveBezel;
+@property (strong, nonatomic, null_unspecified) IBOutlet NSView *numpadInactiveBezel;
 
-//Numlock toggle bezels.
-@property (assign, nonatomic) IBOutlet NSView *numlockActiveBezel;
-@property (assign, nonatomic) IBOutlet NSView *numlockInactiveBezel;
+/// Numlock toggle bezels.
+@property (strong, nonatomic, null_unspecified) IBOutlet NSView *numlockActiveBezel;
+@property (strong, nonatomic, null_unspecified) IBOutlet NSView *numlockInactiveBezel;
 
-@property (assign, nonatomic) IBOutlet NSView *mouseLockedBezel;
+@property (strong, nonatomic, null_unspecified) IBOutlet NSView *mouseLockedBezel;
 
-//The last bezel that was displayed.
-@property (readonly, nonatomic) NSView *currentBezel;
+/// The last bezel that was displayed.
+@property (readonly, nonatomic, nullable) NSView *currentBezel;
 
 #pragma mark -
 #pragma mark Class methods
 
-//The singleton controller to which all bezel requests should be directed.
-+ (id) controller;
+/// The singleton controller to which all bezel requests should be directed.
+@property (class, readonly, strong) id controller;
 
-//Returns the icon image to use for representing the specified drive.
-+ (NSImage *) bezelIconForDrive: (BXDrive *)drive;
+/// Returns the icon image to use for representing the specified drive.
++ (nullable NSImage *) bezelIconForDrive: (BXDrive *)drive;
 
 #pragma mark -
 #pragma mark Methods
 
-//Whether to show or suppress drive notifications.
-//This will return NO if the Drives Inspector panel is open.
+/// Whether to show or suppress drive notifications.
+/// This will return NO if the Drives Inspector panel is open.
 - (BOOL) shouldShowDriveNotifications;
 
 - (void) showDriveAddedBezelForDrive: (BXDrive *)drive;
@@ -170,3 +146,5 @@ enum {
 - (void) centerBezel;
 
 @end
+
+NS_ASSUME_NONNULL_END

@@ -9,7 +9,6 @@
 
 
 @implementation BXScriptableWindow
-@synthesize window;
 
 #pragma mark -
 #pragma mark Introspection
@@ -31,7 +30,7 @@
 
 + (id) scriptableWindow: (NSWindow *)_window
 {
-	return [[[self alloc] initWithWindow: _window] autorelease];
+	return [[self alloc] initWithWindow: _window];
 }
 
 - (id) initWithWindow: (NSWindow *)_window
@@ -41,12 +40,6 @@
 		[self setWindow: _window];
 	}
 	return self;
-}
-
-- (void) dealloc
-{
-	[self setWindow: nil], [window release];
-	return [super dealloc];
 }
 
 #pragma mark -

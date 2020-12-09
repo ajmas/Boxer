@@ -37,8 +37,6 @@
 
 
 @implementation BXImportInstallerPanelController
-@synthesize installerSelector = _installerSelector;
-@synthesize controller = _controller;
 
 #pragma mark -
 #pragma mark Initialization and deallocation
@@ -50,7 +48,6 @@
         BXDisplayPathTransformer *nameTransformer = [[BXDisplayPathTransformer alloc] initWithJoiner: @" ▸ " maxComponents: 0];
         
         [NSValueTransformer setValueTransformer: nameTransformer forName: @"BXImportInstallerMenuTitle"];
-        [nameTransformer release];
     }
 }
 
@@ -62,10 +59,6 @@
 - (void) dealloc
 {
 	[self.controller removeObserver: self forKeyPath: @"document.installerURLs"];
-
-    self.installerSelector = nil;
-	
-	[super dealloc];
 }
 
 - (void) observeValueForKeyPath: (NSString *)keyPath
@@ -101,14 +94,10 @@
 	if (installerURLs)
 	{		
 		for (NSURL *installerURL in installerURLs)
-		{
-			NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
-			
+		@autoreleasepool {
 			NSMenuItem *item = [self _installerSelectorItemForURL: installerURL];
 			
             [menu insertItem: item atIndex: insertionPoint++];
-			
-			[pool release];
 		}
 		
 		//Always select the first installer in the list, as this is the preferred installer
@@ -139,7 +128,7 @@
 	item.representedObject = URL;
     item.title = title;
 	
-	return [item autorelease];
+	return item;
 }
 
 
@@ -208,11 +197,11 @@
     openPanel.directoryURL = self.controller.document.sourceURL;
     
     [openPanel beginSheetModalForWindow: self.view.window completionHandler: ^(NSInteger result) {
-        if (result == NSFileHandlingPanelOKButton)
+		if (result == NSModalResponseOK)
         {
             [self addInstallerFromURL: openPanel.URL];
         }
-        else if (result == NSFileHandlingPanelCancelButton)
+		else if (result == NSModalResponseCancel)
         {
             //Revert to the first menu item if the user cancelled,
             //to avoid leaving the option that opened the picker selected.

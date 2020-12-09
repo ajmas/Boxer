@@ -24,17 +24,6 @@
 @end
 
 @implementation BXDriveItem
-@synthesize importing = _importing;
-@synthesize titleLabel = _titleLabel;
-@synthesize typeLabel = _typeLabel;
-@synthesize progressMeter = _progressMeter;
-@synthesize progressMeterLabel = _progressMeterLabel;
-@synthesize toggleButton = _toggleButton;
-@synthesize revealButton = _revealButton;
-@synthesize importButton = _importButton;
-@synthesize cancelButton = _cancelButton;
-@synthesize icon = _icon;
-@synthesize letterLabel = _letterLabel;
 
 - (void) viewDidLoad
 {
@@ -122,22 +111,6 @@
         [self _syncControlsShownWithAnimation: YES];
         [self _syncProgressShownWithAnimation: YES];
     }
-}
-
-- (void) dealloc
-{
-    self.progressMeter = nil;
-    self.progressMeterLabel = nil;
-    self.cancelButton = nil;
-    self.typeLabel = nil;
-    self.titleLabel = nil;
-    self.letterLabel = nil;
-    self.toggleButton = nil;
-    self.revealButton = nil;
-    self.importButton = nil;
-    self.icon = nil;
-    
-    [super dealloc];
 }
 
 

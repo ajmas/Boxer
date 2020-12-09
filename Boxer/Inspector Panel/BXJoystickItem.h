@@ -8,14 +8,9 @@
 #import "BXCollectionItemView.h"
 
 @interface BXJoystickItem : BXCollectionItem
-{
-    NSTextField *_titleLabel;
-    NSTextField *_descriptionLabel;
-    NSImageView *_icon;
-}
 
-@property (retain, nonatomic) IBOutlet NSTextField *titleLabel;
-@property (retain, nonatomic) IBOutlet NSTextField *descriptionLabel;
-@property (retain, nonatomic) IBOutlet NSImageView *icon;
+@property (strong, nonatomic, null_unspecified) IBOutlet NSTextField *titleLabel;
+@property (strong, nonatomic, null_unspecified) IBOutlet NSTextField *descriptionLabel;
+@property (strong, nonatomic, null_unspecified) IBOutlet NSImageView *icon;
 
 @end

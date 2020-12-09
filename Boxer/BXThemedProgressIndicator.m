@@ -12,7 +12,7 @@
 
 @interface BXThemedProgressIndicator ()
 
-@property (retain, nonatomic) NSTimer *animationTimer;
+@property (strong, nonatomic) NSTimer *animationTimer;
 
 //Called each time the animation timer fires.
 - (void) _performAnimation: (NSTimer *)timer;
@@ -20,17 +20,11 @@
 @end
 
 @implementation BXThemedProgressIndicator
-@synthesize animationTimer = _animationTimer;
 @synthesize themeKey = _themeKey;
 
 - (void) dealloc
 {
     [self stopAnimation: self];
-    
-    self.animationTimer = nil;
-    self.themeKey = nil;
-    
-    [super dealloc];
 }
 
 - (BOOL) isOpaque
@@ -75,7 +69,7 @@
         offset.x += (stripeWidth * 2);
     }
     
-    return [stripePath autorelease];
+    return stripePath;
 }
 
 - (void) drawSlotInRect: (NSRect)dirtyRect
@@ -131,8 +125,6 @@
             [stripeColor setFill];
             [stripePath fill];
         [NSGraphicsContext restoreGraphicsState];
-        
-        [progressGradient release];
     }
 }
 
@@ -161,8 +153,6 @@
             [progressGradient drawInBezierPath: progressPath
                                          angle: 90.0f];
         [NSGraphicsContext restoreGraphicsState];
-        
-        [progressGradient release];
     }
 }
 

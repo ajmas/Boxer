@@ -16,9 +16,12 @@
 
 NSString * const BXDriveBundleErrorDomain = @"BXDriveBundleErrorDomain";
 
-
+@interface BXDriveBundleImport ()
+@property (atomic) BOOL hasWrittenFiles;
+@end
 
 @implementation BXDriveBundleImport
+
 @synthesize drive = _drive;
 @synthesize destinationFolderURL = _destinationFolderURL;
 @synthesize destinationURL = _destinationURL;
@@ -68,15 +71,6 @@ NSString * const BXDriveBundleErrorDomain = @"BXDriveBundleErrorDomain";
 	return self;
 }
 
-- (void) dealloc
-{
-    self.drive = nil;
-    self.destinationFolderURL = nil;
-    self.destinationURL = nil;
-    
-	[super dealloc];
-}
-
 - (NSURL *) preferredDestinationURL
 {
     if (!self.drive || !self.destinationFolderURL) return nil;
@@ -107,9 +101,9 @@ NSString * const BXDriveBundleErrorDomain = @"BXDriveBundleErrorDomain";
 	NSURL *destinationURL	= self.destinationURL;
 	
 	NSError *readError = nil;
-	NSString *cueContents = [[[NSString alloc] initWithContentsOfURL: sourceURL
+	NSString *cueContents = [[NSString alloc] initWithContentsOfURL: sourceURL
                                                         usedEncoding: NULL
-                                                               error: &readError] autorelease];
+                                                               error: &readError];
     
 	if (!cueContents)
 	{
@@ -155,9 +149,9 @@ NSString * const BXDriveBundleErrorDomain = @"BXDriveBundleErrorDomain";
     if (self.isCancelled) return;
     
     //Perform the standard file import from here on in.
-    _hasWrittenFiles = NO;
+    self.hasWrittenFiles = NO;
     [super main];
-    _hasWrittenFiles = YES;
+    self.hasWrittenFiles = YES;
     
     if (!self.error)
     {
@@ -182,7 +176,6 @@ NSString * const BXDriveBundleErrorDomain = @"BXDriveBundleErrorDomain";
                                       atomically: YES
                                         encoding: NSUTF8StringEncoding
                                            error: &cueError];
-        [revisedCue release];
         
         if (!cueWritten)
         {
@@ -206,7 +199,7 @@ NSString * const BXDriveBundleErrorDomain = @"BXDriveBundleErrorDomain";
 - (BOOL) undoTransfer
 {
 	BOOL undid = [super undoTransfer];
-	if (self.copyFiles && self.destinationURL && _hasWrittenFiles)
+	if (self.copyFiles && self.destinationURL && self.hasWrittenFiles)
 	{
 		undid = [[NSFileManager defaultManager] removeItemAtURL: self.destinationURL error: NULL];
 	}

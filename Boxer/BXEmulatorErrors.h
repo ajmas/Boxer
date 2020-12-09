@@ -11,65 +11,64 @@
 #pragma mark -
 #pragma mark Constants
 
+/// The error domain for general emulator errors.
+extern NSErrorDomain const BXEmulatorErrorDomain;
 
-//The error domain for general emulator errors.
-extern NSString * const BXEmulatorErrorDomain;
+/// The error domain used for drive- and DOS filesystem-related errors.
+extern NSErrorDomain const BXDOSFilesystemErrorDomain;
 
-//The error domain used for drive- and DOS filesystem-related errors.
-extern NSString * const BXDOSFilesystemErrorDomain;
-
-//The name of exceptions generated when the emulation hits an error it cannot recover from.
-//The emulator should be assumed to be in an unusable state.
-extern NSString * const BXEmulatorUnrecoverableException;
+/// The name of exceptions generated when the emulation hits an error it cannot recover from.
+/// The emulator should be assumed to be in an unusable state.
+extern NSExceptionName const BXEmulatorUnrecoverableException;
 
 
-//User info key representing a BXDrive instance in drive-related errors.
-extern NSString * const BXDOSFilesystemErrorDriveKey;
+/// User info key representing a BXDrive instance in drive-related errors.
+extern NSErrorUserInfoKey const BXDOSFilesystemErrorDriveKey;
 
-//Error constants for BXEmulatorErrorDomain
-enum {
+/// Error constants for BXEmulatorErrorDomain
+typedef NS_ERROR_ENUM(BXEmulatorErrorDomain, BXEmulatorErrors) {
     BXEmulatorUnknownError,
-    BXEmulatorUnrecoverableError,   //Error code used when DOSBox encounters any kind of unrecoverable error and must quit.
+    BXEmulatorUnrecoverableError,   //!< Error code used when DOSBox encounters any kind of unrecoverable error and must quit.
 };
 
-//Error constants for BXDOSFilesystemErrorDomain
-enum {
+/// Error constants for BXDOSFilesystemErrorDomain
+typedef NS_ERROR_ENUM(BXDOSFilesystemErrorDomain, BXDOSFilesystemErrors) {
     BXDOSFilesystemUnknownError,
-    BXDOSFilesystemCouldNotReadDrive,   //Drive source path did not exist or could not be read
-    BXDOSFilesystemInvalidImage,        //Drive image could not be successfully loaded by DOSBox
-    BXDOSFilesystemDriveLetterOccupied, //Requested drive letter was already taken
-    BXDOSFilesystemOutOfDriveLetters,   //There are no more free drive letters left
+    BXDOSFilesystemCouldNotReadDrive,   //!< Drive source path did not exist or could not be read
+    BXDOSFilesystemInvalidImage,        //!< Drive image could not be successfully loaded by DOSBox
+    BXDOSFilesystemDriveLetterOccupied, //!< Requested drive letter was already taken
+    BXDOSFilesystemOutOfDriveLetters,   //!< There are no more free drive letters left
     
-    BXDOSFilesystemMSCDEXNonContiguousDrives,   //Attempting to mount a CD drive at a letter not directly
-                                                //before or after a previous CD drive (MSCDEX limitation.)
-    BXDOSFilesystemMSCDEXOutOfCDROMDrives,      //Exceeded the maximum number of CD drives supported (MSCDEX limitation.)
+    BXDOSFilesystemMSCDEXNonContiguousDrives,   //!< Attempting to mount a CD drive at a letter not directly
+                                                //!< before or after a previous CD drive (MSCDEX limitation.)
+    BXDOSFilesystemMSCDEXOutOfCDROMDrives,      //!< Exceeded the maximum number of CD drives supported (MSCDEX limitation.)
     
-    BXDOSFilesystemDriveLocked,         //A drive could not be ejected because it was a required internal drive.
-    BXDOSFilesystemDriveInUse           //A drive could not be ejected because it was currently in use.
+    BXDOSFilesystemDriveLocked,         //!< A drive could not be ejected because it was a required internal drive.
+    BXDOSFilesystemDriveInUse           //!< A drive could not be ejected because it was currently in use.
 };
 
 
 #pragma mark -
 #pragma mark Error classes
 
-//A protocol for generic emulator-related error subclasses.
-@protocol BXEmulatorError
+/// A protocol for generic emulator-related error subclasses.
+@protocol BXEmulatorError <NSObject>
 
-//Returns an autoreleased error object preconfigured with
-//the error code and domain for that error type.
-+ (id) error;
+/// Returns an autoreleased error object preconfigured with
+/// the error code and domain for that error type.
++ (instancetype) error;
 @end
 
 
-//A protocol for drive-related error subclasses.
 @class BXDrive;
-@protocol BXDriveError
+/// A protocol for drive-related error subclasses.
+@protocol BXDriveError <NSObject>
 
-//Returns an autoreleased error object preconfigured with
-//the error code and domain for that error type, and a user
-//info dictionary with the BXDOSFilesystemErrorDriveKey key
-//referring to the specified drive.
-+ (id) errorWithDrive: (BXDrive *)drive;
+/// Returns an autoreleased error object preconfigured with
+/// the error code and domain for that error type, and a user
+/// info dictionary with the \c BXDOSFilesystemErrorDriveKey key
+/// referring to the specified drive.
++ (instancetype) errorWithDrive: (BXDrive *)drive;
 
 @end
 

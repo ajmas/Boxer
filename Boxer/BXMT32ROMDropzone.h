@@ -10,22 +10,9 @@
 #import "BXEmulatedMT32.h"
 
 
-@interface BXMT32ROMDropzone : NSButton
-{
-    BXMT32ROMType _ROMType;
-    BOOL _highlighted;
-    
-    CALayer *_backgroundLayer;
-    CALayer *_CM32LLayer;
-    CALayer *_MT32Layer;
-    CALayer *_highlightLayer;
-    CATextLayer *_titleLayer;
-}
+@interface BXMT32ROMDropzone : NSButton <CALayerDelegate>
 
-//The type of MT-32 device to display (or BXMT32ROMTypeUnknown for no device.)
+/// The type of MT-32 device to display (or BXMT32ROMTypeUnknown for no device.)
 @property (assign, nonatomic) BXMT32ROMType ROMType;
-
-//Whether the dropzone is highlighted for a drag-drop operation.
-@property (assign, nonatomic, getter=isHighlighted) BOOL highlighted;
 
 @end

@@ -14,6 +14,7 @@
 #import "NSData+HexStrings.h"
 #import "NSURL+ADBFilesystemHelpers.h"
 #import "NSError+ADBErrorHelpers.h"
+#import "BXBaseAppController.h"
 
 
 #pragma mark - Constants
@@ -48,45 +49,48 @@ NSString * const BXLauncherDefaultKey       = @"BXLauncherIsDefault";
 
 NSString * const BXGameboxErrorDomain = @"BXGameboxErrorDomain";
 
-//When calculating a digest from the gamebox's EXEs, read only the first 64kb of each EXE.
+/// When calculating a digest from the gamebox's EXEs, read only the first 64kb of each EXE.
 #define BXGameIdentifierEXEDigestStubLength 65536
 
-//The gamebox will cache the results of an isWritable check for this many seconds
-//to prevent repeated hits to the filesystem.
+/// The gamebox will cache the results of an isWritable check for this many seconds
+/// to prevent repeated hits to the filesystem.
 #define BXGameboxWritableCheckCacheDuration 3.0
 
 
 #pragma mark - Private method declarations
 
 @interface BXGamebox ()
-@property (readwrite, retain, nonatomic) NSDictionary *gameInfo;
+@property (readwrite, strong, nonatomic) NSDictionary *gameInfo;
 
-+ (NSSet *) executableExclusions;
-+ (NSArray *) URLsForMeaningfulExecutablesInLocation: (NSURL *)baseURL
-                                searchSubdirectories: (BOOL)searchSubdirs;
++ (NSSet<NSString*> *) executableExclusions;
++ (NSArray<NSURL*> *) URLsForMeaningfulExecutablesInLocation: (NSURL *)baseURL
+                                        searchSubdirectories: (BOOL)searchSubdirs;
 
-//Returns a new auto-generated identifier based on the meaningful
-//executbales found inside the gamebox (if any are present), or a random UUID.
-//On return, type will be the type of identifier generated.
+/// Returns a new auto-generated identifier based on the meaningful
+/// executables found inside the gamebox (if any are present), or a random UUID.
+/// On return, @c type will be the type of identifier generated.
 - (NSString *) _generatedIdentifierOfType: (BXGameIdentifierType *)type;
 
-//Lazily populates the launchers array from the game info the first time the array is accessed.
+/// Lazily populates the launchers array from the game info the first time the array is accessed.
 - (void) _populateLaunchers;
 
-//Rewrite the launchers array in the game info.
+/// Rewrite the launchers array in the game info.
 - (void) _persistLaunchers;
 
-//Save the game info back to the gamebox.
+/// Save the game info back to the gamebox.
 - (void) _persistGameInfo;
 
 @end
 
 
 @implementation BXGamebox
-@synthesize gameInfo = _gameInfo;
-@synthesize undoDelegate = _undoDelegate;
+{
+	NSMutableArray *_launchers;
+	BOOL _lastWritableStatus;
+	CFAbsoluteTime _nextWriteableCheckTime;
+}
 
-//We ignore files with these names when considering which programs are important enough to list
+/// We ignore files with these names when considering which programs are important enough to list
 //TODO: read this data from a configuration plist instead
 + (NSSet *) executableExclusions
 {
@@ -104,18 +108,12 @@ NSString * const BXGameboxErrorDomain = @"BXGameboxErrorDomain";
 
 + (BXGamebox *) bundleWithURL: (NSURL *)URL
 {
-	return [[[self alloc] initWithURL: URL] autorelease];
+	return [[self alloc] initWithURL: URL];
 }
 
 - (void) dealloc
 {
     [self.undoDelegate removeAllUndoActionsForClient: self];
-    
-    self.gameInfo = nil;
-    
-    [_launchers release], _launchers = nil;
-    
-	[super dealloc];
 }
 
 #pragma mark - Launchers
@@ -140,8 +138,6 @@ NSString * const BXGameboxErrorDomain = @"BXGameboxErrorDomain";
                 [resolvedLauncher setObject: absoluteURL forKey: BXLauncherURLKey];
                 
                 [_launchers addObject: resolvedLauncher];
-                
-                [resolvedLauncher release];
             }
         }
         
@@ -178,8 +174,6 @@ NSString * const BXGameboxErrorDomain = @"BXGameboxErrorDomain";
         //Strip out the absolute URL: we don't want to persist this into the plist.
         [sanitisedLauncher removeObjectForKey: BXLauncherURLKey];
         [sanitisedLaunchers addObject: sanitisedLauncher];
-        
-        [sanitisedLauncher release];
     }
     
     [self setGameInfo: sanitisedLaunchers
@@ -227,7 +221,7 @@ NSString * const BXGameboxErrorDomain = @"BXGameboxErrorDomain";
     NSString *relativePath = [URL pathRelativeToURL: self.resourceURL];
     
     if (title.length)
-        title = [[title copy] autorelease];
+        title = [title copy];
     else
         title = relativePath.lastPathComponent;
     
@@ -239,12 +233,11 @@ NSString * const BXGameboxErrorDomain = @"BXGameboxErrorDomain";
     
     if (launchArguments.length)
     {
-        launchArguments = [[launchArguments copy] autorelease];
+        launchArguments = [launchArguments copy];
         [launcher setObject: launchArguments forKey: BXLauncherArgsKey];
     }
     
     [self insertLauncher: launcher atIndex: index];
-    [launcher release];
 }
 
 - (void) addLauncherWithURL: (NSURL *)URL
@@ -440,7 +433,7 @@ NSString * const BXGameboxErrorDomain = @"BXGameboxErrorDomain";
 		identifier = [self _generatedIdentifierOfType: &generatedType];
 
 		[(NSMutableDictionary *)self.gameInfo setObject: identifier forKey: BXGameIdentifierGameInfoKey];
-		[(NSMutableDictionary *)self.gameInfo setObject: [NSNumber numberWithUnsignedInteger: generatedType]
+		[(NSMutableDictionary *)self.gameInfo setObject: @(generatedType)
                                                  forKey: BXGameIdentifierTypeGameInfoKey];
         
 		[self _persistGameInfo];
@@ -452,7 +445,7 @@ NSString * const BXGameboxErrorDomain = @"BXGameboxErrorDomain";
 - (void) setGameIdentifier: (NSString *)identifier
 {
 	[(NSMutableDictionary *)self.gameInfo setObject: identifier forKey: BXGameIdentifierGameInfoKey];
-	[(NSMutableDictionary *)self.gameInfo setObject: [NSNumber numberWithUnsignedInteger: BXGameIdentifierUserSpecified]
+	[(NSMutableDictionary *)self.gameInfo setObject: @(BXGameIdentifierUserSpecified)
                                              forKey: BXGameIdentifierTypeGameInfoKey];
 }
 
@@ -479,7 +472,7 @@ NSString * const BXGameboxErrorDomain = @"BXGameboxErrorDomain";
 
 - (NSArray *) URLsOfVolumesMatchingTypes: (NSSet *)fileTypes
 {
-    NSDirectoryEnumerationOptions options = NSDirectoryEnumerationSkipsSubdirectoryDescendants | NSDirectoryEnumerationSkipsHiddenFiles;
+    const NSDirectoryEnumerationOptions options = NSDirectoryEnumerationSkipsSubdirectoryDescendants | NSDirectoryEnumerationSkipsHiddenFiles;
     NSDirectoryEnumerator *enumerator = [[NSFileManager defaultManager] enumeratorAtURL: self.resourceURL
                                                              includingPropertiesForKeys: @[NSURLTypeIdentifierKey]
                                                                                 options: options
@@ -544,7 +537,7 @@ NSString * const BXGameboxErrorDomain = @"BXGameboxErrorDomain";
                              [NSSortDescriptor sortDescriptorWithKey: @"sourceURL.lastPathComponent" ascending: YES]];
     [drives sortUsingDescriptors: descriptors];
     
-    return drives;
+    return [drives copy];
 }
 
 - (NSURL *) configurationFileURL
@@ -614,10 +607,11 @@ NSString * const BXGameboxErrorDomain = @"BXGameboxErrorDomain";
 
 #pragma mark - Private methods
 
-//Write the game info back to the plist file
+/// Write the game info back to the plist file
 - (void) _persistGameInfo
 {
-	if (_gameInfo)
+    //TWEAK: standalone games should not modify their plists.
+	if (_gameInfo && ![(BXBaseAppController *)[NSApp delegate] isStandaloneGameBundle])
 	{
 		NSString *infoName = [BXGameInfoFileName stringByAppendingPathExtension: BXGameInfoFileExtension];
 		NSString *infoPath = [self.resourcePath stringByAppendingPathComponent: infoName];
@@ -679,16 +673,7 @@ NSString * const BXGameboxErrorDomain = @"BXGameboxErrorDomain";
 	//Otherwise, generate a UUID.
 	if (!identifier)
 	{
-		CFUUIDRef     UUID;
-		CFStringRef   UUIDString;
-		
-		UUID = CFUUIDCreate(kCFAllocatorDefault);
-		UUIDString = CFUUIDCreateString(kCFAllocatorDefault, UUID);
-		
-		NSString *identifierWithUUID = [NSString stringWithString: (__bridge NSString *)UUIDString];
-		
-		CFRelease(UUID);
-		CFRelease(UUIDString);
+		NSString *identifierWithUUID = [NSUUID UUID].UUIDString;
 		
 		*type = BXGameIdentifierUUID;
 		identifier = identifierWithUUID;
@@ -895,7 +880,7 @@ NSString * const BXGameboxErrorDomain = @"BXGameboxErrorDomain";
                             ifExists: (BXGameboxDocumentationConflictBehaviour)conflictBehaviour
                                error: (out NSError **)outError
 {    
-    NSFileManager *manager = [[[NSFileManager alloc] init] autorelease];
+    NSFileManager *manager = [[NSFileManager alloc] init];
     NSURL *docsURL = self.documentationFolderURL;
     
     //Do not import files that are already rooted in the documentation folder itself.
@@ -1254,7 +1239,7 @@ NSString * const BXGameboxErrorDomain = @"BXGameboxErrorDomain";
 
 + (BXGamebox *) bundleWithPath: (NSString *)path
 {
-	return [[[self alloc] initWithPath: path] autorelease];
+	return [[self alloc] initWithPath: path];
 }
 
 - (NSArray *) hddVolumes	{ return [self volumesOfTypes: [BXFileTypes hddVolumeTypes]]; }
@@ -1367,7 +1352,7 @@ NSString * const BXGameboxErrorDomain = @"BXGameboxErrorDomain";
 									  nil];
 			
 			*outError = [NSError errorWithDomain: BXGameboxErrorDomain
-											code: BXTargetPathOutsideGameboxError
+											code: BXLauncherURLOutsideGameboxError
 										userInfo: userInfo];
 		}
 		return NO;

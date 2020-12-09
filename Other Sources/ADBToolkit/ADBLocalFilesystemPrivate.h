@@ -26,25 +26,28 @@
 
 //Contains protected API that should only be used by ADBLocalFilesystem subclasses.
 
+#import <Foundation/Foundation.h>
 #import "ADBLocalFilesystem.h"
+
+NS_ASSUME_NONNULL_BEGIN
 
 @interface ADBLocalFilesystem () <NSFileManagerDelegate>
 
-//Our own file manager for internal use.
-@property (retain, nonatomic) NSFileManager *manager;
+/// Our own file manager for internal use.
+@property (strong, nonatomic) NSFileManager *manager;
 
-//A base implementation for copyItemAtPath:toPath:error: and moveItemAtPath:toPath:error:,
-//which share 95% of their logic.
+/// A base implementation for copyItemAtPath:toPath:error: and moveItemAtPath:toPath:error:,
+/// which share 95% of their logic.
 - (BOOL) _transferItemAtPath: (NSString *)fromPath
                       toPath: (NSString *)toPath
                      copying: (BOOL)copying
-                       error: (out NSError **)outError;
+                       error: (out NSError *_Nullable*_Nullable)outError;
 
 @end
 
-//An extremely thin wrapper for an NSDirectoryEnumerator to implement
-//the ADBFilesystem enumeration protocols and allow filesystem-relative
-//paths to be returned.
+/// An extremely thin wrapper for an NSDirectoryEnumerator to implement
+/// the @c ADBFilesystem enumeration protocols and allow filesystem-relative
+/// paths to be returned.
 @interface ADBLocalDirectoryEnumerator : NSEnumerator <ADBFilesystemPathEnumeration, ADBFilesystemFileURLEnumeration>
 {
     BOOL _returnsFileURLs;
@@ -54,14 +57,16 @@
 }
 
 @property (copy, nonatomic) NSURL *currentURL;
-@property (retain, nonatomic) NSDirectoryEnumerator *enumerator;
-@property (retain, nonatomic) ADBLocalFilesystem *filesystem;
+@property (strong, nonatomic) NSDirectoryEnumerator *enumerator;
+@property (strong, nonatomic) ADBLocalFilesystem *filesystem;
 
-- (id) initWithURL: (NSURL *)localURL
-       inFilesytem: (ADBLocalFilesystem *)filesystem
-includingPropertiesForKeys: (NSArray *)keys
-           options: (NSDirectoryEnumerationOptions)mask
-        returnURLs: (BOOL)returnURLs
-      errorHandler: (ADBFilesystemFileURLErrorHandler)errorHandler;
+- (instancetype) initWithURL: (NSURL *)localURL
+                 inFilesytem: (ADBLocalFilesystem *)filesystem
+  includingPropertiesForKeys: (nullable NSArray<NSURLResourceKey> *)keys
+                     options: (NSDirectoryEnumerationOptions)mask
+                  returnURLs: (BOOL)returnURLs
+                errorHandler: (nullable ADBFilesystemFileURLErrorHandler)errorHandler;
 
 @end
+
+NS_ASSUME_NONNULL_END

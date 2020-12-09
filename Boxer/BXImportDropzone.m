@@ -11,7 +11,7 @@
 #import <QuartzCore/QuartzCore.h>
 
 
-//The number of times the dropzone border animation will loop before stopping.
+/// The number of times the dropzone border animation will loop before stopping.
 #define BXImportDropzoneBorderAnimationLoops 1000
 
 #pragma mark -
@@ -27,7 +27,6 @@
 
 
 @implementation BXImportDropzone
-@synthesize highlighted, borderPhase, borderOutset;
 
 #pragma mark -
 #pragma mark Helper class methods
@@ -47,7 +46,6 @@
 	if (!icon)
 	{
 		icon = [[NSImage imageNamed: @"DropzoneTemplate"] copy];
-		[icon setFlipped: YES];
 		
 		NSColor *tint = [NSColor whiteColor];
 		
@@ -56,7 +54,7 @@
 		
 		[icon lockFocus];
 		[tint set];
-		NSRectFillUsingOperation(bounds, NSCompositeSourceAtop);
+		NSRectFillUsingOperation(bounds, NSCompositingOperationSourceAtop);
 		[icon unlockFocus];
 	}
 	return icon;
@@ -72,7 +70,7 @@
 		[dropzoneShadow setShadowBlurRadius: 3.0f];
 		[dropzoneShadow setShadowColor: [[NSColor blackColor] colorWithAlphaComponent: 0.5f]];
 	}
-	return dropzoneShadow;
+	return [dropzoneShadow copy];
 }
 
 
@@ -86,14 +84,14 @@
 		[dropzoneHighlight setShadowBlurRadius: 3.0f];
 		[dropzoneHighlight setShadowColor: [[NSColor whiteColor] colorWithAlphaComponent: 0.5f]];
 	}
-	return dropzoneHighlight;
+	return [dropzoneHighlight copy];
 }
 
 + (NSBezierPath *) borderForFrame: (NSRect)frame withPhase: (CGFloat)phase
 {
 	//Border attributes for the bezier path
-	CGFloat pattern[2]	= {12.0f, 6.0f};
-	CGFloat borderWidth	= 4.0f;
+	CGFloat pattern[2]	= {12.0, 6.0};
+	CGFloat borderWidth	= 4.0;
 	
 	//Round the rect up to integral values, to avoid blurry subpixel lines
 	frame = NSIntegralRect(frame);
@@ -121,11 +119,6 @@
 	if (![self superview]) [self setHighlighted: NO];
 }
 
-- (void) dealloc
-{
-	[super dealloc];
-}
-
 - (void) setImage: (NSImage *)newImage
 {
 	//Turn off the highlighting once we receive an image to display
@@ -137,17 +130,17 @@
 //Start up the border animation when we get highlighted, and stop it when we stop being highlighted
 - (void) setHighlighted: (BOOL)highlight
 {
-	if (highlighted != highlight)
+	if (self.highlighted != highlight)
 	{
-		highlighted = highlight;
+		super.highlighted = highlight;
 		
-		if (highlighted)
+		if (self.highlighted)
 		{
 			//Animate the phase to a sufficiently high number that will take forever for us to reach
 			//We have to loop the animation this way instead of with CAMediaTiming repeat options,
 			//because the NSAnimatablePropertyContainer proxy doesn't take repeating animations
 			//into account and will stack them.
-			CGFloat maxPhase		= 18.0f	* BXImportDropzoneBorderAnimationLoops;
+			CGFloat maxPhase		= 18.0	* BXImportDropzoneBorderAnimationLoops;
 			CFTimeInterval duration	= 1.0	* BXImportDropzoneBorderAnimationLoops;
 			
 			[NSAnimationContext beginGrouping];
@@ -155,12 +148,12 @@
 				[[self animator] setBorderPhase: maxPhase]; 
 			[NSAnimationContext endGrouping];
 			
-			[[self animator] setBorderOutset: 8.0f]; 
+			[[self animator] setBorderOutset: 8.0];
 		}
 		else 
 		{
-			[[self animator] setBorderPhase: 0.0f];
-			[[self animator] setBorderOutset: 0.0f];
+			[[self animator] setBorderPhase: 0.0];
+			[[self animator] setBorderOutset: 0.0];
 		}
 	}
 }
@@ -168,13 +161,13 @@
 - (void) setBorderPhase: (CGFloat)phase
 {
 	//Wrap the phase to the length of our dash pattern
-	borderPhase = (CGFloat)((NSUInteger)phase % 18);
+	_borderPhase = (CGFloat)((NSUInteger)phase % 18);
 	[self setNeedsDisplay: YES];
 }
 
 - (void) setBorderOutset: (CGFloat)outset
 {
-	borderOutset = outset;
+	_borderOutset = outset;
 	[self setNeedsDisplay: YES];
 }
 
@@ -193,7 +186,7 @@
 	NSImage *icon				= [[self class] dropzoneIcon];
 	NSShadow *dropzoneShadow	= ([self isHighlighted] || [[self cell] isHighlighted]) ? [[self class] dropzoneHighlight] : [[self class] dropzoneShadow];
 	
-	CGFloat borderInset = 8.0f - [self borderOutset];
+	CGFloat borderInset = 8.0 - [self borderOutset];
 	NSRect borderFrame	= NSInsetRect([self bounds], borderInset, borderInset);
 	
 	//Inset the border enough to render the dropzone shadow without clipping
@@ -210,7 +203,7 @@
 		if (NSIntersectsRect(dirtyRect, borderFrame))
 		{
 			[borderColor set];
-			NSBezierPath *border = [[self class] borderForFrame: borderFrame withPhase: borderPhase];
+			NSBezierPath *border = [[self class] borderForFrame: borderFrame withPhase: self.borderPhase];
 			[border stroke];
 		}
 		
@@ -218,8 +211,10 @@
 		{
 			[icon drawInRect: imageFrame
 					fromRect: NSZeroRect 
-				   operation: NSCompositeSourceOver
-					fraction: 1.0f];
+				   operation: NSCompositingOperationSourceOver
+					fraction: 1.0
+			  respectFlipped: YES
+					   hints: nil];
 		}
 	[NSGraphicsContext restoreGraphicsState];
 }

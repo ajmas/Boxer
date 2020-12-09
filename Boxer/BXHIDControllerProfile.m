@@ -12,12 +12,6 @@
 
 @implementation BXHIDControllerProfile
 
-@synthesize device = _device;
-@synthesize emulatedJoystick = _emulatedJoystick;
-@synthesize emulatedKeyboard = _emulatedKeyboard;
-@synthesize bindings = _bindings;
-@synthesize controllerStyle = _controllerStyle;
-
 #pragma mark -
 #pragma mark Constants
 
@@ -46,13 +40,11 @@ static NSMutableArray *_profileClasses = nil;
     return [NSArray array];
 }
 
-+ (NSDictionary *) matchForVendorID: (long)vendorID
-                          productID: (long)productID
++ (NSDictionary *) matchForVendorID: (uint16_t)vendorID
+                          productID: (uint16_t)productID
 {
-    return [NSDictionary dictionaryWithObjectsAndKeys:
-            [NSNumber numberWithLong: vendorID], @"vendorID",
-            [NSNumber numberWithLong: productID], @"productID",
-    nil];
+    return @{@"vendorID": @(vendorID),
+             @"productID": @(productID)};
 }
 
 + (BOOL) matchesDevice: (DDHidJoystick *)device
@@ -91,9 +83,9 @@ static NSMutableArray *_profileClasses = nil;
 {
 	Class profileClass = [self profileClassForDevice: device];
 	
-	return [[[profileClass alloc] initWithHIDDevice: device
+	return [[profileClass alloc] initWithHIDDevice: device
                                    emulatedJoystick: joystick
-                                           keyboard: keyboard] autorelease];
+                                           keyboard: keyboard];
 }
 
 
@@ -122,15 +114,6 @@ static NSMutableArray *_profileClasses = nil;
         [self generateBindings];
 	}
 	return self;
-}
-
-- (void) dealloc
-{
-    self.bindings = nil;
-    self.device = nil;
-    self.emulatedJoystick = nil;
-    
-	[super dealloc];
 }
 
 
@@ -597,7 +580,7 @@ static NSMutableArray *_profileClasses = nil;
         BXEmulatedPOVNorthWest,
     };
     
-    NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+    @autoreleasepool {
     for (NSUInteger i=0; i<8; i++)
     {
         id outputBinding = [BXEmulatedJoystickPOVDirectionBinding bindingWithJoystick: self.emulatedJoystick
@@ -606,7 +589,7 @@ static NSMutableArray *_profileClasses = nil;
         
         [binding setBinding: outputBinding forDirection: from[i]];
     }
-    [pool drain];
+    }
     
     return binding;
 }

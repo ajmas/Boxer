@@ -14,7 +14,7 @@
 
 @interface BXShelfAppearanceOperation ()
 
-@property (retain, nonatomic) FinderApplication *finder;
+@property (strong, nonatomic) FinderApplication *finder;
 
 //Performs the actual Finder API calls to apply the desired appearance to the specified folder.
 //This will be called on multiple folders if appliesToSubFolders is enabled.
@@ -27,11 +27,8 @@
 
 
 @implementation BXShelfAppearanceOperation
-@synthesize finder = _finder;
-@synthesize targetURL = _targetURL;
-@synthesize appliesToSubFolders = _appliesToSubFolders;
 
-- (id) init
+- (instancetype) init
 {
     self = [super init];
 	if (self)
@@ -39,14 +36,6 @@
 		self.finder = [SBApplication applicationWithBundleIdentifier: @"com.apple.finder"];
 	}
 	return self;
-}
-
-- (void) dealloc
-{
-    self.finder = nil;
-    self.targetURL = nil;
-    
-	[super dealloc];
 }
 
 - (FinderFinderWindow *)_finderWindowForFolderAtURL: (NSURL *)folderURL
@@ -112,14 +101,10 @@
 
 
 @interface BXShelfAppearanceApplicator ()
-@property (retain, nonatomic) FinderFile *backgroundPicture;
+@property (strong, nonatomic) FinderFile *backgroundPicture;
 @end
 
 @implementation BXShelfAppearanceApplicator
-@synthesize backgroundImageURL = _backgroundImageURL;
-@synthesize icon = _icon;
-@synthesize switchToIconView = _switchToIconView;
-@synthesize backgroundPicture = _backgroundPicture;
 
 - (id) initWithTargetURL: (NSURL *)targetURL
 	  backgroundImageURL: (NSURL *)backgroundImageURL
@@ -138,12 +123,6 @@
 - (void) dealloc
 {
     self.targetURL = nil;
-    self.backgroundImageURL = nil;
-    self.icon = nil;
-    
-    self.backgroundPicture = nil;
-    
-	[super dealloc];
 }
 
 - (void) _applyAppearanceToFolderAtURL: (NSURL *)folderURL
@@ -200,12 +179,10 @@
 
 @interface BXShelfAppearanceRemover ()
 
-@property (retain, nonatomic) FinderIconViewOptions *sourceOptions;
+@property (strong, nonatomic) FinderIconViewOptions *sourceOptions;
 @end
 
 @implementation BXShelfAppearanceRemover
-@synthesize sourceURL = _sourceURL;
-@synthesize sourceOptions = _sourceOptions;
 
 - (id) initWithTargetURL: (NSURL *)targetURL
        appearanceFromURL: (NSURL *)sourceURL
@@ -216,14 +193,6 @@
         self.sourceURL = sourceURL;
 	}
 	return self;
-}
-
-- (void) dealloc
-{
-    self.sourceURL = nil;
-    self.sourceOptions = nil;
-    
-	[super dealloc];
 }
 
 - (void) _applyAppearanceToFolderAtURL: (NSURL *)folderURL

@@ -177,7 +177,7 @@ NSString * const BXGameStateEmulatorVersionKey = @"BXEmulatorVersion";
     dispatch_once(&onceToken, ^{
         NSSet *imageTypes	= [BXFileTypes mountableImageTypes];
         NSSet *folderTypes	= [self preferredMountPointTypes];
-        types = [[imageTypes setByAddingObjectsFromSet: folderTypes] retain];
+        types = [imageTypes setByAddingObjectsFromSet: folderTypes];
     });
 	return types;
 }
@@ -670,10 +670,10 @@ NSString * const BXGameStateEmulatorVersionKey = @"BXEmulatorVersion";
                       sender: (id)sender
 {
 	//If the Option key was held down, bypass this check altogether and allow any drive to be unmounted
-	NSUInteger optionKeyDown = ([NSApp currentEvent].modifierFlags & NSAlternateKeyMask) == NSAlternateKeyMask;
+	NSUInteger optionKeyDown = ([NSApp currentEvent].modifierFlags & NSEventModifierFlagOption) == NSEventModifierFlagOption;
 	if (optionKeyDown) return YES;
 
-	NSMutableArray *drivesInUse = [[[NSMutableArray alloc] initWithCapacity: selectedDrives.count] autorelease];
+	NSMutableArray *drivesInUse = [[NSMutableArray alloc] initWithCapacity: selectedDrives.count];
 	for (BXDrive *drive in selectedDrives)
 	{
         //If the drive is importing, refuse to unmount/dequeue it altogether.
@@ -701,12 +701,9 @@ NSString * const BXGameStateEmulatorVersionKey = @"BXEmulatorVersion";
                                       @"options": @(options)
                                       };
         
-		[alert beginSheetModalForWindow: self.windowForDriveSheet
-						  modalDelegate: self
-						 didEndSelector: @selector(drivesInUseAlertDidEnd:returnCode:contextInfo:)
-							contextInfo: (__bridge void *)([contextInfo retain])];
-
-        [alert release];
+        [alert beginSheetModalForWindow: self.windowForDriveSheet completionHandler:^(NSModalResponse returnCode) {
+            [self drivesInUseAlertDidEnd:alert returnCode:returnCode contextInfo:contextInfo];
+        }];
         
 		return NO;
 	}
@@ -740,7 +737,20 @@ NSString * const BXGameStateEmulatorVersionKey = @"BXEmulatorVersion";
         }
     }
     //Release the context dictionary that was previously retained in the beginSheetModalForWindow: call.
-	[contextInfo release];
+}
+
+static NSArray<NSURL*>* removeUserDirs(NSArray<NSURL*>* oldArrs)
+{
+    NSMutableIndexSet *idxSet = [NSMutableIndexSet indexSet];
+    NSMutableArray *tmp = [oldArrs mutableCopy];
+    for (NSUInteger i = 0; i < oldArrs.count; i++) {
+        if ([oldArrs[i] isBasedInURL: NSFileManager.defaultManager.homeDirectoryForCurrentUser]) {
+            [idxSet addIndex:i];
+        }
+    }
+    
+    [tmp removeObjectsAtIndexes:idxSet];
+    return [tmp copy];
 }
 
 - (BOOL) validateDriveURL: (NSURL **)ioValue
@@ -775,6 +785,7 @@ NSString * const BXGameStateEmulatorVersionKey = @"BXEmulatorVersion";
         //Restrict all system library folders, but not the user's own library folder.
         NSArray *restrictedURLs = [[NSFileManager defaultManager] URLsForDirectory: NSAllLibrariesDirectory
                                                                          inDomains: NSAllDomainsMask & ~NSUserDomainMask];
+        restrictedURLs = removeUserDirs(restrictedURLs);
         
         for (NSURL *restrictedURL in restrictedURLs)
         {   
@@ -2167,7 +2178,6 @@ NSString * const BXGameStateEmulatorVersionKey = @"BXEmulatorVersion";
                                                                   fromSender: self
                                                                 onActivation: activationHandler];
             
-            [notification release];
         }
 	}
     

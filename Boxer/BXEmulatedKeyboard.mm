@@ -25,7 +25,7 @@ const char* DOS_GetLoadedLayout(void);
 @interface BXEmulatedKeyboard ()
 
 //Assign rather than retain, because NSTimers retain their targets
-@property (assign) NSTimer *pendingKeypresses;
+@property (weak) NSTimer *pendingKeypresses;
 
 //Returns the DOS keycode constant that will produce the specified character
 //under the US keyboard layout, along with any modifiers needed to trigger it.
@@ -40,11 +40,14 @@ const char* DOS_GetLoadedLayout(void);
 #pragma mark Implementation
 
 @implementation BXEmulatedKeyboard
-@synthesize capsLockEnabled = _capsLockEnabled;
-@synthesize numLockEnabled = _numLockEnabled;
-@synthesize scrollLockEnabled = _scrollLockEnabled;
-@synthesize preferredLayout = _preferredLayout;
-@synthesize pendingKeypresses = _pendingKeypresses;
+{
+	NSUInteger _pressedKeys[KBD_LAST];
+	
+	//Whether to re-enable capslock and the active layout
+	//once a simulated typing session is finished.
+	BOOL _enableActiveLayoutAfterTyping;
+	BOOL _enableCapslockAfterTyping;
+}
 
 + (NSTimeInterval) defaultKeypressDuration { return 0.25; }
 
@@ -59,12 +62,6 @@ const char* DOS_GetLoadedLayout(void);
 		self.preferredLayout = [[self class] defaultKeyboardLayout];
 	}
 	return self;
-}
-
-- (void) dealloc
-{
-    self.preferredLayout = nil;
-	[super dealloc];
 }
 
 
@@ -189,26 +186,26 @@ const char* DOS_GetLoadedLayout(void);
         //Skip codes we cannot process
         if (code == KBD_NONE) continue;
         
-        BOOL needsShift = (flags & NSShiftKeyMask) == NSShiftKeyMask;
+        BOOL needsShift = (flags & NSEventModifierFlagShift) == NSEventModifierFlagShift;
         
         //Ensure the shift keys are in the right state before we enter the key itself.
         if (needsShift && !(leftShifted || rightShifted))
         {
-            [keyEvents addObject: [NSNumber numberWithInteger: KBD_leftshift]];
+            [keyEvents addObject: @(KBD_leftshift)];
             leftShifted = YES;
         }
         else if (!needsShift && (leftShifted || rightShifted))
         {   
             if (leftShifted)
-                [keyEvents addObject: [NSNumber numberWithInteger: -KBD_leftshift]];
+                [keyEvents addObject: @(-KBD_leftshift)];
             if (rightShifted)
-                [keyEvents addObject: [NSNumber numberWithInteger: -KBD_rightshift]];
+                [keyEvents addObject: @(-KBD_rightshift)];
             
             leftShifted = rightShifted = NO;
         }
         
-        [keyEvents addObject: [NSNumber numberWithInteger: code]];
-        [keyEvents addObject: [NSNumber numberWithInteger: -code]];
+        [keyEvents addObject: @(code)];
+        [keyEvents addObject: @(-code)];
     }
     
     //If none of the characters could be typed, then bail out now before modifying the keyboard state.
@@ -232,8 +229,8 @@ const char* DOS_GetLoadedLayout(void);
             
             if (_enableCapslockAfterTyping)
             {
-                [keyEvents insertObject: [NSNumber numberWithInteger: KBD_capslock] atIndex: 0];
-                [keyEvents insertObject: [NSNumber numberWithInteger: -KBD_capslock] atIndex: 1];
+                [keyEvents insertObject: @(KBD_capslock) atIndex: 0];
+                [keyEvents insertObject: @(-KBD_capslock) atIndex: 1];
             }
             
             self.pendingKeypresses = [NSTimer scheduledTimerWithTimeInterval: interval
@@ -490,59 +487,59 @@ const char* DOS_GetLoadedLayout(void);
             
             //SHIFTED KEYS
             
-        case '!': *modifierFlags = NSShiftKeyMask; return KBD_1;
-        case '@': *modifierFlags = NSShiftKeyMask; return KBD_2;
-        case '#': *modifierFlags = NSShiftKeyMask; return KBD_3;
-        case '$': *modifierFlags = NSShiftKeyMask; return KBD_4;
-        case '%': *modifierFlags = NSShiftKeyMask; return KBD_5;
-        case '^': *modifierFlags = NSShiftKeyMask; return KBD_6;
-        case '&': *modifierFlags = NSShiftKeyMask; return KBD_7;
-        case '*': *modifierFlags = NSShiftKeyMask; return KBD_8;
-        case '(': *modifierFlags = NSShiftKeyMask; return KBD_9;
-        case ')': *modifierFlags = NSShiftKeyMask; return KBD_0;
+        case '!': *modifierFlags = NSEventModifierFlagShift; return KBD_1;
+        case '@': *modifierFlags = NSEventModifierFlagShift; return KBD_2;
+        case '#': *modifierFlags = NSEventModifierFlagShift; return KBD_3;
+        case '$': *modifierFlags = NSEventModifierFlagShift; return KBD_4;
+        case '%': *modifierFlags = NSEventModifierFlagShift; return KBD_5;
+        case '^': *modifierFlags = NSEventModifierFlagShift; return KBD_6;
+        case '&': *modifierFlags = NSEventModifierFlagShift; return KBD_7;
+        case '*': *modifierFlags = NSEventModifierFlagShift; return KBD_8;
+        case '(': *modifierFlags = NSEventModifierFlagShift; return KBD_9;
+        case ')': *modifierFlags = NSEventModifierFlagShift; return KBD_0;
             
-        case 'Q': *modifierFlags = NSShiftKeyMask; return KBD_q;
-        case 'W': *modifierFlags = NSShiftKeyMask; return KBD_w;
-        case 'E': *modifierFlags = NSShiftKeyMask; return KBD_e;
-        case 'R': *modifierFlags = NSShiftKeyMask; return KBD_r;
-        case 'T': *modifierFlags = NSShiftKeyMask; return KBD_t;
-        case 'Y': *modifierFlags = NSShiftKeyMask; return KBD_y;
-        case 'U': *modifierFlags = NSShiftKeyMask; return KBD_u;
-        case 'I': *modifierFlags = NSShiftKeyMask; return KBD_i;
-        case 'O': *modifierFlags = NSShiftKeyMask; return KBD_o;
-        case 'P': *modifierFlags = NSShiftKeyMask; return KBD_p;
+        case 'Q': *modifierFlags = NSEventModifierFlagShift; return KBD_q;
+        case 'W': *modifierFlags = NSEventModifierFlagShift; return KBD_w;
+        case 'E': *modifierFlags = NSEventModifierFlagShift; return KBD_e;
+        case 'R': *modifierFlags = NSEventModifierFlagShift; return KBD_r;
+        case 'T': *modifierFlags = NSEventModifierFlagShift; return KBD_t;
+        case 'Y': *modifierFlags = NSEventModifierFlagShift; return KBD_y;
+        case 'U': *modifierFlags = NSEventModifierFlagShift; return KBD_u;
+        case 'I': *modifierFlags = NSEventModifierFlagShift; return KBD_i;
+        case 'O': *modifierFlags = NSEventModifierFlagShift; return KBD_o;
+        case 'P': *modifierFlags = NSEventModifierFlagShift; return KBD_p;
             
-        case 'A': *modifierFlags = NSShiftKeyMask; return KBD_a;
-        case 'S': *modifierFlags = NSShiftKeyMask; return KBD_s;
-        case 'D': *modifierFlags = NSShiftKeyMask; return KBD_d;
-        case 'F': *modifierFlags = NSShiftKeyMask; return KBD_f;
-        case 'G': *modifierFlags = NSShiftKeyMask; return KBD_g;
-        case 'H': *modifierFlags = NSShiftKeyMask; return KBD_h;
-        case 'J': *modifierFlags = NSShiftKeyMask; return KBD_j;
-        case 'K': *modifierFlags = NSShiftKeyMask; return KBD_k;
-        case 'L': *modifierFlags = NSShiftKeyMask; return KBD_l;
+        case 'A': *modifierFlags = NSEventModifierFlagShift; return KBD_a;
+        case 'S': *modifierFlags = NSEventModifierFlagShift; return KBD_s;
+        case 'D': *modifierFlags = NSEventModifierFlagShift; return KBD_d;
+        case 'F': *modifierFlags = NSEventModifierFlagShift; return KBD_f;
+        case 'G': *modifierFlags = NSEventModifierFlagShift; return KBD_g;
+        case 'H': *modifierFlags = NSEventModifierFlagShift; return KBD_h;
+        case 'J': *modifierFlags = NSEventModifierFlagShift; return KBD_j;
+        case 'K': *modifierFlags = NSEventModifierFlagShift; return KBD_k;
+        case 'L': *modifierFlags = NSEventModifierFlagShift; return KBD_l;
             
-        case 'Z': *modifierFlags = NSShiftKeyMask; return KBD_z;
-        case 'X': *modifierFlags = NSShiftKeyMask; return KBD_x;
-        case 'C': *modifierFlags = NSShiftKeyMask; return KBD_c;
-        case 'V': *modifierFlags = NSShiftKeyMask; return KBD_v;
-        case 'B': *modifierFlags = NSShiftKeyMask; return KBD_b;
-        case 'N': *modifierFlags = NSShiftKeyMask; return KBD_n;
-        case 'M': *modifierFlags = NSShiftKeyMask; return KBD_m;
+        case 'Z': *modifierFlags = NSEventModifierFlagShift; return KBD_z;
+        case 'X': *modifierFlags = NSEventModifierFlagShift; return KBD_x;
+        case 'C': *modifierFlags = NSEventModifierFlagShift; return KBD_c;
+        case 'V': *modifierFlags = NSEventModifierFlagShift; return KBD_v;
+        case 'B': *modifierFlags = NSEventModifierFlagShift; return KBD_b;
+        case 'N': *modifierFlags = NSEventModifierFlagShift; return KBD_n;
+        case 'M': *modifierFlags = NSEventModifierFlagShift; return KBD_m;
             
-        case '_': *modifierFlags = NSShiftKeyMask; return KBD_minus;
-        case '+': *modifierFlags = NSShiftKeyMask; return KBD_equals;
+        case '_': *modifierFlags = NSEventModifierFlagShift; return KBD_minus;
+        case '+': *modifierFlags = NSEventModifierFlagShift; return KBD_equals;
             
-        case '{': *modifierFlags = NSShiftKeyMask; return KBD_leftbracket;
-        case '}': *modifierFlags = NSShiftKeyMask; return KBD_rightbracket;
-        case '|': *modifierFlags = NSShiftKeyMask; return KBD_backslash;
+        case '{': *modifierFlags = NSEventModifierFlagShift; return KBD_leftbracket;
+        case '}': *modifierFlags = NSEventModifierFlagShift; return KBD_rightbracket;
+        case '|': *modifierFlags = NSEventModifierFlagShift; return KBD_backslash;
             
-        case '~': *modifierFlags = NSShiftKeyMask; return KBD_grave;
-        case ':': *modifierFlags = NSShiftKeyMask; return KBD_semicolon;
-        case '"': *modifierFlags = NSShiftKeyMask; return KBD_quote;
-        case '<': *modifierFlags = NSShiftKeyMask; return KBD_comma;
-        case '>': *modifierFlags = NSShiftKeyMask; return KBD_period;
-        case '?': *modifierFlags = NSShiftKeyMask; return KBD_slash;
+        case '~': *modifierFlags = NSEventModifierFlagShift; return KBD_grave;
+        case ':': *modifierFlags = NSEventModifierFlagShift; return KBD_semicolon;
+        case '"': *modifierFlags = NSEventModifierFlagShift; return KBD_quote;
+        case '<': *modifierFlags = NSEventModifierFlagShift; return KBD_comma;
+        case '>': *modifierFlags = NSEventModifierFlagShift; return KBD_period;
+        case '?': *modifierFlags = NSEventModifierFlagShift; return KBD_slash;
             
         default:
             return KBD_NONE;

@@ -187,7 +187,11 @@ nil];
 	if (dosPath.length)
 	{
         [self willChangeValueForKey: @"currentDirectoryURL"];
-        
+		
+		if ([dosPath hasSuffix:@"\\"] && dosPath.length != 1)
+		{
+			dosPath = [dosPath substringToIndex:dosPath.length - 1];
+		}
 		const char *dir = [dosPath cStringUsingEncoding: BXDirectStringEncoding];
 		if (dir) changedPath = DOS_ChangeDir(dir) || changedPath;
         
@@ -307,7 +311,6 @@ nil];
 
 		[self displayString: description];
 	}
-	[pathTransformer release];
 }
 
 - (void) sayToMT32: (NSString *)argumentString
@@ -409,7 +412,7 @@ nil];
     NSMutableArray *queue = self.commandQueue;
     if (queue.count)
     {
-		NSString *command = [[[queue objectAtIndex: 0] copy] autorelease];
+		NSString *command = [[queue objectAtIndex: 0] copy];
 		[queue removeObjectAtIndex: 0];
         
         command = [command stringByTrimmingCharactersInSet: [NSCharacterSet whitespaceAndNewlineCharacterSet]];
@@ -707,7 +710,7 @@ nil];
     NSAssert(lastProcessInfo != nil, @"No existing process found: _didExecuteFileAtDOSPath:onDOSBoxDrive:withArguments: must always be paired with _willExecuteFileAtDOSPath:onDOSBoxDrive:withArguments:.");
     
     //Reuse all process data from when this program was launched
-	NSMutableDictionary *updatedProcessInfo = [[lastProcessInfo mutableCopy] autorelease];
+	NSMutableDictionary *updatedProcessInfo = [lastProcessInfo mutableCopy];
     [updatedProcessInfo setObject: [NSDate date] forKey: BXEmulatorExitDateKey];
 	
     //Pop the last process off the stack

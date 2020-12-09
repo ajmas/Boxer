@@ -86,11 +86,10 @@
         }
         else
         {
-            [data release];
             return nil;
         }
     }
-    return [data autorelease];
+    return data;
 }
 
 - (BOOL) writeData: (NSData *)data bytesWritten: (out NSUInteger *)bytesWritten error: (out NSError **)outError
@@ -110,7 +109,7 @@
 
 @interface ADBAbstractHandle ()
 
-@property (retain, nonatomic) id handleCookie;
+@property (strong, nonatomic) id handleCookie;
 
 @end
 
@@ -119,10 +118,10 @@
 @synthesize handleCookie = _handleCookie;
 
 //Wrapper functions for funopen()
-int _ADBHandleClose(void *cookie);
-int _ADBHandleRead(void *cookie, char *buffer, int length);
-int _ADBHandleWrite(void *cookie, const char *buffer, int length);
-fpos_t _ADBHandleSeek(void *cookie, fpos_t offset, int whence);
+static int _ADBHandleClose(void *cookie);
+static int _ADBHandleRead(void *cookie, char *buffer, int length);
+static int _ADBHandleWrite(void *cookie, const char *buffer, int length);
+static fpos_t _ADBHandleSeek(void *cookie, fpos_t offset, int whence);
 
 - (FILE *) fileHandleAdoptingOwnership: (BOOL)adopt
 {
@@ -146,7 +145,7 @@ fpos_t _ADBHandleSeek(void *cookie, fpos_t offset, int whence);
             closeFunc = _ADBHandleClose;
         
         
-        _handle = funopen(self, readFunc, writeFunc, seekFunc, closeFunc);
+        _handle = funopen((__bridge const void *)(self), readFunc, writeFunc, seekFunc, closeFunc);
     }
     
     if (adopt)
@@ -183,7 +182,6 @@ fpos_t _ADBHandleSeek(void *cookie, fpos_t offset, int whence);
 - (void) dealloc
 {
     [self close];
-    [super dealloc];
 }
 
 
@@ -191,7 +189,7 @@ fpos_t _ADBHandleSeek(void *cookie, fpos_t offset, int whence);
 
 int _ADBHandleRead(void *cookie, char *buffer, int length)
 {
-    id <ADBReadable> handle = (id <ADBReadable>)cookie;
+    id <ADBReadable> handle = (__bridge id <ADBReadable>)cookie;
     NSUInteger bytesRead;
     NSError *readError;
     BOOL succeeded = [handle readBytes: &buffer maxLength: length bytesRead: &bytesRead error: &readError];
@@ -216,7 +214,7 @@ int _ADBHandleRead(void *cookie, char *buffer, int length)
 
 int _ADBHandleWrite(void *cookie, const char *buffer, int length)
 {
-    id <ADBWritable> handle = (id <ADBWritable>)cookie;
+    id <ADBWritable> handle = (__bridge id <ADBWritable>)cookie;
     NSError *writeError;
     NSUInteger bytesWritten;
     BOOL succeeded = [handle writeBytes: buffer length: length bytesWritten: &bytesWritten error: &writeError];
@@ -241,7 +239,7 @@ int _ADBHandleWrite(void *cookie, const char *buffer, int length)
 
 fpos_t _ADBHandleSeek(void *cookie, fpos_t offset, int whence)
 {
-    id <ADBSeekable> handle = (id <ADBSeekable>)cookie;
+    id <ADBSeekable> handle = (__bridge id <ADBSeekable>)cookie;
     NSError *seekError;
     BOOL succeeded = [handle seekToOffset: offset relativeTo: whence error: &seekError];
     if (succeeded)
@@ -263,7 +261,7 @@ fpos_t _ADBHandleSeek(void *cookie, fpos_t offset, int whence)
 
 int _ADBHandleClose(void *cookie)
 {
-    id <ADBFileHandleAccess> handle = (id <ADBFileHandleAccess>)cookie;
+    id <ADBFileHandleAccess> handle = (__bridge id <ADBFileHandleAccess>)cookie;
     [handle close];
     return 0;
 }
@@ -345,22 +343,22 @@ int _ADBHandleClose(void *cookie)
         switch (c)
         {
             case 'r':
-                options = ADBOpenForReading;
+                options = ADBHandleOpenForReading;
                 break;
             case 'w':
-                options = ADBOpenForWriting | ADBCreateIfMissing | ADBTruncate;
+                options = ADBHandleOpenForWriting | ADBHandleCreateIfMissing | ADBHandleTruncate;
                 break;
             case 'a':
-                options = ADBOpenForWriting | ADBCreateIfMissing | ADBAppend;
+                options = ADBHandleOpenForWriting | ADBHandleCreateIfMissing | ADBHandleAppend;
                 break;
             case '+':
-                options |= (ADBOpenForReading | ADBOpenForWriting);
+                options |= (ADBHandleOpenForReading | ADBHandleOpenForWriting);
                 break;
             case 'x':
-                if (options & (ADBOpenForWriting | ADBCreateIfMissing))
+                if (options & (ADBHandleOpenForWriting | ADBHandleCreateIfMissing))
                 {
-                    options &= ~ADBCreateIfMissing;
-                    options |= ADBCreateAlways;
+                    options &= ~ADBHandleCreateIfMissing;
+                    options |= ADBHandleCreateAlways;
                 }
                 break;
         }
@@ -372,29 +370,29 @@ int _ADBHandleClose(void *cookie)
 + (const char *) POSIXAccessModeForOptions: (ADBHandleOptions)options
 {
     //Complain about required and mutually exclusive options.
-    NSAssert((options & (ADBOpenForReading | ADBOpenForWriting)) > 0,
+    NSAssert((options & (ADBHandleOpenForReading | ADBHandleOpenForWriting)) > 0,
              @"At least one of ADBOpenForReading and ADBOpenForWriting must be specified.");
     
-    NSAssert((options & ADBTruncate) == 0 || (options & ADBAppend) == 0,
+    NSAssert((options & ADBHandleTruncate) == 0 || (options & ADBHandleAppend) == 0,
              @"ADBTruncate and ADBAppend cannot be specified together.");
     
-    NSAssert((options & ADBCreateIfMissing) == 0 || (options & ADBCreateAlways) == 0,
+    NSAssert((options & ADBHandleCreateIfMissing) == 0 || (options & ADBHandleCreateAlways) == 0,
              @"ADBCreateIfMissing and ADBCreateAlways cannot be specified together.");
     
     
     //Known POSIX access modes arranged in descending order of specificity.
     //This lets us do a best fit for options that may not exactly match one of our known modes.
     ADBHandleOptions optionMasks[10] = {
-        ADBPOSIXModeAPlusX,
-        ADBPOSIXModeAX,
-        ADBPOSIXModeAPlus,
-        ADBPOSIXModeA,
-        ADBPOSIXModeWPlusX,
-        ADBPOSIXModeWX,
-        ADBPOSIXModeWPlus,
-        ADBPOSIXModeRPlus,
-        ADBPOSIXModeW,
-        ADBPOSIXModeR,
+        ADBHandlePOSIXModeAPlusX,
+        ADBHandlePOSIXModeAX,
+        ADBHandlePOSIXModeAPlus,
+        ADBHandlePOSIXModeA,
+        ADBHandlePOSIXModeWPlusX,
+        ADBHandlePOSIXModeWX,
+        ADBHandlePOSIXModeWPlus,
+        ADBHandlePOSIXModeRPlus,
+        ADBHandlePOSIXModeW,
+        ADBHandlePOSIXModeR,
     };
     const char * modes[10] = {
         "a+x",
@@ -426,12 +424,12 @@ int _ADBHandleClose(void *cookie)
 
 + (id) handleForURL: (NSURL *)URL mode: (const char *)mode error: (out NSError **)outError
 {
-    return [[[self alloc] initWithURL: URL mode: mode error: outError] autorelease];
+    return [[self alloc] initWithURL: URL mode: mode error: outError];
 }
 
 + (id) handleForURL: (NSURL *)URL options: (ADBHandleOptions)options error:(out NSError **)outError
 {
-    return [[(ADBFileHandle*)[self alloc] initWithURL: URL options: options error: outError] autorelease];
+    return [(ADBFileHandle*)[self alloc] initWithURL: URL options: options error: outError];
 }
 
 - (id) initWithURL: (NSURL *)URL options:(ADBHandleOptions)options error:(out NSError **)outError
@@ -444,7 +442,7 @@ int _ADBHandleClose(void *cookie)
 {
     NSAssert(URL != nil, @"A URL must be provided.");
     
-    const char *rep = URL.path.fileSystemRepresentation;
+    const char *rep = URL.fileSystemRepresentation;
     FILE *handle = fopen(rep, mode);
     
     if (handle)
@@ -460,7 +458,6 @@ int _ADBHandleClose(void *cookie)
                                         userInfo: @{ NSURLErrorKey: URL }];
         }
         
-        [self release];
         return nil;
     }
 }
@@ -613,8 +610,6 @@ int _ADBHandleClose(void *cookie)
         [self close];
     
     _handle = NULL;
-    
-    [super dealloc];
 }
 
 @end
@@ -624,18 +619,18 @@ int _ADBHandleClose(void *cookie)
 
 @interface ADBDataHandle ()
 
-@property (retain, nonatomic) id data;
+@property (strong, nonatomic) id data;
 @property (assign, nonatomic) long long offset;
 
 @end
 
 @implementation ADBDataHandle
 @synthesize data = _data;
-@synthesize offset = _offset;
+@dynamic offset;
 
 + (id) handleForData: (NSData *)data
 {
-    return [[[self alloc] initWithData: data] autorelease];
+    return [[self alloc] initWithData: data];
 }
 
 - (id) initWithData: (NSData *)data
@@ -658,7 +653,6 @@ int _ADBHandleClose(void *cookie)
 - (void) dealloc
 {
     [self close];
-    [super dealloc];
 }
 
 - (BOOL) readBytes: (void *)buffer
@@ -729,7 +723,7 @@ int _ADBHandleClose(void *cookie)
 //Reimplemented just to recast the data parameter to be mutable.
 + (id) handleForData: (NSMutableData *)data
 {
-    return [[[self alloc] initWithData: data] autorelease];
+    return [[self alloc] initWithData: data];
 }
 
 - (id) initWithData: (NSMutableData *)data
@@ -779,7 +773,7 @@ int _ADBHandleClose(void *cookie)
 
 @interface ADBBlockHandle ()
 
-@property (retain, nonatomic) id <ADBReadable, ADBSeekable> sourceHandle;
+@property (strong, nonatomic) id <ADBReadable, ADBSeekable> sourceHandle;
 @property (assign, nonatomic) NSUInteger blockSize;
 @property (assign, nonatomic) NSUInteger blockLeadIn;
 @property (assign, nonatomic) NSUInteger blockLeadOut;
@@ -798,10 +792,10 @@ int _ADBHandleClose(void *cookie)
                 leadIn: (NSUInteger)blockLeadIn
                leadOut: (NSUInteger)blockLeadOut
 {
-    return [[[self alloc] initWithHandle: sourceHandle
-                        logicalBlockSize: blockSize
-                                  leadIn: blockLeadIn
-                                 leadOut: blockLeadOut] autorelease];
+    return [[self alloc] initWithHandle: sourceHandle
+                       logicalBlockSize: blockSize
+                                 leadIn: blockLeadIn
+                                leadOut: blockLeadOut];
 }
 
 - (id) initWithHandle: (id <ADBReadable, ADBSeekable>)sourceHandle
@@ -827,12 +821,6 @@ int _ADBHandleClose(void *cookie)
     [super close];
     //TODO: should we close the source handle as well?
     self.sourceHandle = nil;
-}
-
-- (void) dealloc
-{
-    self.sourceHandle = nil;
-    [super dealloc];
 }
 
 #pragma mark - Offset conversion
@@ -956,7 +944,7 @@ int _ADBHandleClose(void *cookie)
 
 @interface ADBSubrangeHandle ()
 
-@property (retain, nonatomic) id <ADBReadable, ADBSeekable> sourceHandle;
+@property (strong, nonatomic) id <ADBReadable, ADBSeekable> sourceHandle;
 @property (assign, nonatomic) NSRange range;
 
 @end
@@ -967,7 +955,7 @@ int _ADBHandleClose(void *cookie)
 
 + (id) handleForHandle: (id <ADBReadable, ADBSeekable>)sourceHandle range: (NSRange)range
 {
-    return [[[self alloc] initWithHandle: sourceHandle range: range] autorelease];
+    return [[self alloc] initWithHandle: sourceHandle range: range];
 }
 
 - (id) initWithHandle: (id <ADBReadable, ADBSeekable>)sourceHandle range: (NSRange)range
@@ -987,12 +975,6 @@ int _ADBHandleClose(void *cookie)
     self.sourceHandle = nil;
 }
 
-- (void) dealloc
-{
-    self.sourceHandle = nil;
-    [super dealloc];
-}
-
 
 - (long long) sourceOffsetForLocalOffset: (long long)offset
 {
@@ -1004,7 +986,7 @@ int _ADBHandleClose(void *cookie)
 
 - (long long) localOffsetForSourceOffset: (long long)offset
 {
-    if (offset == ADBOffsetUnknown || offset < self.range.location)
+    if (offset == ADBOffsetUnknown || offset < (long long)self.range.location)
         return ADBOffsetUnknown;
     
     return offset - self.range.location;

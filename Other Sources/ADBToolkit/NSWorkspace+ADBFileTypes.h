@@ -25,20 +25,23 @@
  */
 
 
-//The ADBFileTypes category extends NSWorkspace's methods for dealing with Uniform Type Identifiers (UTIs).
-
 #import <Cocoa/Cocoa.h>
 
+NS_ASSUME_NONNULL_BEGIN
+
+/// The @c ADBFileTypes category extends NSWorkspace's methods for dealing with Uniform Type Identifiers (UTIs).
 @interface NSWorkspace (ADBFileTypes)
 
-//Returns whether the file at the specified path/URL matches any of the specified UTI filetypes:
-//i.e. whether the file's UTI is equal to *or inherits from* any of those types.
-- (BOOL) fileAtURL: (NSURL *)URL matchesTypes: (NSSet *)acceptedTypes;
-- (BOOL) file: (NSString *)filePath matchesTypes: (NSSet *)acceptedTypes;
+/// Returns whether the file at the specified path/URL matches any of the specified UTI filetypes:
+/// i.e. whether the file's UTI is equal to *or inherits from* any of those types.
+- (BOOL) fileAtURL: (NSURL *)URL matchesTypes: (NSSet<NSString*> *)acceptedTypes;
+- (BOOL) file: (NSString *)filePath matchesTypes: (NSSet<NSString*> *)acceptedTypes;
 
-//Returns the nearest ancestor of the specified path/URL that matches any of the specified UTIs,
-//or nil if no ancestor matched. This may return filePath, if the file itself matches the specified types.
-- (NSURL *) nearestAncestorOfURL: (NSURL *)URL matchingTypes: (NSSet *)acceptedTypes;
-- (NSString *) parentOfFile: (NSString *)filePath matchingTypes: (NSSet *)acceptedTypes;
+/// Returns the nearest ancestor of the specified path/URL that matches any of the specified UTIs,
+/// or nil if no ancestor matched. This may return filePath, if the file itself matches the specified types.
+- (nullable NSURL *) nearestAncestorOfURL: (NSURL *)URL matchingTypes: (NSSet<NSString*> *)acceptedTypes;
+- (nullable NSString *) parentOfFile: (NSString *)filePath matchingTypes: (NSSet<NSString*> *)acceptedTypes;
 
 @end
+
+NS_ASSUME_NONNULL_END

@@ -15,17 +15,6 @@
 #import "NSWorkspace+ADBFileTypes.h"
 
 @implementation BXImportFinishedPanelController
-@synthesize controller = _controller;
-@synthesize iconView = _iconView;
-@synthesize nameField = _nameField;
-
-- (void) dealloc
-{
-    self.iconView = nil;
-    self.nameField = nil;
-    
-	[super dealloc];
-}
 
 + (NSSet *) keyPathsForValuesAffectingGameboxIcon
 {
@@ -91,7 +80,9 @@
 		[self.controller.document close];
 		
 		//Open the newly-minted gamebox in a DOS session.
-		[(BXBaseAppController *)[NSApp delegate] openDocumentWithContentsOfURL: packageURL display: YES error: NULL];		
+		[(BXBaseAppController *)[NSApp delegate] openDocumentWithContentsOfURL: packageURL display: YES completionHandler: ^(NSDocument * _Nullable document, BOOL documentWasAlreadyOpen, NSError * _Nullable error) {
+			//do nothing
+		}];
 	}
 }
 
@@ -224,7 +215,7 @@
 
 	[self.image drawInRect: self.bounds
                   fromRect: NSZeroRect
-                 operation: NSCompositeSourceOver
+				 operation: NSCompositingOperationSourceOver
                   fraction: 1.0f];
 	 
 	[NSGraphicsContext restoreGraphicsState];

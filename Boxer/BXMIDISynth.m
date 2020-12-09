@@ -24,8 +24,11 @@
 #pragma mark Implementation
 
 @implementation BXMIDISynth
-@synthesize soundFontURL = _soundFontURL;
-
+{
+	AUGraph _graph;
+	AudioUnit _synthUnit;
+	AudioUnit _outputUnit;
+}
 
 #pragma mark -
 #pragma mark Initialization and cleanup
@@ -40,8 +43,7 @@
         }
         else
         {
-            [self release];
-            self = nil;
+            return nil;
         }
     }
     return self;
@@ -50,10 +52,6 @@
 - (void) dealloc
 {
     [self close];
-    
-    self.soundFontURL = nil;
-    
-    [super dealloc];
 }
 
 - (void) close
@@ -165,7 +163,7 @@
     NSAssert(_synthUnit != NULL, @"handleSysEx: called before successful initialization.");
     NSAssert(message.length > 0, @"0-length message received by handleSysex:");
     
-    MusicDeviceSysEx(_synthUnit, (UInt8 *)message.bytes, (UInt32)message.length);
+    MusicDeviceSysEx(_synthUnit, (const UInt8 *)message.bytes, (UInt32)message.length);
 }
 
 - (void) pause
@@ -270,8 +268,7 @@
             
             if (outError)
             {
-                NSDictionary *userInfo = [NSDictionary dictionaryWithObject: URL
-                                                                     forKey: NSURLErrorKey];
+                NSDictionary *userInfo = @{NSURLErrorKey: URL};
                 *outError = [NSError errorWithDomain: NSOSStatusErrorDomain
                                                 code: errCode
                                             userInfo: userInfo];

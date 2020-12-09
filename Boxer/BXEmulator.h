@@ -9,6 +9,8 @@
 #import <Foundation/Foundation.h>
 
 
+NS_ASSUME_NONNULL_BEGIN
+
 #pragma mark - Emulator constants
 
 /// The current DOSBox CPU speed mode: either a fixed speed or as fast as it can go.
@@ -98,6 +100,7 @@ extern NSStringEncoding BXDirectStringEncoding;
 @protocol BXMIDIDevice;
 
 /// @c BXEmulator is our many-tentacled Cocoa wrapper for DOSBox's low-level emulation functions.
+///
 /// @c BXEmulator itself exposes an API for managing emulator startup, shutdown and general state.
 /// It is extended by more specific categories for managing more other aspects of emulator functionality.
 /// Because they talk directly to DOSBox, @c BXEmulator and its categories are Objective C++. All calls
@@ -119,10 +122,10 @@ extern NSStringEncoding BXDirectStringEncoding;
     float _masterVolume;
 	
 	NSString *_processName;
-    NSMutableArray *_runningProcesses;
+    NSMutableArray<NSMutableDictionary<NSString*,id>*> *_runningProcesses;
 	
 	NSMutableDictionary *_driveCache;
-    NSDictionary *_lastProcess;
+    NSDictionary<NSString*,id> *_lastProcess;
 	
 	BOOL _cancelled;
 	BOOL _executing;
@@ -142,14 +145,14 @@ extern NSStringEncoding BXDirectStringEncoding;
 	
 	//The queue of commands we are waiting to execute at the DOS prompt.
     //Managed by BXShell.
-	NSMutableArray *_commandQueue;
+	NSMutableArray<NSString*> *_commandQueue;
     BXKeyBuffer *_keyBuffer;
     NSTimeInterval _keyBufferLastCheckTime;
     NSTimeInterval _lastRunLoopTime;
     
     //Managed by BXAudio.
     id <BXMIDIDevice> _activeMIDIDevice;
-    NSDictionary *_requestedMIDIDeviceDescription;
+    NSDictionary<NSString *,id> *_requestedMIDIDeviceDescription;
     NSMutableArray *_pendingSysexMessages;
     BOOL _autodetectsMT32;
     
@@ -161,7 +164,7 @@ extern NSStringEncoding BXDirectStringEncoding;
 #pragma mark - Properties
 
 /// The delegate responsible for this emulator.
-@property (assign) id <BXEmulatorDelegate, BXEmulatorFileSystemDelegate, BXEmulatorAudioDelegate, BXEmulatedPrinterDelegate> delegate;
+@property (nonatomic, assign, nullable) id <BXEmulatorDelegate, BXEmulatorFileSystemDelegate, BXEmulatorAudioDelegate, BXEmulatedPrinterDelegate> delegate;
 
 /// The handler for DOSBox's video emulation and rendering output.
 @property (readonly, retain) BXVideoHandler *videoHandler;
@@ -173,7 +176,7 @@ extern NSStringEncoding BXDirectStringEncoding;
 @property (readonly, retain) BXEmulatedMouse *mouse;
 
 /// The emulated joystick currently attached to this session. Will be @c nil if no joystick is attached.
-@property (retain) id <BXEmulatedJoystick> joystick;
+@property (retain, nullable) id <BXEmulatedJoystick> joystick;
 
 /// The emulated dot-matrix printer for this session.
 @property (retain) BXEmulatedPrinter *printer;
@@ -210,6 +213,7 @@ extern NSStringEncoding BXDirectStringEncoding;
 
 /// Whether DOSBox has finished initializing. At this point it is safe to modify DOSBox settings,
 /// but not to execute programs.
+///
 /// Set to @c YES after all modules have been initialized but before the DOS machine
 /// is started and the autoexec is executed.
 @property (readonly, getter=isInitialized) BOOL initialized;
@@ -229,17 +233,17 @@ extern NSStringEncoding BXDirectStringEncoding;
 
 /// An array of dictionaries of representing the stack of running processes.
 /// Each dictionary contains the keys listed under "Process dictionary keys".
-@property (readonly) NSArray *runningProcesses;
+@property (readonly) NSArray<NSDictionary<NSString*,id>*> *runningProcesses;
 
 /// Returns a dictionary of info representing the current DOSBox process,
 /// containing the keys listed under "Process dictionary keys".
 /// Returns @c nil if no process is running.
-@property (readonly, copy) NSDictionary *currentProcess;
+@property (readonly, copy) NSDictionary<NSString*,id> *currentProcess;
 
 /// Returns a dictionary of info representing either the current DOSBox process
 /// (if one is still running) or the last process that was running.
 /// @see currentProcess, runningProcesses
-@property (readonly, copy) NSDictionary *lastProcess;
+@property (readonly, copy) NSDictionary<NSString*,id> *lastProcess;
 
 
 #pragma mark Controlling emulation
@@ -251,7 +255,7 @@ extern NSStringEncoding BXDirectStringEncoding;
 @property (assign, getter=isAutoSpeed) BOOL autoSpeed;
 
 /// Whether we are running in turbo mode (emulating as fast as possible.)
-@property (assign, getter=isTurboSpeed) BOOL turboSpeed;
+@property (assign, nonatomic, getter=isTurboSpeed) BOOL turboSpeed;
 
 /// The current CPU core mode.
 @property (assign) BXCoreMode coreMode;
@@ -270,7 +274,7 @@ extern NSStringEncoding BXDirectStringEncoding;
 @property (readonly) BOOL joystickActive;
 
 /// An array of queued command strings to execute on the DOS command line.
-@property (readonly) NSMutableArray *commandQueue;
+@property (readonly) NSMutableArray<NSString*> *commandQueue;
 
 /// Whether the emulator will clear the screen before executing a command
 /// with the executeCommand: and executeProgram: methods.
@@ -279,11 +283,11 @@ extern NSStringEncoding BXDirectStringEncoding;
 /// The properties requested by the game for what kind of MIDI playback
 /// device we should use.
 /// @see BXEmulator+BXAudio for keys and constants.
-@property (retain) NSDictionary * requestedMIDIDeviceDescription;
+@property (nonatomic, retain) NSDictionary<NSString*,id> * requestedMIDIDeviceDescription;
 
 /// The device to which we are currently sending MIDI signals.
 /// One of MT32MIDIDevice, MIDISynth or externalMIDIDevice.
-@property (retain) id <BXMIDIDevice> activeMIDIDevice;
+@property (nonatomic, retain, nullable) id <BXMIDIDevice> activeMIDIDevice;
 
 /// Whether to autodetect when a game is playing MT-32 music.
 /// If YES, the game's MIDI output will be sniffed to see if it is using MT-32 music:
@@ -291,7 +295,7 @@ extern NSStringEncoding BXDirectStringEncoding;
 @property (assign) BOOL autodetectsMT32;
 
 /// The volume by which to scale all sound output, ranging from 0.0 to 1.0.
-@property (assign) float masterVolume;
+@property (nonatomic, assign) float masterVolume;
 
 
 #pragma mark - Methods
@@ -299,11 +303,11 @@ extern NSStringEncoding BXDirectStringEncoding;
 #pragma mark Class methods
 
 /// Returns the currently active DOS session.
-+ (BXEmulator *) currentEmulator;
+@property (readonly, retain, class, nullable) BXEmulator *currentEmulator;
 
-/// Whether it is safe to launch a new emulator instance. Will be NO after an emulator has been opened
+/// Whether it is safe to launch a new emulator instance. Will be @c NO after an emulator has been opened
 /// (and the memory state is too polluted to reuse.)
-+ (BOOL) canLaunchEmulator;
+@property (readonly, class) BOOL canLaunchEmulator;
 
 /// Returns the correct DOSBox configuration string for the "cycles" setting given the specified values.
 + (NSString *) configStringForFixedSpeed: (NSInteger)speed isAuto: (BOOL)isAutoSpeed;
@@ -334,24 +338,24 @@ extern NSStringEncoding BXDirectStringEncoding;
 
 /// Returns whether the specified process info represents an instance of DOSBox's COMMAND.COM.
 /// @param process  A process info dictionary of the kind returned by @c -currentProcess.
-/// @return YES if the process info represents DOSBox's own COMMAND.COM shell, NO otherwise.
-/// @note This will return NO for third-party shell processes, including the official MS-DOS COMMAND.COM.
-- (BOOL) processIsShell: (NSDictionary *)process;
+/// @return @c YES if the process info represents DOSBox's own COMMAND.COM shell, @c NO otherwise.
+/// @note This will return @c NO for third-party shell processes, including the official MS-DOS COMMAND.COM.
+- (BOOL) processIsShell: (NSDictionary<NSString*,id> *)process;
 
 /// Returns whether the specified process info represents an instance of DOSBox's AUTOEXEC.BAT.
-/// @param process  A process info dictionary of the kind returned by @c -currentProcess.
+/// @param process  A process info dictionary of the kind returned by @c -currentProcess
 /// @return YES if the process info represents DOSBox's own AUTOEXEC.BAT startup script, NO otherwise.
-- (BOOL) processIsAutoexec: (NSDictionary *)process;
+- (BOOL) processIsAutoexec: (NSDictionary<NSString*,id> *)process;
 
 /// Returns whether the specified process is one of DOSBox's internal programs.
-/// @param process  A process info dictionary of the kind returned by @c -currentProcess.
-/// @return YES if the process info represents a DOSBox-internal program (as found on drive Z), NO otherwise.
-- (BOOL) processIsInternal: (NSDictionary *)process;
+/// @param process  A process info dictionary of the kind returned by @c -currentProcess
+/// @return @c YES if the process info represents a DOSBox-internal program (as found on drive Z), @c NO otherwise.
+- (BOOL) processIsInternal: (NSDictionary<NSString*,id> *)process;
 
 /// Returns whether the specified process is a batchfile or a regular program.
-/// @param process  A process info dictionary of the kind returned by @c -currentProcess.
-/// @return YES if the process info represents a batch file, NO otherwise.
-- (BOOL) processIsBatchFile: (NSDictionary *)process;
+/// @param process  A process info dictionary of the kind returned by @c -currentProcess
+/// @return @c YES if the process info represents a batch file, @c NO otherwise.
+- (BOOL) processIsBatchFile: (NSDictionary<NSString*,id> *)process;
 
 
 #pragma mark Gameport devices
@@ -363,7 +367,9 @@ extern NSStringEncoding BXDirectStringEncoding;
 /// @param outError[out]    If provided the method returns NO, this will contain an error explaining the reason
 ///                         why the joystick instance was invalid.
 /// @return YES if the specified joystick instance was valid and supported for this session, or NO otherwise.
-- (BOOL) validateJoystick: (inout id <BXEmulatedJoystick> *)ioValue
+- (BOOL) validateJoystick: (inout id <BXEmulatedJoystick> _Nonnull *_Nonnull)ioValue
                     error: (out NSError **)outError;
 
 @end
+
+NS_ASSUME_NONNULL_END

@@ -19,22 +19,6 @@
 #pragma mark - Implementation
 
 @implementation BXDrive
-@synthesize sourceURL = _sourceURL;
-@synthesize shadowURL = _shadowURL;
-@synthesize mountPointURL = _mountPointURL;
-@synthesize letter = _letter;
-@synthesize title = _title;
-@synthesize volumeLabel = _volumeLabel;
-@synthesize DOSVolumeLabel = _DOSVolumeLabel;
-@synthesize type = _type;
-@synthesize freeSpace = _freeSpace;
-@synthesize usesCDAudio = _usesCDAudio;
-@synthesize readOnly = _readOnly;
-@synthesize locked = _locked;
-@synthesize hidden = _hidden;
-@synthesize mounted = _mounted;
-@synthesize filesystem = _filesystem;
-
 
 #pragma mark - Helper class methods
 
@@ -71,7 +55,7 @@
 		NSLocalizedString(@"internal system disk",	@"Label for DOSBox virtual drives (i.e. Z)."),	//BXDriveTypeInternal
 	nil];
 	NSAssert1(driveType >= BXDriveHardDisk && (NSUInteger)driveType < descriptions.count,
-			  @"Unknown drive type supplied to BXDrive descriptionForType: %i", driveType);
+			  @"Unknown drive type supplied to BXDrive descriptionForType: %li", (long)driveType);
 	
 	return [descriptions objectAtIndex: (NSUInteger)driveType];
 }
@@ -195,7 +179,7 @@
                        letter: (NSString *)driveLetter
                          type: (BXDriveType)driveType
 {
-    return [[[self alloc] initWithContentsOfURL: sourceURL letter: driveLetter type: driveType] autorelease];
+    return [[self alloc] initWithContentsOfURL: sourceURL letter: driveLetter type: driveType];
 }
 
 - (id) initWithContentsOfURL: (NSURL *)sourceURL
@@ -218,7 +202,7 @@
 		if (driveType == BXDriveAutodetect)
         {
             self.type = [self.class preferredTypeForContentsOfURL: sourceURL];
-            _hasAutodetectedType = YES;
+            self.hasAutodetectedType = YES;
 		}
 		else
         {
@@ -231,23 +215,6 @@
 + (id) virtualDriveWithLetter: (NSString *)driveLetter
 {
     return [self driveWithContentsOfURL: nil letter: driveLetter type: BXDriveVirtual];
-}
-
-- (void) dealloc
-{
-    //Avoid using our setter methods as they have a lot of magic in them.
-    [_sourceURL release], _sourceURL = nil;
-    [_shadowURL release], _shadowURL = nil;
-    [_mountPointURL release], _mountPointURL = nil;
-    [_equivalentURLs release], _equivalentURLs = nil;
-    [_filesystem release], _filesystem = nil;
-    
-    [_volumeLabel release], _volumeLabel = nil;
-    [_DOSVolumeLabel release], _DOSVolumeLabel = nil;
-    [_title release], _title = nil;
-    [_letter release], _letter = nil;
-    
-	[super dealloc];
 }
 
 
@@ -268,7 +235,6 @@
     sourceURL = sourceURL.URLByStandardizingPath;
 	if (![_sourceURL isEqual: sourceURL])
 	{
-		[_sourceURL release];
 		_sourceURL = [sourceURL copy];
 		
 		if (_sourceURL)
@@ -276,26 +242,26 @@
 			if (!self.mountPointURL)
             {
 				self.mountPointURL = [self.class mountPointForContentsOfURL: _sourceURL];
-                _hasAutodetectedMountPoint = YES;
+                self.hasAutodetectedMountPoint = YES;
             }
 			
 			//Automatically parse the drive letter, title and volume label from the name of the drive
 			if (!self.letter)
             {
                 self.letter = [self.class preferredDriveLetterForContentsOfURL: _sourceURL];
-                _hasAutodetectedLetter = YES;
+                self.hasAutodetectedLetter = YES;
             }
             
 			if (!self.volumeLabel)
             {
                 self.volumeLabel = [self.class preferredVolumeLabelForContentsOfURL: _sourceURL];
-                _hasAutodetectedVolumeLabel = YES;
+                self.hasAutodetectedVolumeLabel = YES;
             }
             
 			if (!self.title)
             {
                 self.title = [self.class preferredTitleForContentsOfURL: _sourceURL];
-                _hasAutodetectedTitle = YES;
+                self.hasAutodetectedTitle = YES;
             }
 		}
 	}
@@ -306,10 +272,9 @@
     mountPointURL = mountPointURL.URLByStandardizingPath;
     if (![_mountPointURL isEqual: mountPointURL])
 	{
-		[_mountPointURL release];
 		_mountPointURL = [mountPointURL copy];
 		
-        _hasAutodetectedMountPoint = NO;
+        self.hasAutodetectedMountPoint = NO;
         
         //Clear our old filesystem whenever the source changes: it will be recreated when needed.
         self.filesystem = nil;
@@ -321,11 +286,10 @@
     shadowURL = shadowURL.URLByStandardizingPath;
     if (![_shadowURL isEqual: shadowURL])
 	{
-		[_shadowURL release];
 		_shadowURL = [shadowURL copy];
         
         //Clear our old filesystem, if it was shadowed: it will be recreated when needed.
-        if (_shadowURL && [_filesystem isKindOfClass: [ADBShadowedFilesystem class]])
+        if (_shadowURL && [self.filesystem isKindOfClass: [ADBShadowedFilesystem class]])
         {
             self.filesystem = nil;
         }
@@ -339,10 +303,9 @@
 	
 	if (![self.letter isEqualToString: driveLetter])
 	{
-		[_letter release];
 		_letter = [driveLetter copy];
         
-        _hasAutodetectedLetter = NO;
+        self.hasAutodetectedLetter = NO;
 	}
 }
 
@@ -350,10 +313,9 @@
 {
 	if (![_volumeLabel isEqualToString: newLabel])
 	{
-		[_volumeLabel release];
 		_volumeLabel = [newLabel copy];
 		
-        _hasAutodetectedVolumeLabel = NO;
+        self.hasAutodetectedVolumeLabel = NO;
 	}
 }
 
@@ -361,10 +323,9 @@
 {
     if (![_title isEqualToString: title])
 	{
-		[_title release];
 		_title = [title copy];
 		
-        _hasAutodetectedTitle = NO;
+        self.hasAutodetectedTitle = NO;
 	}
 }
 
@@ -391,7 +352,7 @@
             [self.filesystem addRepresentedURL: self.sourceURL];
         
     }
-    return [[_filesystem retain] autorelease];
+    return _filesystem;
 }
 
 

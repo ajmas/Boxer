@@ -18,34 +18,27 @@
 
 
 @interface BXProgramPanelController ()
-@property (readwrite, retain, nonatomic) NSArray *panelExecutables;
+@property (readwrite, strong, nonatomic) NSArray *panelExecutables;
 @end
 
 @implementation BXProgramPanelController
-@synthesize programList, programScroller, scanSpinner;
-@synthesize defaultProgramPanel, initialDefaultProgramPanel;
-@synthesize programChooserPanel, noProgramsPanel, scanningForProgramsPanel;
-@synthesize panelExecutables;
-@synthesize lastActiveProgramPath;
 
 - (void) dealloc
 {
 	[NSThread cancelPreviousPerformRequestsWithTarget: self];
 	
-	[self setProgramList: nil],			[programList release];
-	[self setProgramScroller: nil],		[programScroller release];
-    [self setScanSpinner: nil],         [scanSpinner release];
+	[self setProgramList: nil];
+	[self setProgramScroller: nil];
+    [self setScanSpinner: nil];
 	
-	[self setDefaultProgramPanel: nil],         [defaultProgramPanel release];
-	[self setInitialDefaultProgramPanel: nil],  [initialDefaultProgramPanel release];
-	[self setProgramChooserPanel: nil],         [programChooserPanel release];
-	[self setNoProgramsPanel: nil],             [noProgramsPanel release];
-	[self setScanningForProgramsPanel: nil],    [scanningForProgramsPanel release];
+	[self setDefaultProgramPanel: nil];
+	[self setInitialDefaultProgramPanel: nil];
+	[self setProgramChooserPanel: nil];
+	[self setNoProgramsPanel: nil];
+	[self setScanningForProgramsPanel: nil];
     
-	[self setPanelExecutables: nil],	[panelExecutables release];
-    [self setLastActiveProgramPath: nil], [lastActiveProgramPath release];
-	
-	[super dealloc];
+	[self setPanelExecutables: nil];
+    [self setLastActiveProgramPath: nil];
 }
 
 - (NSString *) nibName	{ return @"ProgramPanel"; }
@@ -59,9 +52,6 @@
 
         [NSValueTransformer setValueTransformer: displayPath forName: @"BXProgramDisplayPath"];
         [NSValueTransformer setValueTransformer: fileName forName: @"BXDOSFilename"];
-        
-        [displayPath release];
-        [fileName release];
     }
 }
 
@@ -137,24 +127,24 @@
 	{	
 		//If we have a default program, show the checkbox version;
 		//also keep showing the checkbox if it's already active
-		if ([self hasDefaultTarget] || [self activePanel] == defaultProgramPanel)
-			panel = defaultProgramPanel;
+		if ([self hasDefaultTarget] || [self activePanel] == self.defaultProgramPanel)
+			panel = self.defaultProgramPanel;
 		//Otherwise, show the Yes/No choice.
 		else
-			panel = initialDefaultProgramPanel;
+			panel = self.initialDefaultProgramPanel;
 	}
 	else if	(session.programURLsOnPrincipalDrive)
 	{
-		panel = programChooserPanel;
+		panel = self.programChooserPanel;
         [self syncProgramButtonStates];
 	}
     else if ([session isScanningForExecutables])
     {
-        panel = scanningForProgramsPanel;
+        panel = self.scanningForProgramsPanel;
     }
     else
     {   
-		panel = noProgramsPanel;
+		panel = self.noProgramsPanel;
     }
 
 	[self setActivePanel: panel];
@@ -162,7 +152,7 @@
 
 - (void) syncProgramButtonStates
 {
-	for (NSView *itemView in [programList subviews])
+	for (NSView *itemView in [self.programList subviews])
 	{
 		NSButton *button = [itemView viewWithTag: BXProgramPanelButtons];
 		
@@ -214,8 +204,6 @@
             [animation setViewAnimations: [NSArray arrayWithObject: fadeOut]];
             [animation setDuration: 0.25];
             [animation startAnimation];
-            
-            [animation release];
         }
         [previousPanel removeFromSuperview];
         [mainView setNeedsDisplay: YES];
@@ -338,7 +326,7 @@
 	
 	//If the target program isn't in the list, and it is actually available in DOS, add it in too
 	if (defaultTarget && ![filteredPaths containsObject: defaultTarget] &&
-		[[session emulator] pathExistsInDOS: defaultTarget])
+		[[session emulator] DOSPathExists: defaultTarget])
 		filteredPaths = [filteredPaths arrayByAddingObject: defaultTarget];
 	
 	NSMutableSet *programNames = [[NSMutableSet alloc] initWithCapacity: [filteredPaths count]];
@@ -361,7 +349,6 @@
 			
 			[programNames addObject: fileName];
 			[listedPrograms addObject: data];
-			[data release];
 		}
 	}
     
@@ -369,9 +356,6 @@
     //unnecessary redraws in the program panel.
     if (![[self panelExecutables] isEqualToArray: listedPrograms])
 	    [self setPanelExecutables: listedPrograms];
-	
-	[programNames release];
-	[listedPrograms release];
 }
 
 - (NSArray *) executableSortDescriptors
@@ -382,10 +366,7 @@
 																   ascending: YES
 																	selector: @selector(caseInsensitiveCompare:)];
 	
-	return  [NSArray arrayWithObjects:
-			 [sortDefaultFirst autorelease],
-			 [sortByFilename autorelease],
-			 nil];
+    return @[sortDefaultFirst, sortByFilename];
 }
 
 @end

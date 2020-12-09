@@ -28,7 +28,7 @@
 
 NSInteger fitToPowerOfTwo(NSInteger value)
 {
-    int shift = 0;
+    NSInteger shift = 0;
     while ((value >>= 1) != 0) shift++;
     return 2 << shift;
 }
@@ -41,7 +41,7 @@ BOOL isPowerOfTwo(NSUInteger value)
 
 CGFloat aspectRatioOfSize(NSSize size)
 {
-	return (size.height) ? (size.width / size.height) : 0.0f;
+	return (size.height != 0) ? (size.width / size.height) : 0.0f;
 }
 
 NSPoint integralPoint(NSPoint point)

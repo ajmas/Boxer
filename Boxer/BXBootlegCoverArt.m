@@ -10,16 +10,15 @@
 #import "ADBAppKitVersionHelpers.h"
 
 @implementation BXJewelCase
-@synthesize title;
 
 + (NSString *) fontName	{ return @"Marker Felt Thin"; }
 
 + (NSColor *) textColor
 {
-	return [NSColor colorWithCalibratedRed: 0.0f
-									 green: 0.1f
-									  blue: 0.2f
-									 alpha: 0.9f];
+	return [NSColor colorWithCalibratedRed: 0.0
+									 green: 0.1
+									  blue: 0.2
+									 alpha: 0.9];
 }
 
 + (NSImage *) baseLayerForSize:	(NSSize)size
@@ -36,23 +35,23 @@
 		return nil;
 }
 
-+ (CGFloat) lineHeightForSize:	(NSSize)size	{ return 20.0f * (size.width / 128.0f); }
++ (CGFloat) lineHeightForSize:	(NSSize)size	{ return 20.0 * (size.width / 128.0); }
 + (CGFloat) fontSizeForSize:	(NSSize)size
 {
 	//Use smaller font at sizes > 128 so that we can fit more on the label
-	CGFloat baseSize = (size.width > 128.0f) ? 12.0f : 14.0f;
-	return baseSize * (size.width / 128.0f);
+	CGFloat baseSize = (size.width > 128.0) ? 12.0 : 14.0;
+	return baseSize * (size.width / 128.0);
 }
 
 + (NSRect) textRegionForRect: (NSRect)frame
 {	
 	if (frame.size.width >= 128)
 	{
-		CGFloat scale = frame.size.width / 128.0f;
-		return NSMakeRect(22.0f * scale,
-						  32.0f * scale,
-						  92.0f * scale,
-						  60.0f * scale);
+		CGFloat scale = frame.size.width / 128.0;
+		return NSMakeRect(22.0 * scale,
+						  32.0 * scale,
+						  92.0 * scale,
+						  60.0 * scale);
 	}
 	//Do not show text on icon sizes below 128x128.
 	else return NSZeroRect;
@@ -65,17 +64,15 @@
 	NSColor *color		= [self textColor];
 	NSFont *font		= [NSFont fontWithName: [self fontName] size: fontSize];
 	
-	NSMutableParagraphStyle *style = [[[NSParagraphStyle defaultParagraphStyle] mutableCopy] autorelease];
-	[style setAlignment: NSCenterTextAlignment];
+	NSMutableParagraphStyle *style = [[NSParagraphStyle defaultParagraphStyle] mutableCopy];
+	[style setAlignment: NSTextAlignmentCenter];
 	[style setMaximumLineHeight: lineHeight];
 	[style setMinimumLineHeight: lineHeight];
 	
-	return [NSDictionary dictionaryWithObjectsAndKeys:
-			style,	NSParagraphStyleAttributeName,
-			font,	NSFontAttributeName,
-			color,	NSForegroundColorAttributeName,
-			[NSNumber numberWithInteger: 2],	NSLigatureAttributeName,
-			nil];
+    return @{NSParagraphStyleAttributeName: style,
+             NSFontAttributeName: font,
+             NSForegroundColorAttributeName: color,
+             NSLigatureAttributeName: @2 };
 }
 
 
@@ -98,18 +95,10 @@
 	
 	if (baseLayer)
 	{
-		//NOTE: drawInRect:fromRect:operation:fraction: misbehaves on 10.5 in that
-		//it caches what it draws and may use that for future draw operations
-		//instead of other, more suitable representations of that image.
-		//To work around this, we draw a copy of the image instead of the original.
-		//Fuck 10.5.
-		if (isRunningOnLeopard())
-			baseLayer = [[baseLayer copy] autorelease];
-		
 		[baseLayer drawInRect: frame
 					 fromRect: NSZeroRect
-					operation: NSCompositeSourceOver
-					 fraction: 1.0f];
+					operation: NSCompositingOperationSourceOver
+					 fraction: 1.0];
 	}
 
 	if (!NSEqualRects(textRegion, NSZeroRect))
@@ -120,46 +109,52 @@
 
 	if (topLayer)
 	{
-		if (isRunningOnLeopard())
-			topLayer = [[topLayer copy] autorelease];
-		
 		[topLayer drawInRect: frame
 					fromRect: NSZeroRect
-				   operation: NSCompositeSourceOver
-					fraction: 1.0f];		
+				   operation: NSCompositingOperationSourceOver
+					fraction: 1.0];
 	}
 
 }
 
 - (NSImageRep *) representationForSize: (NSSize)iconSize
 {
-	NSRect frame = NSMakeRect(0.0f, 0.0f, iconSize.width, iconSize.height);
+	return [self representationForSize: iconSize scale: 1];
+}
+
+- (NSImageRep *) representationForSize: (NSSize)iconSize scale: (CGFloat)scale
+{
+	NSRect frame = NSMakeRect(0.0, 0.0, iconSize.width, iconSize.height);
 	
 	//Create a new empty canvas to draw into
-	NSImage *canvas = [[NSImage alloc] initWithSize: iconSize];
+	NSBitmapImageRep *rep = [[NSBitmapImageRep alloc] initWithBitmapDataPlanes:NULL pixelsWide:iconSize.width*scale pixelsHigh:iconSize.height*scale bitsPerSample:8 samplesPerPixel:4 hasAlpha:YES isPlanar:NO colorSpaceName:NSCalibratedRGBColorSpace bytesPerRow:0 bitsPerPixel:32];
+	rep.size = iconSize;
 	
-	[canvas lockFocus];
+	[NSGraphicsContext saveGraphicsState];
+	NSGraphicsContext.currentContext = [NSGraphicsContext graphicsContextWithBitmapImageRep:rep];
 		[self drawInRect: frame];
-		NSBitmapImageRep *rep = [[NSBitmapImageRep alloc] initWithFocusedViewRect: frame];
-		[canvas unlockFocus];
-	[canvas release];
+	[NSGraphicsContext restoreGraphicsState];
 	
-	return [rep autorelease];
+	return rep;
 }
 
 - (NSImage *) coverArt
 {
 	NSImage *coverArt = [[NSImage alloc] init];
+	[coverArt addRepresentation: [self representationForSize: NSMakeSize(512, 512) scale: 2]];
 	[coverArt addRepresentation: [self representationForSize: NSMakeSize(512, 512)]];
+	[coverArt addRepresentation: [self representationForSize: NSMakeSize(128, 128) scale: 2]];
 	[coverArt addRepresentation: [self representationForSize: NSMakeSize(128, 128)]];
+	[coverArt addRepresentation: [self representationForSize: NSMakeSize(32, 32) scale: 2]];
 	[coverArt addRepresentation: [self representationForSize: NSMakeSize(32, 32)]];
+	[coverArt addRepresentation: [self representationForSize: NSMakeSize(16, 16) scale: 2]];
 	[coverArt addRepresentation: [self representationForSize: NSMakeSize(16, 16)]];
-	return [coverArt autorelease];
+	return coverArt;
 }
 
 + (NSImage *) coverArtWithTitle: (NSString *)coverTitle
 {
-	id generator = [[[self alloc] initWithTitle: coverTitle] autorelease];
+	id generator = [[self alloc] initWithTitle: coverTitle];
 	return [generator coverArt];
 }
 
@@ -183,18 +178,18 @@
 
 + (CGFloat) lineHeightForSize:	(NSSize)size
 {
-    return 18.0f * (size.width / 128.0f);
+    return 18.0 * (size.width / 128.0);
 }
 
 + (NSRect) textRegionForRect: (NSRect)frame
 {
 	if (frame.size.width >= 128)
 	{
-		CGFloat scale = frame.size.width / 128.0f;
-		return NSMakeRect(24.0f * scale,
-						  56.0f * scale,
-						  80.0f * scale,
-						  56.0f * scale);
+		CGFloat scale = frame.size.width / 128.0;
+		return NSMakeRect(24.0 * scale,
+						  56.0 * scale,
+						  80.0 * scale,
+						  56.0 * scale);
 	}
 	else return NSZeroRect;
 }
@@ -204,18 +199,18 @@
 
 + (NSImage *) baseLayerForSize:	(NSSize)size	{ return [NSImage imageNamed: @"525Diskette"]; }
 + (NSImage *) topLayerForSize:	(NSSize)size	{ return nil; }
-+ (CGFloat) lineHeightForSize:	(NSSize)size	{ return 16.0f * (size.width / 128.0f); }
-+ (CGFloat) fontSizeForSize:	(NSSize)size	{ return 12.0f * (size.width / 128.0f); }
++ (CGFloat) lineHeightForSize:	(NSSize)size	{ return 16.0 * (size.width / 128.0); }
++ (CGFloat) fontSizeForSize:	(NSSize)size	{ return 12.0 * (size.width / 128.0); }
 
 + (NSRect) textRegionForRect: (NSRect)frame
 {
 	if (frame.size.width >= 128)
 	{
-		CGFloat scale = frame.size.width / 128.0f;
-		return NSMakeRect(16.0f * scale,
-						  90.0f * scale,
-						  96.0f * scale,
-						  32.0f * scale);
+		CGFloat scale = frame.size.width / 128.0;
+		return NSMakeRect(16.0 * scale,
+						  90.0 * scale,
+						  96.0 * scale,
+						  32.0 * scale);
 	}
 	else return NSZeroRect;
 }

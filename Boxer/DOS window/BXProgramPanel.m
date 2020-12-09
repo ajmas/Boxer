@@ -31,7 +31,6 @@
 	
     [NSBezierPath clipRect: dirtyRect];
 	[background drawInRect: self.bounds angle: 90.0f];
-	[background release];
 }
 
 - (void) _drawGrilleInRect: (NSRect)dirtyRect
@@ -113,9 +112,6 @@
 - (void) dealloc
 {
     [self.programButton.cell unbind: @"programIsDefault"];
-    self.programButton = nil;
-    
-    [super dealloc];
 }
 @end
 
@@ -247,8 +243,6 @@
 		[newTitle endEditing];
         
         [newTitle drawInRect: textRect];
-        
-        [newTitle release];
 	}
 	
 	return textRect;
@@ -352,57 +346,7 @@
         if (self.isHighlighted)
             [bezel fillWithInnerShadow: innerShadow];
     [NSGraphicsContext restoreGraphicsState];
-    
-    [bezelGradient release];
 }
 
 @end
 
-
-//IMPLEMENTATION NOTE:
-//On OS X 10.5, NSCollectionView has a bug whereby if its content is changed while the view is hidden,
-//it will sometimes try to draw regardless and crash with an assertion error. Because the draw operation
-//that causes this does not go through the usual display: channels, we cannot prevent it directly.
-//So instead, we override the way content is set: if the view isn't ready to draw, we delay setting
-//the content until it is.
-//Happily, none of this is necessary on 10.6 and above, and it also doesn't seem to be a problem with
-//any collection view other than the program list. (This would still be worth refactoring into a general
-//"BXCollectionView" with other fixes however.)
-@implementation BXProgramListView
-
-- (void) dealloc
-{
-    [_pendingContent release], _pendingContent = nil;
-    [super dealloc];
-}
-
-- (void) _syncPendingContent
-{
-	[NSObject cancelPreviousPerformRequestsWithTarget: self selector: _cmd object: nil];
-	if (self.canDraw)
-	{
-		[super setContent: _pendingContent];
-		[_pendingContent release];
-		_pendingContent = nil;
-	}
-	else
-	{
-		[self performSelector: _cmd withObject: nil afterDelay: 0.1];
-	}
-}
-
-- (void) setContent: (NSArray *)content
-{
-    if (isRunningOnLeopard())
-    {
-        [_pendingContent release];
-        _pendingContent = [content retain];
-        [self _syncPendingContent];
-    }
-    else
-    {
-        [super setContent: content];
-    }
-}
-
-@end

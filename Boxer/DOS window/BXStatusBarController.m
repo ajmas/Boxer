@@ -35,10 +35,6 @@
 @end
 
 @implementation BXStatusBarController
-@synthesize notificationMessage = _notificationMessage;
-@synthesize statusBarControls = _statusBarControls;
-@synthesize volumeControls = _volumeControls;
-@synthesize mouseLockButton = _mouseLockButton;
 
 - (BXDOSWindowController *)controller
 {
@@ -114,13 +110,13 @@
         NSString *message;
 		if (viewController.mouseLocked)
 		{
-            self.mouseLockButton.state = NSOnState;
+            self.mouseLockButton.state = NSControlStateValueOn;
 			message = NSLocalizedString(@"Cmd+click to release the mouse pointer.",
                                         @"Statusbar message when mouse is locked.");
 		}
 		else
 		{
-            self.mouseLockButton.state = NSOffState;
+            self.mouseLockButton.state = NSControlStateValueOff;
 			if (viewController.trackMouseWhileUnlocked)
 			{
 				message = NSLocalizedString(@"Cmd+click inside the window to lock the mouse pointer.",

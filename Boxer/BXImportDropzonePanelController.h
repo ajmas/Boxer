@@ -6,41 +6,32 @@
  */
 
 
-//BXImportDropzonePanelController controls the behaviour of the dropzone panel
-//in the game import process.
-
 #import <Cocoa/Cocoa.h>
 
 @class BXImportDropzone;
 @class BXImportWindowController;
 @class BXBlueprintProgressIndicator;
 
-@interface BXImportDropzonePanelController : NSViewController
-#if MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_5
-< NSOpenSavePanelDelegate >
-#endif
-{
-    __unsafe_unretained BXImportWindowController *_controller;
-	BXImportDropzone *_dropzone;
-	BXBlueprintProgressIndicator *_spinner;
-}
+/// \c BXImportDropzonePanelController controls the behaviour of the dropzone panel
+/// in the game import process.
+@interface BXImportDropzonePanelController : NSViewController <NSOpenSavePanelDelegate>
 
-//The dropzone within the dropzone panel
-@property (retain, nonatomic) IBOutlet BXImportDropzone *dropzone;
+/// The dropzone within the dropzone panel.
+@property (strong, nonatomic, null_unspecified) IBOutlet BXImportDropzone *dropzone;
 
-//The progress indicator shown when scanning a game for installers.
-//(This now lives on a separate interstitial view and not the Dropzone
-//view, but I can't be bothered making a second controller for it.)
-@property (retain, nonatomic) IBOutlet BXBlueprintProgressIndicator *spinner;
+/// The progress indicator shown when scanning a game for installers.
+/// (This now lives on a separate interstitial view and not the Dropzone
+/// view, but I can't be bothered making a second controller for it.)
+@property (strong, nonatomic, null_unspecified) IBOutlet BXBlueprintProgressIndicator *spinner;
 
-//A reference to our window controller
-@property (assign, nonatomic) IBOutlet BXImportWindowController *controller;
+/// A back-reference to our owning window controller
+@property (unsafe_unretained, nonatomic, nullable) IBOutlet BXImportWindowController *controller;
 
 
-//Display a file picker for choosing a folder or disc image to import
-- (IBAction) showImportPathPicker: (id)sender;
+/// Display a file picker for choosing a folder or disc image to import
+- (IBAction) showImportPathPicker: (nullable id)sender;
 
-//Display help for this stage of the import process.
-- (IBAction) showImportDropzoneHelp: (id)sender;
+/// Display help for this stage of the import process.
+- (IBAction) showImportDropzoneHelp: (nullable id)sender;
 
 @end

@@ -10,10 +10,13 @@
 #import "BXCoverArt.h"
 
 @implementation BXSampleGamesCopy
-@synthesize sourceURL = _sourceURL;
-@synthesize targetURL = _targetURL;
 
 - (id) initFromSourceURL: (NSURL *)sourceURL toTargetURL: (NSURL *)targetURL
+{
+    return [self initWithSourceURL:sourceURL targetURL:targetURL];
+}
+
+- (instancetype) initWithSourceURL: (NSURL *)sourceURL targetURL: (NSURL *)targetURL
 {
     self = [self init];
 	if (self)
@@ -22,14 +25,6 @@
         self.targetURL = targetURL;
 	}
 	return self;
-}
-
-- (void) dealloc
-{
-    self.sourceURL = nil;
-    self.targetURL = nil;
-    
-	[super dealloc];
 }
 
 - (void) main
@@ -50,7 +45,7 @@
         BOOL copied = [manager copyItemAtURL: gameURL toURL: destinationURL error: NULL];
         if (copied)
         {
-            [destinationURL setResourceValue: @(YES) forKey: NSURLHasHiddenExtensionKey error: NULL];
+            [destinationURL setResourceValue: @YES forKey: NSURLHasHiddenExtensionKey error: NULL];
         
             NSString *baseName = gameName.stringByDeletingPathExtension;
             NSURL *iconURL = [[NSBundle mainBundle] URLForResource: baseName
@@ -67,7 +62,6 @@
                     
                     [[NSWorkspace sharedWorkspace] setIcon: iconForGame forFile: destinationURL.path options: 0];
                 }
-                [image release];
             }
         }
 	}

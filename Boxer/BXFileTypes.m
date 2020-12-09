@@ -43,19 +43,18 @@ NSString * const BXDOCFileType      = @"com.microsoft.word.doc";
 
 + (NSSet *) hddVolumeTypes
 {
-	static NSSet *types;
+    static NSSet *types;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
-        types = [[NSSet alloc] initWithObjects:
-                 BXHardDiskFolderType,
-                 nil];
+        types = [NSSet setWithObject:
+                 BXHardDiskFolderType];
     });
-	return types;
+    return types;
 }
 
 + (NSSet *) cdVolumeTypes
 {
-	static NSSet *types;
+    static NSSet *types;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
         types = [[NSSet alloc] initWithObjects:
@@ -66,12 +65,12 @@ NSString * const BXDOCFileType      = @"com.microsoft.word.doc";
                  BXCDRImageType,
                  nil];
     });
-	return types;
+    return types;
 }
 
 + (NSSet *) floppyVolumeTypes
 {
-	static NSSet *types;
+    static NSSet *types;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
         types = [[NSSet alloc] initWithObjects:
@@ -81,42 +80,35 @@ NSString * const BXDOCFileType      = @"com.microsoft.word.doc";
                  BXVirtualPCImageType,
                  nil];
     });
-	return types;
+    return types;
 }
 
 + (NSSet *) mountableFolderTypes
 {
-	static NSSet *types;
+    static NSSet *types;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
-        types = [[NSSet alloc] initWithObjects:
-                 BXMountableFolderType,
-                 nil];
+        types = [NSSet setWithObject:
+                 BXMountableFolderType];
     });
-	return types;
+    return types;
 }
 
 + (NSSet *) mountableImageTypes
 {
-	static NSSet *types;
+    static NSSet *types;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
-        types = [[NSSet alloc] initWithObjects:
-                 BXDiskBundleType,
-                 BXISOImageType,
-                 BXCDRImageType,
-                 BXCuesheetImageType,
-                 BXRawFloppyImageType,
-                 BXVirtualPCImageType,
-                 BXNDIFImageType,
-                 nil];
+        types = [[self OSXMountableImageTypes] setByAddingObjectsFromArray:
+                 @[BXDiskBundleType,
+                   BXCuesheetImageType]];
     });
-	return types;
+    return types;
 }
 
 + (NSSet *) OSXMountableImageTypes
 {
-	static NSSet *types;
+    static NSSet *types;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
         types = [[NSSet alloc] initWithObjects:
@@ -127,23 +119,23 @@ NSString * const BXDOCFileType      = @"com.microsoft.word.doc";
                  BXNDIFImageType,
                  nil];
     });
-	return types;
+    return types;
 }
 
 + (NSSet *) mountableTypes
 {
-	static NSSet *types;
+    static NSSet *types;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
-        types = [[[self mountableImageTypes] setByAddingObject: (NSString *)kUTTypeDirectory] retain];
+        types = [[self mountableImageTypes] setByAddingObject: (NSString *)kUTTypeDirectory];
     });
     
-	return types;
+    return types;
 }
 
 + (NSSet *) executableTypes
 {
-	static NSSet *types;
+    static NSSet *types;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
         types = [[NSSet alloc] initWithObjects:
@@ -152,12 +144,12 @@ NSString * const BXDOCFileType      = @"com.microsoft.word.doc";
                  BXBatchProgramType,
                  nil];
     });
-	return types;
+    return types;
 }
 
 + (NSSet *) macOSAppTypes
 {
-	static NSSet *types;
+    static NSSet *types;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
         types = [[NSSet alloc] initWithObjects:
@@ -165,29 +157,32 @@ NSString * const BXDOCFileType      = @"com.microsoft.word.doc";
                  (NSString *)kUTTypeApplicationBundle,
                  nil];
     });
-	return types;
+    return types;
 }
 
 + (NSSet *) documentationTypes
 {
-	static NSSet *types = nil;
-	if (!types) types = [[NSSet alloc] initWithObjects:
-                         @"public.jpeg",
-                         @"public.plain-text",
-                         @"public.png",
-                         @"com.compuserve.gif",
-                         @"com.adobe.pdf",
-                         @"public.rtf",
-                         @"com.microsoft.bmp",
-                         @"com.microsoft.word.doc",
-                         @"public.html",
-                         nil];
-	return types;
+    static NSSet *types = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        types = [[NSSet alloc] initWithObjects:
+                 (NSString *)kUTTypeJPEG,
+                 (NSString *)kUTTypePlainText,
+                 (NSString *)kUTTypePNG,
+                 (NSString *)kUTTypeGIF,
+                 (NSString *)kUTTypePDF,
+                 (NSString *)kUTTypeRTF,
+                 (NSString *)kUTTypeBMP,
+                 BXDOCFileType,
+                 (NSString *)kUTTypeHTML,
+                 nil];
+    });
+    return types;
 }
 
 + (NSDictionary *) fileHandlerOverrides
 {
-	static NSDictionary *handlers;
+    static NSDictionary *handlers;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
         handlers = @{
@@ -195,9 +190,8 @@ NSString * const BXDOCFileType      = @"com.microsoft.word.doc";
             //and Pages (maybe other rich-text editors too?) will choke on them
             @"doc": @"com.apple.TextEdit",
         };
-        [handlers retain];
     });
-	return handlers;
+    return handlers;
 }
 
 + (NSString *) bundleIdentifierForApplicationToOpenURL: (NSURL *)URL
@@ -220,7 +214,6 @@ NSString * const BXDOCFileType      = @"com.microsoft.word.doc";
 - (id) init
 {
     [self doesNotRecognizeSelector: _cmd];
-    [self release];
     return nil;
 }
 
@@ -236,15 +229,14 @@ NSString * const BXExecutableTypesErrorDomain = @"BXExecutableTypesErrorDomain";
 
 + (BXExecutableType) typeOfExecutableAtURL: (NSURL *)URL error: (NSError **)outError
 {
-	NSAssert(URL != nil, @"No URL specified!");
+    NSAssert(URL != nil, @"No URL specified!");
     
     NSError *openError;
-    ADBFileHandle *handle = [ADBFileHandle handleForURL: URL options: ADBOpenForReading error: &openError];
+    ADBFileHandle *handle = [ADBFileHandle handleForURL: URL options: ADBHandleOpenForReading error: &openError];
     if (handle)
     {
         BXExecutableType type = [BXFileTypes typeOfExecutableInStream: handle error: outError];
-        if ([handle conformsToProtocol: @protocol(ADBFileHandleAccess)])
-            [(id <ADBFileHandleAccess>)handle close];
+        [handle close];
         return type;
     }
     else
@@ -252,7 +244,8 @@ NSString * const BXExecutableTypesErrorDomain = @"BXExecutableTypesErrorDomain";
         if (outError)
         {
             NSAssert(openError != nil, @"No error returned on failure condition!");
-            NSDictionary *info = @{ NSUnderlyingErrorKey: openError };
+            NSDictionary *info = @{ NSUnderlyingErrorKey: openError,
+                                    NSURLErrorKey: URL };
             *outError = [NSError errorWithDomain: BXExecutableTypesErrorDomain
                                             code: BXCouldNotReadExecutable
                                         userInfo: info];
@@ -265,11 +258,11 @@ NSString * const BXExecutableTypesErrorDomain = @"BXExecutableTypesErrorDomain";
                                  filesystem: (id <ADBFilesystemPathAccess>)filesystem
                                       error: (out NSError **)outError
 {
-	NSAssert(path != nil, @"No URL specified!");
-	NSAssert(filesystem != nil, @"No filesystem specified!");
+    NSAssert(path != nil, @"No URL specified!");
+    NSAssert(filesystem != nil, @"No filesystem specified!");
     
     NSError *openError = nil;
-    id <ADBReadable, ADBSeekable> handle = [filesystem fileHandleAtPath: path options: ADBOpenForReading error: &openError];
+    id <ADBReadable, ADBSeekable> handle = [filesystem fileHandleAtPath: path options: ADBHandleOpenForReading error: &openError];
     if (handle)
     {
         BXExecutableType type = [BXFileTypes typeOfExecutableInStream: handle error: outError];
@@ -295,12 +288,12 @@ NSString * const BXExecutableTypesErrorDomain = @"BXExecutableTypesErrorDomain";
 + (BXExecutableType) typeOfExecutableInStream: (id<ADBReadable, ADBSeekable>)handle
                                         error: (out NSError **)outError
 {
-	NSAssert(handle != nil, @"No handle provided!");
+    NSAssert(handle != nil, @"No handle provided!");
     
     
     NSError *handleError = nil;
     BXDOSExecutableHeader header;
-	size_t headerSize = sizeof(BXDOSExecutableHeader);
+    size_t headerSize = sizeof(BXDOSExecutableHeader);
     
     NSUInteger bytesRead = headerSize;
     
@@ -329,44 +322,44 @@ NSString * const BXExecutableTypesErrorDomain = @"BXExecutableTypesErrorDomain";
         }
         return BXExecutableTypeUnknown;
     }
-	
-	//Header is stored in little-endian format, so swap the bytes
+    
+    //Header is stored in little-endian format, so swap the bytes
     //around on PowerPC systems to ensure correct comparisons.
-	unsigned short typeMarker			= NSSwapLittleShortToHost(header.typeMarker);
-	unsigned short relocationAddress	= NSSwapLittleShortToHost(header.relocationTableAddress);
-	unsigned long newHeaderAddress		= NSSwapLittleLongToHost(header.newHeaderAddress);
-	
-	//DOS headers always start with the MZ type marker:
-	//if this differs, then it's not a real executable.
-	if (typeMarker != BXDOSExecutableMarker)
-	{
-		if (outError)
-		{
-			*outError = [NSError errorWithDomain: BXExecutableTypesErrorDomain
-											code: BXNotAnExecutable
-										userInfo: nil];
-		}
-		return BXExecutableTypeUnknown;
-	}
-	
-	//The header's relocation table address should always be 64 for new-style executables:
-	//if it differs, then we can assume it's just random data and this is a DOS-only executable.
-	if (relocationAddress != BXExtendedExecutableRelocationAddress)
-        return BXExecutableTypeDOS;
-	
-	//If the address of the new-style executable header is zero, assume that it's just random data
-    //and that this is a DOS executable.
-	if (newHeaderAddress == 0)
+    unsigned short typeMarker			= CFSwapInt16LittleToHost(header.typeMarker);
+    unsigned short relocationAddress	= CFSwapInt16LittleToHost(header.relocationTableAddress);
+    unsigned int newHeaderAddress		= CFSwapInt32LittleToHost(header.newHeaderAddress);
+    
+    //DOS headers always start with the MZ type marker:
+    //if this differs, then it's not a real executable.
+    if (typeMarker != BXDOSExecutableMarker)
+    {
+        if (outError)
+        {
+            *outError = [NSError errorWithDomain: BXExecutableTypesErrorDomain
+                                            code: BXNotAnExecutable
+                                        userInfo: nil];
+        }
+        return BXExecutableTypeUnknown;
+    }
+    
+    //The header's relocation table address should always be 64 for new-style executables:
+    //if it differs, then we can assume it's just random data and this is a DOS-only executable.
+    if (relocationAddress != BXExtendedExecutableRelocationAddress)
         return BXExecutableTypeDOS;
     
-	
-	//Read in the 2-byte executable type marker from the start of the new-style header.
-	uint16_t newTypeMarker = 0;
+    //If the address of the new-style executable header is zero, assume that it's just random data
+    //and that this is a DOS executable.
+    if (newHeaderAddress == 0)
+        return BXExecutableTypeDOS;
+    
+    
+    //Read in the 2-byte executable type marker from the start of the new-style header.
+    uint16_t newTypeMarker = 0;
     NSUInteger markerLength = sizeof(uint16_t);
     
     BOOL soughtToMarker = [handle seekToOffset: newHeaderAddress
-                            relativeTo: ADBSeekFromStart
-                                 error: &handleError];
+                                    relativeTo: ADBSeekFromStart
+                                         error: &handleError];
     
     NSUInteger markerBytesRead;
     BOOL readMarker = soughtToMarker && [handle readBytes: &newTypeMarker
@@ -393,60 +386,60 @@ NSString * const BXExecutableTypesErrorDomain = @"BXExecutableTypesErrorDomain";
     {
         return BXExecutableTypeDOS;
     }
-	
-	newTypeMarker = NSSwapLittleShortToHost(newTypeMarker);
-	
-	switch (newTypeMarker)
-	{
-		case BX16BitNewExecutableMarker:
-		case BX32BitPortableExecutableMarker:
-			//Stub area is unusually large: assume it contains a legitimate DOS program.
-			if (newHeaderAddress > BXMaxWarningStubLength)
-				return BXExecutableTypeDOS;
-			
-			unsigned long minHeaderLength = (newTypeMarker == BX32BitPortableExecutableMarker) ? BX32BitPortableExecutableHeaderLength : BX16BitNewExecutableHeaderLength;
-			
-			//File is not long enough to accomodate expected header: assume what we thought was a type marker
-			//was just coincidental random data, and this is actually a DOS executable.
-			if (handle.maxOffset < (newHeaderAddress + minHeaderLength))
-				return BXExecutableTypeDOS;
+    
+    newTypeMarker = CFSwapInt16LittleToHost(newTypeMarker);
+    
+    switch (newTypeMarker)
+    {
+        case BX16BitNewExecutableMarker:
+        case BX32BitPortableExecutableMarker:
+            //Stub area is unusually large: assume it contains a legitimate DOS program.
+            if (newHeaderAddress > BXMaxWarningStubLength)
+                return BXExecutableTypeDOS;
             
-			//Otherwise, assume it's Windows.
-			return BXExecutableTypeWindows;
+            unsigned long minHeaderLength = (newTypeMarker == BX32BitPortableExecutableMarker) ? BX32BitPortableExecutableHeaderLength : BX16BitNewExecutableHeaderLength;
             
-		case BX16BitLinearExecutableMarker:
-		case BX32BitLinearExecutableMarker:
-			//Stub area is unusually large: assume it contains a legitimate DOS program.
-			if (newHeaderAddress > BXMaxWarningStubLength)
-				return BXExecutableTypeDOS;
-			
-			//Otherwise, assume it's OS/2.
-			return BXExecutableTypeOS2;
+            //File is not long enough to accomodate expected header: assume what we thought was a type marker
+            //was just coincidental random data, and this is actually a DOS executable.
+            if (handle.maxOffset < (long long)(newHeaderAddress + minHeaderLength))
+                return BXExecutableTypeDOS;
             
-		case BXW3ExecutableMarker:
-		case BXW4ExecutableMarker:
-			return BXExecutableTypeWindows;
-			
-		default:
-			return BXExecutableTypeDOS;
-	}
+            //Otherwise, assume it's Windows.
+            return BXExecutableTypeWindows;
+            
+        case BX16BitLinearExecutableMarker:
+        case BX32BitLinearExecutableMarker:
+            //Stub area is unusually large: assume it contains a legitimate DOS program.
+            if (newHeaderAddress > BXMaxWarningStubLength)
+                return BXExecutableTypeDOS;
+            
+            //Otherwise, assume it's OS/2.
+            return BXExecutableTypeOS2;
+            
+        case BXW3ExecutableMarker:
+        case BXW4ExecutableMarker:
+            return BXExecutableTypeWindows;
+            
+        default:
+            return BXExecutableTypeDOS;
+    }
 }
 
 + (BOOL) isCompatibleExecutableAtURL: (NSURL *)URL error: (out NSError **)outError
 {
-	//Automatically assume .COM and .BAT files are DOS-compatible.
+    //Automatically assume .COM and .BAT files are DOS-compatible.
     if ([URL conformsToFileType: BXCOMProgramType] || [URL conformsToFileType: BXBatchProgramType])
         return YES;
-	
-	//If it is an .EXE file, subject it to a more rigorous compatibility check.
+    
+    //If it is an .EXE file, subject it to a more rigorous compatibility check.
     if ([URL conformsToFileType: BXEXEProgramType])
     {
         BXExecutableType exeType = [self typeOfExecutableAtURL: URL error: outError];
         return (exeType == BXExecutableTypeDOS);
     }
     
-	//Otherwise, assume the file is incompatible.
-	return NO;
+    //Otherwise, assume the file is incompatible.
+    return NO;
 }
 
 + (BOOL) isCompatibleExecutableAtPath: (NSString *)path
@@ -455,19 +448,19 @@ NSString * const BXExecutableTypesErrorDomain = @"BXExecutableTypesErrorDomain";
 {
     NSString *matchingType = [filesystem typeOfFileAtPath: path matchingTypes: [self executableTypes]];
     
-	//Automatically assume .COM and .BAT files are DOS-compatible.
+    //Automatically assume .COM and .BAT files are DOS-compatible.
     if ([matchingType isEqualToString: BXCOMProgramType] || [matchingType isEqualToString: BXBatchProgramType])
         return YES;
-	
-	//If it is an .EXE file, subject it to a more rigorous compatibility check.
+    
+    //If it is an .EXE file, subject it to a more rigorous compatibility check.
     if ([matchingType isEqualToString: BXEXEProgramType])
     {
         BXExecutableType exeType = [self typeOfExecutableAtPath: path filesystem: filesystem error: outError];
         return (exeType == BXExecutableTypeDOS);
     }
     
-	//Otherwise, assume the file is incompatible.
-	return NO;
+    //Otherwise, assume the file is incompatible.
+    return NO;
 }
 
 @end
@@ -484,8 +477,21 @@ NSString * const BXExecutableTypesErrorDomain = @"BXExecutableTypesErrorDomain";
     }
     else if ([URL matchingFileType: [NSSet setWithObjects: BXISOImageType, BXCDRImageType, nil]])
     {
-        //TODO: if parsing of the image fails, fall back on ADBMountableImage
-        return [ADBISOImage imageWithContentsOfURL: URL error: outError];
+        NSError *ourError = nil;
+        ADBISOImage *isoImg = [ADBISOImage imageWithContentsOfURL: URL error: &ourError];
+        if (!isoImg) {
+            ADBMountableImage *mountable = [ADBMountableImage imageWithContentsOfURL: URL error: outError];
+            if (!mountable) {
+                if (outError) {
+                    *outError = ourError;
+                }
+                return nil;
+            } else {
+                return mountable;
+            }
+        } else {
+            return isoImg;
+        }
     }
     else if ([URL matchingFileType: [ADBMountableImage supportedImageTypes]])
     {

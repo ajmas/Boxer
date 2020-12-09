@@ -37,6 +37,7 @@
 
 - (void) _syncHerculesTint;
 - (void) _syncCGAHueAdjustment;
+- (void) _syncCGAComposite;
 
 @end
 
@@ -55,15 +56,10 @@
 	{
 		_currentVideoMode = M_TEXT;
         _herculesTint = BXHerculesWhiteTint;
+        _CGAComposite = BXCGACompositeAuto;
         _CGAHueAdjustment = 0.0;
 	}
 	return self;
-}
-
-- (void) dealloc
-{	
-    self.currentFrame = nil;
-	[super dealloc];
 }
 
 - (NSSize) resolution
@@ -138,7 +134,7 @@
 {
 	if (type != _filterType)
 	{
-		NSAssert1(type <= BXMaxFilters, @"Invalid filter type provided to setFilterType: %i", type);
+		NSAssert1(type <= BXMaxFilters, @"Invalid filter type provided to setFilterType: %li", (unsigned long)type);
 				
 		_filterType = type;
 		[self reset];
@@ -170,6 +166,22 @@
     if (self.emulator.isInitialized)
     {
         boxer_setHerculesTintMode((Bit8u)self.herculesTint);
+    }
+}
+
+@synthesize CGAComposite=_CGAComposite;
+
+- (void)setCGAComposite:(BXCGACompositeMode)composite
+{
+    _CGAComposite = composite;
+    [self _syncCGAComposite];
+}
+
+- (void) _syncCGAComposite
+{
+    if (self.emulator.isInitialized)
+    {
+        boxer_setCGAComponentMode((Bit8u)self.CGAComposite);
     }
 }
 
@@ -262,7 +274,7 @@
                                     userInfo: nil];
 }
 
-- (BOOL) startFrameWithBuffer: (void **)buffer pitch: (NSUInteger *)pitch
+- (BOOL) startFrameWithBuffer: (void **)buffer pitch: (int *)pitch
 {
 	if (_frameInProgress) 
 	{
@@ -277,7 +289,7 @@
 	}
 	
 	*buffer	= self.currentFrame.mutableBytes;
-    *pitch	= self.currentFrame.pitch;
+    *pitch	= (int)self.currentFrame.pitch;
     
     [self.currentFrame clearDirtyRegions];
 	
@@ -378,7 +390,7 @@
 
 - (const BXFilterDefinition *) _paramsForFilterType: (BXFilterType)type
 {
-	NSAssert1(type <= BXMaxFilters, @"Invalid filter type provided to paramsForFilterType: %i", type);
+	NSAssert1(type <= BXMaxFilters, @"Invalid filter type provided to paramsForFilterType: %li", (long)type);
 	
     return BXFilters[type];
 }
@@ -433,8 +445,8 @@
 {
 	NSSize maxFrameSize	= [self.emulator.delegate maxFrameSizeForEmulator: self.emulator];
 	//Work out how big a filter operation size we can use, given the maximum output size
-	NSUInteger maxScale	= floorf(MIN(maxFrameSize.width / resolution.width,
-                                     maxFrameSize.height / resolution.height));
+	NSUInteger maxScale	= floor(MIN(maxFrameSize.width / resolution.width,
+                                    maxFrameSize.height / resolution.height));
 	
 	return maxScale;
 }

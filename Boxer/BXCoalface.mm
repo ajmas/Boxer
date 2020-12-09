@@ -42,7 +42,7 @@ bool boxer_runLoopShouldContinue()
 }
 
 //Notifies Boxer of changes to title and speed settings
-void boxer_handleDOSBoxTitleChange(Bit32s newCycles, Bits newFrameskip, bool newPaused)
+void boxer_handleDOSBoxTitleChange(Bit32s newCycles, int newFrameskip, bool newPaused)
 {
 	BXEmulator *emulator = [BXEmulator currentEmulator];
 	[emulator _didChangeEmulationState];
@@ -57,7 +57,11 @@ void boxer_applyRenderingStrategy()
 	[[emulator videoHandler] applyRenderingStrategy];
 }
 
-Bitu boxer_prepareForFrameSize(Bitu width, Bitu height, Bitu gfx_flags, double scalex, double scaley, GFX_CallBack_t callback)
+void boxer_setShader(const char* src) {
+    //TODO: implement!
+}
+
+Bitu boxer_prepareForFrameSize(Bitu width, Bitu height, Bitu gfx_flags, double scalex, double scaley, GFX_CallBack_t callback, double pixel_aspect)
 {
 	BXEmulator *emulator = [BXEmulator currentEmulator];
 	
@@ -76,10 +80,10 @@ Bitu boxer_idealOutputMode(Bitu flags)
 	return GFX_CAN_32 | GFX_SCALING;
 }
 
-bool boxer_startFrame(Bit8u **frameBuffer, Bitu *pitch)
+bool boxer_startFrame(Bit8u * &frameBuffer, int & pitch)
 {
 	BXEmulator *emulator = [BXEmulator currentEmulator];
-	return [[emulator videoHandler] startFrameWithBuffer: (void **)frameBuffer pitch: (NSUInteger *)pitch];
+	return [[emulator videoHandler] startFrameWithBuffer: (void **)&frameBuffer pitch: &pitch];
 }
 
 void boxer_finishFrame(const uint16_t *dirtyBlocks)
@@ -92,15 +96,6 @@ Bitu boxer_getRGBPaletteEntry(Bit8u red, Bit8u green, Bit8u blue)
 {
 	BXEmulator *emulator = [BXEmulator currentEmulator];
 	return [[emulator videoHandler] paletteEntryWithRed: red green: green blue: blue];
-}
-
-void boxer_setPalette(Bitu start,Bitu count,GFX_PalEntry * entries)
-{
-	//This replacement DOSBox function does nothing, as the original was intended only for SDL
-	//surface palettes which are irrelevant to OpenGL.
-	//Furthermore it should never be called: if it does, that means DOSBox thinks it's using
-	//surface output and this is a bug.
-	NSCAssert(NO, @"boxer_setPalette called. This is a bug and should never happen.");
 }
 
 
@@ -540,7 +535,7 @@ void boxer_log(char const* format,...)
 	char buf[512];
 	va_list msg;
 	va_start(msg,format);
-	vsprintf(buf,format,msg);
+	vsnprintf(buf,sizeof(buf)-1,format,msg);
 	strcat(buf,"\n");
 	va_end(msg);
 	printf("%s",buf);
@@ -558,13 +553,22 @@ void boxer_die(const char *functionName, const char *fileName, int lineNumber, c
     throw boxer_emulatorException(errorReason, fileName, functionName, lineNumber);
 }
 
+void restart_program(std::vector<std::string> & parameters) {
+    // TODO: re-write?
+    E_Exit("Restarting failed");
+}
 
 #pragma mark - No-ops
 
 //These used to be defined in sdl_mapper.cpp, which we no longer include in Boxer.
-void MAPPER_AddHandler(MAPPER_Handler * handler,MapKeys key,Bitu mods,char const * const eventname,char const * const buttonname) {}
+void MAPPER_AddHandler(MAPPER_Handler *handler, SDL_Scancode key, uint32_t mods,
+                       const char *event_name, const char *button_name) {}
 void MAPPER_Init(void) {}
 void MAPPER_StartUp(Section * sec) {}
 void MAPPER_Run(bool pressed) {}
 void MAPPER_RunInternal() {}
 void MAPPER_LosingFocus(void) {}
+void MAPPER_AutoType(std::vector<std::string> &sequence,
+                     const uint32_t wait_ms,
+                     const uint32_t pacing_ms) {}
+std::vector<std::string> MAPPER_GetEventNames(const std::string &prefix) {return std::vector<std::string>();}

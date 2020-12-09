@@ -50,7 +50,7 @@
 
 + (id) setWithOperations: (NSArray *)operations
 {
-	return [[[self alloc] initWithOperations: operations] autorelease];
+	return [[self alloc] initWithOperations: operations];
 }
 
 - (id) init
@@ -69,18 +69,10 @@
 	if ((self = [self init]))
 	{
 		if (operations)
-			self.operations = [[operations mutableCopy] autorelease];
+			self.operations = [operations mutableCopy];
 	}
 	return self;
 }
-
-- (void) dealloc
-{
-    self.operations = nil;
-    
-	[super dealloc];
-}
-
 
 #pragma mark -
 #pragma mark Running the operations
@@ -174,8 +166,6 @@
 			}
 		}		
 	}
-	
-	[queue release];
 }
 
 - (void) _postUpdateWithTimer: (NSTimer *)timer

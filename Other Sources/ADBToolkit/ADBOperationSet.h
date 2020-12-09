@@ -30,12 +30,16 @@
 
 #import "ADBOperation.h"
 
-//The standard interval in seconds at which to poll the progress of our dependent operations
+NS_ASSUME_NONNULL_BEGIN
+
+/// The standard interval in seconds at which to poll the progress of our dependent operations
 #define ADBOperationSetDefaultPollInterval 0.1
 
+/// @c ADBOperationSet groups multiple concurrent operations into one operation, whose progress can
+/// be tracked as a whole. It wraps an NSOperationQueue.
 @interface ADBOperationSet : ADBOperation
 {
-	NSMutableArray *_operations;
+	NSMutableArray<ADBOperation*> *_operations;
 	NSTimeInterval _pollInterval;
     NSInteger _maxConcurrentOperations;
 }
@@ -43,24 +47,27 @@
 #pragma mark -
 #pragma mark Properties
 
-//The operations within this set.
-//These will be added to an operation queue only when this operation is started.
-//After starting, it is not safe to modify this array.
-@property (retain, nonatomic) NSMutableArray *operations;
+/// The operations within this set.
+/// These will be added to an operation queue only when this operation is started.
+/// After starting, it is not safe to modify this array.
+@property (strong, nonatomic) NSMutableArray<ADBOperation*> *operations;
 
-//The maximum number of operations we should execute at once.
-//Defaults to NSOperationQueueDefaultMaxConcurrentOperationCount.
+/// The maximum number of operations we should execute at once.
+/// Defaults to NSOperationQueueDefaultMaxConcurrentOperationCount.
 @property (assign, nonatomic) NSInteger maxConcurrentOperations;
 
-//The interval at which to check the progress of our dependent operations and
-//issue overall progress updates.
-//ADBOperationSet's overall running time will be a multiple of this interval.
+/// The interval at which to check the progress of our dependent operations and
+/// issue overall progress updates.
+///
+/// ADBOperationSet's overall running time will be a multiple of this interval.
 @property (assign) NSTimeInterval pollInterval;
 
 #pragma mark -
 #pragma mark Initialization
 
-+ (id) setWithOperations: (NSArray *)operations;
-- (id) initWithOperations: (NSArray *)operations;
++ (instancetype) setWithOperations: (NSArray<ADBOperation*> *)operations;
+- (instancetype) initWithOperations: (NSArray<ADBOperation*> *)operations;
 
 @end
+
+NS_ASSUME_NONNULL_END

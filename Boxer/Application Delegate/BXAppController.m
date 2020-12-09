@@ -64,9 +64,9 @@ NSString * const BXActivateOnLaunchParam = @"--activateOnLaunch";
 	NSWorkspace *workspace		= [NSWorkspace sharedWorkspace];
 	NSUInteger numBoxers = 0;
 	
-	for (NSDictionary *appDetails in [workspace launchedApplications])
+	for (NSRunningApplication *appDetails in [workspace runningApplications])
 	{
-		if ([[appDetails objectForKey: @"NSApplicationBundleIdentifier"] isEqualToString: bundleIdentifier]) numBoxers++;
+		if ([appDetails.bundleIdentifier isEqualToString: bundleIdentifier]) numBoxers++;
 	}
 	return numBoxers > 1;
 }
@@ -74,8 +74,6 @@ NSString * const BXActivateOnLaunchParam = @"--activateOnLaunch";
 - (void) dealloc
 {
     self.gamesFolderURL = nil;
-	
-	[super dealloc];
 }
 
 - (BXInspectorController *) inspectorController
@@ -146,7 +144,7 @@ NSString * const BXActivateOnLaunchParam = @"--activateOnLaunch";
 		BOOL hasDelayed = NO;
         
         //These are disabled as they do not run correctly on Lion
-        BOOL useFlipTransitions = !isRunningOnLionOrAbove();
+		BOOL useFlipTransitions = NO;//!isRunningOnLionOrAbove();
         
 		switch ([[NSUserDefaults standardUserDefaults] integerForKey: @"startupAction"])
 		{
@@ -202,16 +200,16 @@ NSString * const BXActivateOnLaunchParam = @"--activateOnLaunch";
     openPanel.message = NSLocalizedString(@"Choose a gamebox, folder or DOS program to open in DOS.",
                                           @"Help text shown at the top of the open panel.");
 	
-	//Todo: add an accessory view and delegate to handle special-case requirements.
+	//TODO: add an accessory view and delegate to handle special-case requirements.
 	//(like installation, or choosing which drive to mount a folder as.) 
 	
 	return [super runModalOpenPanel: openPanel forTypes: extensions];
 }
 
 
-- (id) openDocumentWithContentsOfURL: (NSURL *)absoluteURL
-							 display: (BOOL)displayDocument
-							   error: (NSError **)outError
+- (void) openDocumentWithContentsOfURL: (NSURL *)absoluteURL
+							   display: (BOOL)displayDocument
+					 completionHandler: (void (^)(NSDocument * _Nullable, BOOL, NSError * _Nullable))completionHandler
 {
 	//First go through our existing sessions, checking if any can open the specified URL.
 	//(This will be possible if the URL is accessible to a session's emulated filesystem,
@@ -226,7 +224,8 @@ NSString * const BXActivateOnLaunchParam = @"--activateOnLaunch";
 			if ([session.gamebox.bundleURL isEqual: absoluteURL])
 			{
 				[session showWindows];
-				return session;
+				completionHandler(session, YES, nil);
+				return;
 			}
 		}
 	}
@@ -238,14 +237,18 @@ NSString * const BXActivateOnLaunchParam = @"--activateOnLaunch";
 			if ([session openURLInDOS: absoluteURL error: nil])
 			{
 				if (displayDocument)
-                    [session showWindows];
-				return session;
+				{
+					[session showWindows];
+				}
+				
+				completionHandler(session, YES, nil);
+				return;
 			}
-		}		
+		}
 	}
 	
 	//If no existing session can open the URL, continue with the default document opening behaviour.
-	return [super openDocumentWithContentsOfURL: absoluteURL display: displayDocument error: outError];
+	[super openDocumentWithContentsOfURL: absoluteURL display: displayDocument completionHandler: completionHandler];
 }
 
 //Prevent the opening of new documents if we have a session already active
@@ -319,7 +322,7 @@ NSString * const BXActivateOnLaunchParam = @"--activateOnLaunch";
     
 	if ([self _canOpenDocumentOfClass: [BXImportSession class]])
 	{
-		BXImportSession *importer = [[BXImportSession alloc] initWithType: nil error: outError];
+		BXImportSession *importer = [[BXImportSession alloc] initWithType: @"net.washboardabs.boxer-game-package" error: outError];
 		if (importer)
 		{
 			[self addDocument: importer];
@@ -329,7 +332,7 @@ NSString * const BXActivateOnLaunchParam = @"--activateOnLaunch";
 				[importer showWindows];
 			}
 		}
-		return [importer autorelease];
+		return importer;
 	}
     //If it's too late for us to open an import session, launch a new Boxer process to do it
 	else
@@ -353,7 +356,7 @@ NSString * const BXActivateOnLaunchParam = @"--activateOnLaunch";
 	if ([self _canOpenDocumentOfClass: [BXImportSession class]])
 	{
 		BXImportSession *importer = [[BXImportSession alloc] initWithContentsOfURL: url
-                                                                            ofType: nil
+                                                                            ofType: @"net.washboardabs.boxer-game-package"
                                                                              error: outError];
 		if (importer)
 		{
@@ -364,7 +367,7 @@ NSString * const BXActivateOnLaunchParam = @"--activateOnLaunch";
 				[importer showWindows];
 			}
 		}
-		return [importer autorelease];
+		return importer;
 	}
     else
     {
@@ -580,7 +583,6 @@ NSString * const BXActivateOnLaunchParam = @"--activateOnLaunch";
 - (IBAction) showWebsite:			(id)sender	{ [self openURLFromKey: @"WebsiteURL"]; }
 - (IBAction) showDonationPage:		(id)sender	{ [self openURLFromKey: @"DonationURL"]; }
 - (IBAction) showBugReportPage:		(id)sender	{ [self openURLFromKey: @"BugReportURL"]; }
-- (IBAction) showJoypadDownloadPage:(id)sender	{ [self openURLFromKey: @"JoypadURL"]; }
 
 - (IBAction) sendEmail: (id)sender
 {

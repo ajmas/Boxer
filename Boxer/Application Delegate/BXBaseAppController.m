@@ -28,6 +28,7 @@
 #import "NSObject+ADBPerformExtensions.h"
 
 #import "ADBUserNotificationDispatcher.h"
+#include <tgmath.h>
 
 /// The number of increments from minimum volume to full volume.
 /// Used by @c -incrementMasterVolume: and @c -decrementMasterVolume:
@@ -41,18 +42,6 @@
 #pragma mark - Implementation
 
 @implementation BXBaseAppController
-
-@synthesize currentSession = _currentSession;
-@synthesize generalQueue = _generalQueue;
-@synthesize joystickController = _joystickController;
-@synthesize joypadController = _joypadController;
-@synthesize MIDIDeviceMonitor = _MIDIDeviceMonitor;
-@synthesize hotkeySuppressionTap = _hotkeySuppressionTap;
-
-@synthesize postTerminationHandler = _postTerminationHandler;
-@synthesize activeHotkeyAlert = _activeHotkeyAlert;
-@synthesize needsRestartForHotkeyCapture = _needsRestartForHotkeyCapture;
-
 
 #pragma mark - Helper class methods
 
@@ -154,7 +143,6 @@
 	
     self.currentSession = nil;
     self.joystickController = nil;
-    self.joypadController = nil;
     self.MIDIDeviceMonitor = nil;
     self.hotkeySuppressionTap = nil;
     self.generalQueue = nil;
@@ -238,7 +226,7 @@
     }
 }
 
-- (void) terminateWithHandler: (void (^)())postTerminationHandler
+- (void) terminateWithHandler: (void (^)(void))postTerminationHandler
 {
     self.postTerminationHandler = postTerminationHandler;
     
@@ -298,31 +286,6 @@
     
     NSApplicationPresentationOptions currentOptions = [NSApp presentationOptions], newOptions = currentOptions;
     
-    //On SL, we need to manage the fullscreen application state ourselves.
-    if (isRunningOnSnowLeopard())
-    {
-        if ([NSApp isActive] && [(BXDOSWindow *)currentController.window isFullScreen])
-        {
-            if (currentController.inputController.mouseLocked)
-            {
-                //When the session is fullscreen and mouse-locked, hide all UI components completely.
-                newOptions |= NSApplicationPresentationHideDock | NSApplicationPresentationHideMenuBar | NSApplicationPresentationFullScreen;
-                newOptions &= ~(NSApplicationPresentationAutoHideDock | NSApplicationPresentationAutoHideMenuBar);
-            }
-            else
-            {
-                //When the session is fullscreen but the mouse is unlocked,
-                //show the OS X menu but hide the Dock until it is moused over
-                newOptions |= NSApplicationPresentationAutoHideDock | NSApplicationPresentationFullScreen;
-                newOptions &= ~(NSApplicationPresentationHideDock | NSApplicationPresentationHideMenuBar | NSApplicationPresentationAutoHideMenuBar);
-            }
-        }
-        else
-        {
-            //When there is no fullscreen session, show all UI components normally.
-            newOptions = NSApplicationPresentationDefault;
-        }
-    }
     
     //Disable process-switching while the mouse is locked, and enable it again when unlocked.
     if (suppressProcessSwitching && [NSApp isActive] && currentController.inputController.mouseLocked)
@@ -478,7 +441,7 @@
 	NSString *siteString = [[NSBundle mainBundle] objectForInfoDictionaryKey: infoKey];
     NSAssert(siteString.length, @"No search URL found in Info.plist for key %@", infoKey);
     
-    NSString *encodedSearch = [search stringByAddingPercentEscapesUsingEncoding: NSUTF8StringEncoding];
+    NSString *encodedSearch = [search stringByAddingPercentEncodingWithAllowedCharacters: NSCharacterSet.URLQueryAllowedCharacterSet];
     NSString *URLString		= [NSString stringWithFormat: siteString, encodedSearch];
     [[NSWorkspace sharedWorkspace] openURL: [NSURL URLWithString: URLString]];
 }
@@ -489,7 +452,7 @@
     NSAssert(address.length, @"No email address found in Info.plist for key %@", infoKey);
 	if (address.length)
 	{
-		NSString *encodedSubject	= [subject stringByAddingPercentEscapesUsingEncoding: NSUTF8StringEncoding];
+		NSString *encodedSubject	= [subject stringByAddingPercentEncodingWithAllowedCharacters: NSCharacterSet.URLQueryAllowedCharacterSet];
 		NSString *mailtoURLString	= [NSString stringWithFormat: @"mailto:%@?subject=%@", address, encodedSubject];
 		[[NSWorkspace sharedWorkspace] openURL: [NSURL URLWithString: mailtoURLString]];
 	}
@@ -714,7 +677,7 @@
     {
         //Round the volume to the nearest increment after incrementing.
         float incrementedVolume = self.masterVolume + BXMasterVolumeIncrement;
-        self.masterVolume = roundf(incrementedVolume * BXMasterVolumeNumIncrements) / BXMasterVolumeNumIncrements;
+        self.masterVolume = round(incrementedVolume * BXMasterVolumeNumIncrements) / BXMasterVolumeNumIncrements;
     }
     [[BXBezelController controller] showVolumeBezelForVolume: self.effectiveVolume];
 }
@@ -725,7 +688,7 @@
     {
         //Round the volume to the nearest increment after decrementing.
         float decrementedVolume = self.masterVolume - BXMasterVolumeIncrement;
-        self.masterVolume = roundf(decrementedVolume * BXMasterVolumeNumIncrements) / BXMasterVolumeNumIncrements;
+        self.masterVolume = round(decrementedVolume * BXMasterVolumeNumIncrements) / BXMasterVolumeNumIncrements;
     }
     self.muted = (self.masterVolume == 0);
     
@@ -744,8 +707,8 @@
     
     if (issueURLString.length)
     {
-        NSString *encodedTitle  = (title) ? [title stringByAddingPercentEscapesUsingEncoding: NSUTF8StringEncoding] : @"";
-        NSString *encodedBody   = (body) ? [body stringByAddingPercentEscapesUsingEncoding: NSUTF8StringEncoding] : @"";
+        NSString *encodedTitle  = (title) ? [title stringByAddingPercentEncodingWithAllowedCharacters: NSCharacterSet.URLQueryAllowedCharacterSet] : @"";
+        NSString *encodedBody   = (body) ? [body stringByAddingPercentEncodingWithAllowedCharacters: NSCharacterSet.URLQueryAllowedCharacterSet] : @"";
         
         NSString *completeURLString = [NSString stringWithFormat: @"%@?title=%@&body=%@", issueURLString, encodedTitle, encodedBody];
 		[[NSWorkspace sharedWorkspace] openURL: [NSURL URLWithString: completeURLString]];

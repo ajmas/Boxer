@@ -29,9 +29,9 @@
 #pragma mark Implementation
 
 @implementation BXEmulatedMouse
-@synthesize active = _active;
-@synthesize position = _position;
-@synthesize pressedButtons = _pressedButtons;
+{
+	NSTimeInterval _lastButtonDown[BXMouseButtonMax];
+}
 
 - (id) init
 {
@@ -95,7 +95,7 @@
 		   toState: (BOOL)pressed
 {
     NSAssert1(button < BXMouseButtonMax,
-              @"Invalid mouse button number %d passed to setButton:toState:", button);
+              @"Invalid mouse button number %ld passed to setButton:toState:", (long)button);
     
 	//Ignore button presses while we're inactive
 	if (!self.isActive) return;
@@ -106,7 +106,7 @@
     //cancel any pending button release in response.
     [NSObject cancelPreviousPerformRequestsWithTarget: self
                                              selector: @selector(releaseButton:)
-                                               object: [NSNumber numberWithUnsignedInteger: button]];
+                                               object: @(button)];
     
     //If we do actually need to toggle the button, then update DOSBox's state
 	if ([self buttonIsDown: button] != pressed)
@@ -135,7 +135,7 @@
             if (durationRemaining > 0)
             {
                 [self performSelector: @selector(releaseButton:)
-                           withObject: [NSNumber numberWithUnsignedInteger: button]
+                           withObject: @(button)
                            afterDelay: durationRemaining];
             }
             else
@@ -162,7 +162,7 @@
 - (BOOL) buttonIsDown: (BXMouseButton)button
 {
     NSAssert1(button < BXMouseButtonMax,
-              @"Invalid mouse button number %d passed to setButton:toState:", button);
+              @"Invalid mouse button number %ld passed to setButton:toState:", (long)button);
     
 	NSUInteger buttonMask = 1U << button;
 	
@@ -180,7 +180,7 @@
 	[self buttonDown: button];
 	
 	[self performSelector: @selector(releaseButton:)
-			   withObject: [NSNumber numberWithUnsignedInteger: button]
+			   withObject: @(button)
 			   afterDelay: duration];
 }
 
