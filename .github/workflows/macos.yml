@@ -12,5 +12,8 @@ jobs:
       - name: Get dependencies
         run: git submodule update --init --recursive
 
+      - name: list content
+        run: pwd; ls -l
+
       - name: Build the project
         run: xcodebuild -derivedDataPath ./build -workspace Boxer.xcworkspace -scheme "Boxer CI" -configuration "Release"
