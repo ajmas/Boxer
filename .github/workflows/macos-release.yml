@@ -17,7 +17,7 @@ jobs:
       - name: Get dependencies
         run: git submodule update --init --recursive
       - name: Update the version before building
-        run: agvtool new-marketing-version ${GITHUB_REF#refs/tags/v}
+        run: agvtool new-marketing-version ${GITHUB_REF#refs/tags/}
       - name: Build the project
         run: xcodebuild -derivedDataPath ./build -workspace Boxer.xcworkspace -scheme "Boxer CI" -configuration "Release"
       - name: Package the release artefacts
@@ -29,5 +29,5 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ github.ref }}
           file: ./Boxer.dmg
-          asset_name: Boxer-${{GITHUB_REF#refs/tags/v}}.dmg
+          asset_name: Boxer.dmg
           overwrite: true
