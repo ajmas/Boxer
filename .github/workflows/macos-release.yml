@@ -1,5 +1,5 @@
 on:
-  push:
+  relase:
     # Sequence of patterns matched against refs/tags
     tags:
     - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
@@ -7,13 +7,17 @@ on:
 name: Upload Release Asset
 
 jobs:
-  build:
+  release:
     name: Upload Release Asset
     runs-on: macos-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
-      - name: Build project # This would actually build your project, using zip for an example artifact
+        uses: actions/checkout@v1
+      - name: Get dependencies
+        run: git submodule update --init --recursive
+      - name: Build the project
+        run: xcodebuild -derivedDataPath ./build -workspace Boxer.xcworkspace -scheme "Boxer CI" -configuration "Release"
+      - name: Package the release artefacts
         run: |
           hdiutil create -volname Boxer -srcfolder build/Build/Products/Release/Boxer.app -ov -format UDZO Boxer.dmg
       - name: Create Release
