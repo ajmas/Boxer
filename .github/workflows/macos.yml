@@ -7,25 +7,21 @@ jobs:
   k6_local_test:
     name: Boxer test build macos
     runs-on: macos-latest
-
+    env:
+      VERSION: 99.99.99
+      DATE: `date +%Y%m%d`
     steps:
       - name: Checkout
         uses: actions/checkout@v1
         with:
           submodules: recursive
-
-#      - name: Get dependencies
-#        run: git submodule update --init --recursive
-
-      - name: Update the version before building
-        run: VERSION=99.99.99
-        run: DATE=`date +%Y%m%d`
+      - name: Update plists for version 1
         run: sed -i '' 's/20191017/'${DATE}'/g' Boxer.xcodeproj/project.pbxproj
+      - name: Update plists for version 2
         run: sed -i '' 's/2.0.0/'${VERSION}'/g' Boxer.xcodeproj/project.pbxproj
+      - name: Update plists for version 3
         run: agvtool new-marketing-version ${VERSION}
-
       - name: checking contents
         run: cat Boxer.xcodeproj/project.pbxproj
-
       - name: Build the project
         run: xcodebuild -derivedDataPath ./build -workspace Boxer.xcworkspace -scheme "Boxer CI" -configuration "Release"
