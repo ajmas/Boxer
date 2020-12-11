@@ -3,10 +3,6 @@ on:
     branches:
       - '**'
 
-env:
-  VERSION: 99.99.99
-  DATE: `date +%Y%m%d`
-
 jobs:
   k6_local_test:
     name: Boxer test build macos
@@ -16,12 +12,19 @@ jobs:
         uses: actions/checkout@v1
         with:
           submodules: recursive
+      - name: Setup versions
+        run: export VERSION=99.99.99; DATE=`date +%Y%m%d`
+      - name: Display env
+        run: env
       - name: Update plists for version 1
         run: sed -i '' 's/20191017/'${DATE}'/g' Boxer.xcodeproj/project.pbxproj
+        shell: bash
       - name: Update plists for version 2
         run: sed -i '' 's/2.0.0/'${VERSION}'/g' Boxer.xcodeproj/project.pbxproj
+        shell: bash
       - name: Update plists for version 3
         run: agvtool new-marketing-version ${VERSION}
+        shell: bash
       - name: checking contents
         run: cat Boxer.xcodeproj/project.pbxproj
       - name: Build the project
