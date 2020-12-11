@@ -16,13 +16,17 @@ jobs:
         uses: actions/checkout@v1
         with:
           submodules: recursive
-#      - name: Get dependencies
-#        run: git submodule update --init --recursive
-      - name: Update the version before building
-        run: VERSION=${GITHUB_REF#refs/tags/}
-        run: DATE=`date +%Y%m%d`
+      - name: Get current date
+        id: DATE
+        run: echo "name=$(date +'%Y%m%d')" >> $GITHUB_ENV
+      - name: Get current version
+        id: VERSION
+        run: echo "name=$(GITHUB_REF#refs/tags/)" >> $GITHUB_ENV
+      - name: Update project build date
         run: sed -i '' 's/20191017/'${DATE}'/g' Boxer.xcodeproj/project.pbxproj
-        run: sed -i '' 's/2.0.0/'${VERSION}'/g' Boxer.xcodeproj/project.pbxproj
+      - name: Update project build version
+        run: sed -i '' 's/2.0.0-alpha/'${VERSION}'/g' Boxer.xcodeproj/project.pbxproj
+      - name: Update versions for Finder
         run: agvtool new-marketing-version ${VERSION}
       - name: Build the project
         run: xcodebuild -derivedDataPath ./build -workspace Boxer.xcworkspace -scheme "Boxer CI" -configuration "Release"
