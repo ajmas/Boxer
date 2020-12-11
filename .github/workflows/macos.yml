@@ -10,13 +10,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v1
-#        with:
-#          submodules: recursive
+       with:
+         submodules: recursive
       - name: Setups variables
         run: |
           echo "DATE=$(date +'%Y%m%d')" >> $GITHUB_ENV
           echo "VERSION=99.99.99" >> $GITHUB_ENV
-      - name: Update version and date in projects
+      - name: Update version and date in project
         run: |
           sed -i '' 's/20191017/'${DATE}'/g' Boxer.xcodeproj/project.pbxproj
           sed -i '' 's/2.0.0-alpha/'${VERSION}'/g' Boxer.xcodeproj/project.pbxproj
