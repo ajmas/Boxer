@@ -11,12 +11,21 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v1
+        with:
+          submodules: recursive
 
-      - name: Get dependencies
-        run: git submodule update --init --recursive
+#      - name: Get dependencies
+#        run: git submodule update --init --recursive
 
-      - name: list content
-        run: pwd; ls -l
+      - name: Update the version before building
+        run: VERSION=99.99.99
+        run: DATE=`date +%Y%m%d`
+        run: sed -i '' 's/20191017/'${DATE}'/g' Boxer.xcodeproj/project.pbxproj
+        run: sed -i '' 's/2.0.0/'${VERSION}'/g' Boxer.xcodeproj/project.pbxproj
+        run: agvtool new-marketing-version ${VERSION}
+
+      - name: checking contents
+        run: cat Boxer.xcodeproj/project.pbxproj
 
       - name: Build the project
         run: xcodebuild -derivedDataPath ./build -workspace Boxer.xcworkspace -scheme "Boxer CI" -configuration "Release"

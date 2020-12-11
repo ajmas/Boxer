@@ -14,10 +14,16 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v1
-      - name: Get dependencies
-        run: git submodule update --init --recursive
+        with:
+          submodules: recursive
+#      - name: Get dependencies
+#        run: git submodule update --init --recursive
       - name: Update the version before building
-        run: agvtool new-marketing-version ${GITHUB_REF#refs/tags/}
+        run: VERSION=${GITHUB_REF#refs/tags/}
+        run: DATE=`date +%Y%m%d`
+        run: sed -i '' 's/20191017/'${DATE}'/g' Boxer.xcodeproj/project.pbxproj
+        run: sed -i '' 's/2.0.0/'${VERSION}'/g' Boxer.xcodeproj/project.pbxproj
+        run: agvtool new-marketing-version ${VERSION}
       - name: Build the project
         run: xcodebuild -derivedDataPath ./build -workspace Boxer.xcworkspace -scheme "Boxer CI" -configuration "Release"
       - name: Package the release artefacts
