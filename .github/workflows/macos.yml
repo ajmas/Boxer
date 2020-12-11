@@ -3,13 +3,14 @@ on:
     branches:
       - '**'
 
+env:
+  VERSION: 99.99.99
+  DATE: `date +%Y%m%d`
+
 jobs:
   k6_local_test:
     name: Boxer test build macos
     runs-on: macos-latest
-    env:
-      VERSION: 99.99.99
-      DATE: `date +%Y%m%d`
     steps:
       - name: Checkout
         uses: actions/checkout@v1
