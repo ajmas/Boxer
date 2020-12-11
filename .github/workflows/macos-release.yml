@@ -16,16 +16,16 @@ jobs:
         uses: actions/checkout@v1
         with:
           submodules: recursive
-      - name: Get current date
-        id: DATE
-        run: echo "name=$(date +'%Y%m%d')" >> $GITHUB_ENV
-      - name: Get current version
-        id: VERSION
-        run: echo "name=$(GITHUB_REF#refs/tags/)" >> $GITHUB_ENV
-      - name: Update project build date
-        run: sed -i '' 's/20191017/'${DATE}'/g' Boxer.xcodeproj/project.pbxproj
-      - name: Update project build version
-        run: sed -i '' 's/2.0.0-alpha/'${VERSION}'/g' Boxer.xcodeproj/project.pbxproj
+      - name: Setups variables
+        run: |
+          echo "DATE=$(date +'%Y%m%d')" >> $GITHUB_ENV
+          echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+      - name: Update version and date in project
+        run: |
+          echo VERSION=$VERSION
+          echo DATE=$DATE
+          sed -i '' 's/20191017/'${DATE}'/g' Boxer.xcodeproj/project.pbxproj
+          sed -i '' 's/2.0.0-alpha/'${VERSION}'/g' Boxer.xcodeproj/project.pbxproj
       - name: Update versions for Finder
         run: agvtool new-marketing-version ${VERSION}
       - name: Build the project
