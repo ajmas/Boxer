@@ -5,11 +5,11 @@ on:
     tags:
     - '[0-9]+.*' # Push events to matching 1.0, 2.0, 1.0.1-alpha
 
-name: Upload Release Asset
+name: Attach macOS binary
 
 jobs:
   release:
-    name: Upload Release Asset
+    name: Build and attach binary
     runs-on: macos-11.0
     steps:
       - name: Checkout code
