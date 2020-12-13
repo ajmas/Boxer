@@ -10,7 +10,7 @@ name: Upload Release Asset
 jobs:
   release:
     name: Upload Release Asset
-    runs-on: macos-latest
+    runs-on: macos-11.0
     steps:
       - name: Checkout code
         uses: actions/checkout@v1
@@ -20,12 +20,12 @@ jobs:
         run: |
           echo "DATE=$(date +'%Y%m%d')" >> $GITHUB_ENV
           echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
-#      - name: Update version and date in project
-#        run: |
-#          echo VERSION=$VERSION
-#          echo DATE=$DATE
-#          sed -i '' 's/20191017/'${DATE}'/g' Boxer.xcodeproj/project.pbxproj
-#          sed -i '' 's/2.0.0-alpha/'${VERSION}'/g' Boxer.xcodeproj/project.pbxproj
+      - name: Update version and date in project
+        run: |
+          echo VERSION=$VERSION
+          echo DATE=$DATE
+          sed -i '' 's/20191017/'${DATE}'/g' Boxer.xcodeproj/project.pbxproj
+          sed -i '' 's/2.0.0-alpha/'${VERSION}'/g' Boxer.xcodeproj/project.pbxproj
       - name: Update versions for Finder
         run: agvtool new-marketing-version ${VERSION}
       - name: Build the project
@@ -33,6 +33,7 @@ jobs:
       - name: Package the release artefacts
         run: |
           hdiutil create -volname Boxer -srcfolder build/Build/Products/Release/Boxer.app -ov -format UDZO Boxer.dmg
+          zip
       - name:  Upload binaries to release
         uses: svenstaro/upload-release-action@v2
         with:
