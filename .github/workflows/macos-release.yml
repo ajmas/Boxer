@@ -13,9 +13,12 @@ jobs:
     runs-on: macos-11.0
     steps:
       - name: Checkout code
-        uses: actions/checkout@v1
+        uses: actions/checkout@v2
         with:
+          ref: ${{ github.ref }}
           submodules: recursive
+      - name: Show readme
+        run: cat Readme.md
       - name: Setups variables
         run: |
           echo "DATE=$(date +'%Y%m%d')" >> $GITHUB_ENV
